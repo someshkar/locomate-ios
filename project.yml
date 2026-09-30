@@ -1,0 +1,16 @@
+name: Locomate
+options:
+  bundleIdPrefix: com.locomate
+  deploymentTarget: "17.0"
+targets:
+  Locomate:
+    type: application
+    platform: iOS
+    sources: [Locomate]
+    info:
+      path: Locomate/Info.plist
+      properties:
+        UILaunchScreen_Generation: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIRequiresFullScreen: true
+        CFBundleDisplayName: Locomate
