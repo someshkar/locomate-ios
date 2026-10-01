@@ -937,6 +937,45 @@ struct ObservationSyncTests {
 
 // MARK: - Real gateway fixture decoding
 
+@Suite("Journey source isolation")
+@MainActor
+struct JourneySourceIsolationTests {
+    private struct FailingService: RailServiceProtocol {
+        func searchTrains(_ query: String) async throws -> [TrainSearchResult] { [] }
+        func journey(trainNumber: String, originDate: String) async throws -> Journey {
+            throw URLError(.notConnectedToInternet)
+        }
+        func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse {
+            throw URLError(.notConnectedToInternet)
+        }
+        func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse {
+            throw URLError(.notConnectedToInternet)
+        }
+        func trainHistory(trainNumber: String, limit: Int) async throws -> TrainHistoryResponse {
+            throw URLError(.notConnectedToInternet)
+        }
+        func registerLiveActivityToken(runId: String, token: String) async throws {}
+        func uploadObservations(_ batch: [CompactObservation]) async throws -> [String] { [] }
+    }
+
+    @Test("a production request never shows a bundled route after a gateway failure")
+    func failedGatewayDoesNotShowPreview() async {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let model = JourneyModel(
+            trainNumber: "12137", originDate: "2026-10-01", service: FailingService(),
+            cache: JourneyCache(directory: directory),
+            passport: PassportRepository(directory: directory)
+        )
+        await model.load()
+        #expect(model.journey == nil)
+        #expect(!model.isPreview)
+        #expect(!model.isCached)
+        if case .failed = model.phase {} else {
+            Issue.record("A failed production request must display its error")
+        }
+    }
+}
+
 /// Decodes an actual captured gateway response so the models stay honest about
 /// the production contract (including explicit `null` fields in `unavailable`
 /// forecasts, numeric millisecond timestamps, and `HH:mm` clock strings).

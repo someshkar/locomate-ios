@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import MapKit
 
 struct JourneyScreen: View {
     @Environment(\.locomoteColors) private var colors
@@ -52,6 +53,14 @@ struct JourneyScreen: View {
                             sheetContent(model: model, height: geometry.size.height)
                         }
                     )
+                } else if services.mode.isProduction {
+                    ResizableSheet(
+                        detents: detents,
+                        detentIndex: $detentIndex,
+                        position: sheetPosition,
+                        handle: { emptyHeader },
+                        content: { emptyJourneyContent }
+                    )
                 }
             }
         }
@@ -60,8 +69,14 @@ struct JourneyScreen: View {
         }
         .task { await ensureModel() }
         .onChange(of: request) { _, newValue in
-            guard let newValue, let model else { return }
-            Task { await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate) }
+            guard let newValue else { return }
+            Task {
+                if let model {
+                    await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate)
+                } else {
+                    await ensureModel()
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .locomoteForeground)) { _ in
             recomputeDaylight()
@@ -72,6 +87,7 @@ struct JourneyScreen: View {
 
     private func ensureModel() async {
         if model == nil {
+            if services.mode.isProduction && request == nil { return }
             let created = JourneyModel(
                 trainNumber: request?.trainNumber ?? "12137",
                 originDate: request?.originDate ?? IndiaDate.today(),
@@ -117,13 +133,21 @@ struct JourneyScreen: View {
             }
             .ignoresSafeArea()
         } else {
-            ZStack {
-                colors.canvas
-                VStack(spacing: Spacing.units(2.5)) {
-                    ProgressView().tint(colors.accentBase)
-                    Text("Loading current train run…")
+            Map(initialPosition: .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 22.6, longitude: 79.5),
+                span: MKCoordinateSpan(latitudeDelta: 20, longitudeDelta: 20)
+            )))
+            .mapStyle(.hybrid(elevation: .flat))
+            .overlay {
+                Color.black.opacity(0.45).allowsHitTesting(false)
+            }
+            .overlay(alignment: .top) {
+                if let model, case .loading = model.phase {
+                    ProgressView("Loading current train run…")
+                        .tint(colors.accentBase)
                         .font(LocomateFont.caption)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(colors.textPrimary)
+                        .padding(.top, 150)
                 }
             }
             .ignoresSafeArea()
@@ -151,6 +175,8 @@ struct JourneyScreen: View {
                     onGlass: true,
                     pulsing: model.modeInput.map { StatusMapping.isLivePulseAllowed($0) } ?? false
                 )
+            } else {
+                StatusPill(label: "FIND A TRAIN", kind: .scheduled, onGlass: true, pulsing: false)
             }
             Spacer()
             iconButton("ellipsis", label: "Data source details", action: { showDataSource = true })
@@ -176,6 +202,40 @@ struct JourneyScreen: View {
     }
 
     // MARK: Sheet content
+
+    private var emptyHeader: some View {
+        HStack {
+            Text("My Journeys")
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .tracking(-1)
+                .foregroundStyle(colors.textPrimary)
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.units(4))
+        .padding(.top, 10)
+        .padding(.bottom, Spacing.units(3))
+    }
+
+    private var emptyJourneyContent: some View {
+        VStack(alignment: .leading, spacing: Spacing.units(3)) {
+            Text("Every journey starts here.")
+                .font(LocomateFont.display)
+                .foregroundStyle(colors.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            Text("Find a train and choose its India origin date to see the route, station times and source of every update.")
+                .font(LocomateFont.body)
+                .foregroundStyle(colors.textSecondary)
+            Button(action: onOpenSearch) {
+                Label("Find your train", systemImage: "magnifyingglass")
+                    .font(LocomateFont.bodyStrong)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.units(3))
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(colors.accentBase)
+        }
+        .padding(Spacing.units(4))
+    }
 
     @ViewBuilder private func sheetContent(model: JourneyModel, height: CGFloat) -> some View {
         switch model.phase {

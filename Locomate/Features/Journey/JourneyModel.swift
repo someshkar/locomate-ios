@@ -69,6 +69,7 @@ public final class JourneyModel {
     }
 
     public var statusKind: StatusKind {
+        if case .failed = phase { return .error }
         guard let modeInput else { return .scheduled }
         return StatusMapping.statusForJourneyMode(modeInput)
     }
@@ -79,7 +80,7 @@ public final class JourneyModel {
         // Preview packs are always available, even offline.
         let pack = RoutePackStore.pack(trainNumber)
 
-        if let service, case .production = railMode {
+        if let service {
             phase = .loading
             do {
                 let loaded = try await service.journey(trainNumber: trainNumber, originDate: originDate)
@@ -98,14 +99,17 @@ public final class JourneyModel {
                     isCached = true
                     cachedAt = cached.cachedAt
                     phase = .loaded(cached.journey)
-                } else if let pack {
-                    presentPreview(pack, error: error.localizedDescription)
                 } else {
+                    isPreview = false
+                    isCached = false
+                    cachedAt = nil
+                    operations = nil
+                    await liveActivity.end()
                     phase = .failed(error.localizedDescription)
                 }
             }
         } else if let pack {
-            presentPreview(pack, error: nil)
+            presentPreview(pack)
         } else {
             phase = .failed("No route pack is bundled for \(trainNumber).")
         }
@@ -124,7 +128,7 @@ public final class JourneyModel {
         }
     }
 
-    private func presentPreview(_ pack: OpenRoutePack, error: String?) {
+    private func presentPreview(_ pack: OpenRoutePack) {
         isPreview = true
         // Preview is never live, so any existing activity must end.
         Task { await liveActivity.end() }
@@ -133,10 +137,6 @@ public final class JourneyModel {
         let journey = PreviewData.journey(from: pack, originDate: originDate)
         phase = .loaded(journey)
         operations = PreviewData.operations(from: pack, originDate: originDate)
-    }
-
-    public var railMode: RailDataMode {
-        service == nil ? .preview : RailDataMode.resolve()
     }
 
     // MARK: Actions

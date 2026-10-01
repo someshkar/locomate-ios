@@ -1,6 +1,17 @@
 import XCTest
 
 final class NavigationUITests: XCTestCase {
+    func testProductionStartsWithoutSampleTrain() {
+        let app = XCUIApplication()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = "https://example.invalid"
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Every journey starts here."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Timetable sample"].exists)
+        app.buttons["Find your train"].tap()
+        XCTAssertTrue(app.textFields["Search trains"].waitForExistence(timeout: 5))
+    }
+
     func testPrimarySurfacesOpenOnSimulator() {
         let app = XCUIApplication()
         app.launch()
