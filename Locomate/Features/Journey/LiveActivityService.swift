@@ -18,6 +18,7 @@ import Foundation
 public final class LiveActivityService {
     private var tokenTask: Task<Void, Never>?
     private var tokenActivityId: String?
+    private var registrationState: JourneyActivityAttributes.ContentState?
     private var revision = 0
 
     public init() {}
@@ -31,7 +32,7 @@ public final class LiveActivityService {
     @discardableResult
     public func sync(
         journey: Journey,
-        registerToken: ((String) async -> Void)? = nil,
+        registerToken: ((String, JourneyActivityAttributes.ContentState) async -> Void)? = nil,
         unregisterRun: ((String) async -> Void)? = nil
     ) async -> Bool {
         revision += 1
@@ -59,6 +60,7 @@ public final class LiveActivityService {
             confidence: journey.prediction.confidence.rawValue.uppercased()
         )
         let content = ActivityContent(state: state, staleDate: state.updatedAt.addingTimeInterval(10 * 60))
+        registrationState = state
 
         let active = Activity<JourneyActivityAttributes>.activities
         let matching = active.first { $0.attributes.runId == journey.id }
@@ -117,6 +119,7 @@ public final class LiveActivityService {
         tokenTask?.cancel()
         tokenTask = nil
         tokenActivityId = nil
+        registrationState = nil
         let active = Activity<JourneyActivityAttributes>.activities
         let runIds = Set(active.compactMap { $0.attributes.runId })
         for existing in active {
@@ -130,18 +133,20 @@ public final class LiveActivityService {
     /// Observe the push-to-update token and forward it to the gateway.
     private func observePushToken(
         _ activity: Activity<JourneyActivityAttributes>,
-        register: @escaping (String) async -> Void
+        register: @escaping (String, JourneyActivityAttributes.ContentState) async -> Void
     ) {
         tokenTask?.cancel()
         tokenActivityId = activity.id
         let updates = activity.pushTokenUpdates
-        tokenTask = Task { [register] in
+        tokenTask = Task { [weak self, register] in
             if let token = activity.pushToken {
-                await register(token.map { String(format: "%02x", $0) }.joined())
+                guard let state = self?.registrationState else { return }
+                await register(token.map { String(format: "%02x", $0) }.joined(), state)
             }
             for await token in updates {
+                guard let state = self?.registrationState else { break }
                 let hex = token.map { String(format: "%02x", $0) }.joined()
-                await register(hex)
+                await register(hex, state)
             }
         }
     }

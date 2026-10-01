@@ -141,11 +141,11 @@ public final class JourneyModel {
     }
 
     /// Registers a push-to-update token for gateway delivery when configured.
-    private func tokenRegistrar(for runId: String) -> ((String) async -> Void)? {
+    private func tokenRegistrar(for runId: String) -> ((String, JourneyActivityAttributes.ContentState) async -> Void)? {
         guard let service else { return nil }
-        return { token in
+        return { token, state in
             // Best-effort: a failed registration must not break the journey.
-            _ = try? await service.registerLiveActivityToken(runId: runId, token: token)
+            _ = try? await service.registerLiveActivityToken(runId: runId, token: token, state: state)
         }
     }
 

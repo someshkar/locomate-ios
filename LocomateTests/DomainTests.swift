@@ -941,7 +941,9 @@ struct ObservationSyncTests {
         func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse { fatalError() }
         func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse { fatalError() }
         func trainHistory(trainNumber: String, limit: Int) async throws -> TrainHistoryResponse { fatalError() }
-        func registerLiveActivityToken(runId: String, token: String) async throws {}
+        func registerLiveActivityToken(
+            runId: String, token: String, state: JourneyActivityAttributes.ContentState
+        ) async throws {}
         func unregisterLiveActivity(runId: String) async throws {}
         func uploadObservations(_ batch: [CompactObservation]) async throws -> [String] {
             if shouldFail { throw URLError(.notConnectedToInternet) }
@@ -1032,7 +1034,9 @@ struct JourneySourceIsolationTests {
         func trainHistory(trainNumber: String, limit: Int) async throws -> TrainHistoryResponse {
             throw URLError(.notConnectedToInternet)
         }
-        func registerLiveActivityToken(runId: String, token: String) async throws {}
+        func registerLiveActivityToken(
+            runId: String, token: String, state: JourneyActivityAttributes.ContentState
+        ) async throws {}
         func unregisterLiveActivity(runId: String) async throws {}
         func uploadObservations(_ batch: [CompactObservation]) async throws -> [String] { [] }
     }

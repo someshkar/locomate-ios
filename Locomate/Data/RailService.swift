@@ -34,7 +34,9 @@ private struct JourneyResponse: Decodable {
 }
 
 public protocol RailServiceProtocol: Sendable {
-    func registerLiveActivityToken(runId: String, token: String) async throws
+    func registerLiveActivityToken(
+        runId: String, token: String, state: JourneyActivityAttributes.ContentState
+    ) async throws
     func unregisterLiveActivity(runId: String) async throws
     func uploadObservations(_ batch: [CompactObservation]) async throws -> [String]
     func searchTrains(_ query: String) async throws -> [TrainSearchResult]
@@ -51,11 +53,25 @@ public struct RailService: RailServiceProtocol {
 
     /// Register a Live Activity push-to-update token so the gateway can refresh
     /// the ETA without the app polling. Mirrors the SmartRail subscription call.
-    public func registerLiveActivityToken(runId: String, token: String) async throws {
+    public func registerLiveActivityToken(
+        runId: String, token: String, state: JourneyActivityAttributes.ContentState
+    ) async throws {
         struct Ack: Decodable { let accepted: Bool? }
         let _: Ack = try await client.post(
             "/v1/live-activities/subscriptions",
-            body: ["runId": runId, "pushToken": token],
+            body: [
+                "runId": runId,
+                "pushToken": token,
+                "contentState": [
+                    "nextStation": state.nextStation,
+                    "eta": state.eta,
+                    "delayMinutes": state.delayMinutes.map { $0 as Any } ?? NSNull(),
+                    "delayLabel": state.delayLabel,
+                    "distanceToNextKm": state.distanceToNextKm,
+                    "confidence": state.confidence,
+                    "updatedAt": state.updatedAt.timeIntervalSinceReferenceDate
+                ] as [String: Any]
+            ],
             idempotencyKey: "live-activity-\(runId)"
         )
     }

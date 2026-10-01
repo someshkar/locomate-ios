@@ -8,7 +8,7 @@ import ActivityKit
 import Foundation
 
 public struct JourneyActivityAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
+    public struct ContentState: Codable, Hashable, Sendable {
         public var nextStation: String
         public var eta: String
         public var delayMinutes: Int?
