@@ -9,6 +9,7 @@
 
 import Testing
 import Foundation
+import Security
 @testable import Locomate
 
 @Suite("Rail storage scopes")
@@ -686,6 +687,28 @@ struct TokenStoreTests {
         let expiring = AuthSession(accessToken: "a", refreshToken: nil, expiresAt: Date().addingTimeInterval(10))
         #expect(!valid.isExpired)
         #expect(expiring.isExpired)
+    }
+
+    @Test("migratable sessions are discarded and new sessions stay on this device")
+    func deviceOnlyKeychain() throws {
+        let service = "com.locomate.tests.\(UUID().uuidString)"
+        let store = KeychainTokenStore(service: service, account: "session")
+        defer { store.clear() }
+        let legacy = AuthSession(accessToken: "legacy", refreshToken: nil,
+                                 expiresAt: Date().addingTimeInterval(3600))
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "session",
+            kSecValueData as String: try JSONEncoder().encode(legacy),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+        ]
+        #expect(SecItemAdd(query as CFDictionary, nil) == errSecSuccess)
+        #expect(store.load() == nil)
+        let current = AuthSession(accessToken: "device-only", refreshToken: nil,
+                                  expiresAt: Date().addingTimeInterval(3600))
+        try store.save(current)
+        #expect(store.load()?.accessToken == "device-only")
     }
 }
 

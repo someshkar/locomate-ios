@@ -29,10 +29,19 @@ public final class KeychainTokenStore: TokenStore, @unchecked Sendable {
     public func load() -> AuthSession? {
         var query = baseQuery
         query[kSecReturnData as String] = true
+        query[kSecReturnAttributes as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data else { return nil }
+              let attributes = item as? [String: Any] else { return nil }
+        guard let accessibility = attributes[kSecAttrAccessible as String] as? String,
+              accessibility == (kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String),
+              let data = attributes[kSecValueData as String] as? Data else {
+            // Old builds created migratable sessions; force a fresh device
+            // registration rather than reusing one restored from a backup.
+            clear()
+            return nil
+        }
         return try? JSONDecoder.locomote.decode(AuthSession.self, from: data)
     }
 
