@@ -54,6 +54,7 @@ public final class LiveActivityService {
             distanceToNextKm: journey.position.distanceToNextKm,
             confidence: journey.prediction.confidence.rawValue.uppercased()
         )
+        let content = ActivityContent(state: state, staleDate: state.updatedAt.addingTimeInterval(10 * 60))
 
         let active = Activity<JourneyActivityAttributes>.activities
         let matching = active.first { $0.attributes.runId == journey.id }
@@ -71,7 +72,7 @@ public final class LiveActivityService {
             guard revision == syncRevision else { return false }
         }
         if let matching {
-            await matching.update(ActivityContent(state: state, staleDate: nil))
+            await matching.update(content)
             guard revision == syncRevision else { return false }
             if let registerToken, tokenTask == nil {
                 observePushToken(matching, register: registerToken)
@@ -89,7 +90,7 @@ public final class LiveActivityService {
         do {
             let created = try Activity.request(
                 attributes: attributes,
-                content: ActivityContent(state: state, staleDate: nil),
+                content: content,
                 pushType: registerToken == nil ? nil : .token
             )
             if let registerToken {

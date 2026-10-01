@@ -43,6 +43,6 @@ Production sessions, cached runs, journey plans, and Passport entries are scoped
 
 A live train position marker requires recent observed evidence from an official, community, or device source. Scheduled or predicted route progress does not create a live marker; historical previews use a separately labeled violet sample marker.
 
-The **Live card** action starts a Lock Screen Live Activity after an explicit tap when the current production run has a known delay. It updates when the app loads fresh run data. Server-sent ActivityKit updates still require gateway APNs delivery.
+The **Live card** action starts a Lock Screen Live Activity after an explicit tap when the current production run has a known delay. It updates when the app loads fresh run data and marks its ETA stale after ten minutes without a refresh. Server-sent ActivityKit updates still require gateway APNs delivery.
 
 This repository is still under active implementation. Physical-device background location, push delivery, accessibility review, and performance profiling require further verification.

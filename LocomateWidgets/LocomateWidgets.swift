@@ -56,7 +56,8 @@ struct LocomateLiveActivity: Widget {
                         .foregroundStyle(.white)
                         .lineLimit(1)
                     HStack(spacing: 8) {
-                        DelayBadge(label: context.state.delayLabel, minutes: context.state.delayMinutes)
+                        DelayBadge(label: context.isStale ? "STALE · LAST KNOWN" : context.state.delayLabel,
+                                   minutes: context.isStale ? nil : context.state.delayMinutes)
                         Text("\(Int(context.state.distanceToNextKm.rounded())) km")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(WidgetPalette.secondary)
@@ -67,7 +68,7 @@ struct LocomateLiveActivity: Widget {
                     Text(context.state.eta)
                         .font(.system(size: 30, weight: .medium, design: .monospaced))
                         .foregroundStyle(.white)
-                    Text("ETA")
+                    Text(context.isStale ? "LAST ETA" : "ETA")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(WidgetPalette.secondary)
                 }
@@ -91,7 +92,7 @@ struct LocomateLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("ETA")
+                        Text(context.isStale ? "LAST ETA" : "ETA")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(WidgetPalette.secondary)
                         Text(context.state.eta)
@@ -101,7 +102,8 @@ struct LocomateLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack(spacing: 10) {
-                        DelayBadge(label: context.state.delayLabel, minutes: context.state.delayMinutes)
+                        DelayBadge(label: context.isStale ? "STALE" : context.state.delayLabel,
+                                   minutes: context.isStale ? nil : context.state.delayMinutes)
                         Text("\(Int(context.state.distanceToNextKm.rounded())) km to go")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(WidgetPalette.secondary)
@@ -114,7 +116,7 @@ struct LocomateLiveActivity: Widget {
             } compactLeading: {
                 Image(systemName: "tram.fill").foregroundStyle(WidgetPalette.accent)
             } compactTrailing: {
-                Text(context.state.eta)
+                Text(context.isStale ? "STALE" : context.state.eta)
                     .font(.system(size: 13, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white)
             } minimal: {
