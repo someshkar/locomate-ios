@@ -2,9 +2,8 @@
 //  Theme.swift
 //  Locomate
 //
-//  Semantic theme — ported from SmartRail `src/theme/tokens.ts`.
-//  darkTheme / lightTheme mirror the source values exactly, including the
-//  translucent glass and scrim strings, so the port is visually faithful.
+//  Semantic theme based on SmartRail tokens and the approved Doop canvas.
+//  The dark primary blue, glass surface, and sheet radius follow the canvas.
 //
 
 import SwiftUI
@@ -75,7 +74,7 @@ public enum LocomateTheme {
         canvas: Palette.ink950,
         elevated: Palette.ink850,
         raised: Palette.ink800,
-        glass: Color(rgba: 19, 22, 29, 0.90),
+        glass: Color(rgba: 16, 17, 22, 0.92),
         overlay: Color(rgba: 0, 0, 0, 0.60),
         textPrimary: Palette.grey200,
         textSecondary: Palette.grey300,
@@ -83,7 +82,7 @@ public enum LocomateTheme {
         onAccent: Palette.ink900,
         borderSubtle: Color(rgba: 255, 255, 255, 0.12),
         borderStrong: Color(rgba: 255, 255, 255, 0.22),
-        accentBase: Palette.accent400,
+        accentBase: Palette.accent500,
         accentSoft: Palette.accent200,
         accentWash: Color(rgba: 86, 178, 255, 0.16),
         accentLine: Color(rgba: 86, 178, 255, 0.32),
@@ -131,7 +130,7 @@ public enum LocomateTheme {
     public static func colors(dark isDark: Bool) -> LocomateColors { isDark ? Self.dark : light }
 }
 
-// MARK: - Radii & spacing (ported from tokens.ts)
+// MARK: - Radii & spacing
 
 public enum Radius {
     public static let sm: CGFloat = 9
@@ -139,7 +138,7 @@ public enum Radius {
     public static let lg: CGFloat = 22
     public static let xl: CGFloat = 30
     public static let pill: CGFloat = 999
-    public static let sheet: CGFloat = 36
+    public static let sheet: CGFloat = 28
 }
 
 public enum Spacing {

@@ -2,6 +2,8 @@
 
 Native SwiftUI railway journey app. The journey and clustered network maps use Apple MapKit. The interface follows the approved Doop iOS canvas: a full-screen route map, a draggable dark sheet, a floating capsule dock, search, Explore, and Passport.
 
+The [Doop canvas](https://doop.design/c/ha6YK6QvsY) is the visual reference. Its dark palette uses `#060708` ground, `#009DFA` signal blue, `#5FAEF5` route blue, and a 28-point Journey sheet corner radius. The app uses MapKit hybrid imagery for the map.
+
 ## Build and test
 
 Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.
