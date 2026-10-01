@@ -9,14 +9,15 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    # Empty by default -> the app runs in historical preview mode.
-    # Override on the command line or in a local xcconfig to target production:
-    #   xcodebuild ... LOCOMOTE_RAIL_API_URL=https://<gateway>.workers.dev
-    LOCOMOTE_RAIL_API_URL: ""
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     DEVELOPMENT_TEAM: ""
     CODE_SIGNING_ALLOWED: "NO"
     ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+  configs:
+    Debug:
+      LOCOMOTE_RAIL_API_URL: ""
+    Release:
+      LOCOMOTE_RAIL_API_URL: "https://rail-intelligence-gateway.rail-intelligence-gateway.workers.dev"
 
 targets:
   Locomate:

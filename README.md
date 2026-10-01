@@ -19,7 +19,7 @@ The native app icon uses the same route-shaped L as Android. Its 1024px asset ca
 
 ## Rail data modes
 
-The default build uses clearly labeled historical route packs. They provide real route geometry for interface review, but no live position or ETA. To use a deployed SmartRail rail gateway, set `LOCOMOTE_RAIL_API_URL` to its HTTPS base URL when building. The gateway creates an installation-scoped device session; provider credentials stay on the server. Live, predicted, scheduled, stale, and preview data retain separate labels. A production build opens with an empty journey state until a train is selected. A failed production request may show an aged cached run; it does not switch to a preview fixture.
+Debug builds default to clearly labeled historical route packs. They provide real route geometry for interface review, but no live position or ETA. Release builds target the deployed SmartRail rail gateway; `LOCOMOTE_RAIL_API_URL` can override the URL when building. The gateway creates an installation-scoped device session; provider credentials stay on the server. Live, predicted, scheduled, stale, and preview data retain separate labels. A production build opens with an empty journey state until a train is selected. A failed production request may show an aged cached run; it does not switch to a preview fixture.
 
 Saved journeys stay on the device. Route previews are excluded from Passport's saved-run distance, and a forecast is not counted as an observed on-time outcome.
 
