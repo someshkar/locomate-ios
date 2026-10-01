@@ -343,7 +343,7 @@ struct JourneyActions: View {
 
     var body: some View {
         HStack(spacing: Spacing.units(2.5)) {
-            action("Alerts", systemImage: alertsEnabled ? "bell.fill" : "bell",
+            action("Live card", systemImage: alertsEnabled ? "bell.fill" : "bell",
                    active: alertsEnabled, pending: alertsPending, action: onToggleAlerts)
             action("Calendar", systemImage: "calendar", active: false, pending: calendarPending, action: onCalendar)
             action("Save", systemImage: journeySaved ? "bookmark.fill" : "bookmark",

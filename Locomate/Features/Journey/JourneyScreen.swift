@@ -73,6 +73,7 @@ struct JourneyScreen: View {
             Task {
                 if let model {
                     await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate)
+                    alertsEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
                 } else {
                     await ensureModel()
                 }
@@ -97,6 +98,7 @@ struct JourneyScreen: View {
             )
             model = created
             await created.load()
+            alertsEnabled = created.journey.map { created.isLiveActivityRunning(for: $0.id) } ?? false
             recomputeDaylight()
         }
     }
@@ -344,18 +346,31 @@ struct JourneyScreen: View {
     }
 
     private func toggleAlerts(model: JourneyModel, journey: Journey) {
-        guard !model.isPreview else {
-            message = "Alerts require a production journey and are never generated from preview data."
+        guard !model.isPreview, !model.isCached else {
+            message = "A current production journey is required for a Lock Screen card."
             Haptics.warn()
             return
         }
+        guard !alertsPending else { return }
         alertsPending = true
-        alertsEnabled.toggle()
-        alertsEnabled ? Haptics.success() : Haptics.warn()
-        message = alertsEnabled
-            ? "Alerts are on for \(journey.trainNumber)."
-            : "Alerts are off for \(journey.trainNumber)."
-        alertsPending = false
+        Task { @MainActor in
+            defer { alertsPending = false }
+            if alertsEnabled {
+                await model.endLiveActivity()
+                guard model.journey?.id == journey.id else { return }
+                alertsEnabled = false
+                message = "Lock Screen card is off for \(journey.trainNumber)."
+                Haptics.warn()
+            } else {
+                let started = await model.startLiveActivity()
+                guard model.journey?.id == journey.id else { return }
+                alertsEnabled = started
+                message = started
+                    ? "Lock Screen card shows \(journey.trainNumber)'s current ETA."
+                    : "A current delay and Live Activities access in iOS Settings are required."
+                if started { Haptics.success() } else { Haptics.warn() }
+            }
+        }
     }
 
     private func share(model: JourneyModel, journey: Journey) {

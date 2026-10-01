@@ -6,8 +6,7 @@
 //  SmartRail `src/services/liveActivity.ios.ts`:
 //  - Only starts for a known delay (never for unavailable/stale/estimated).
 //  - Ends immediately when the delay becomes unknown.
-//  - Registers the push-to-update token so the server can refresh the ETA
-//    instead of polling.
+//  - Registers the push-to-update token for gateway delivery when configured.
 //
 
 import Foundation
@@ -23,7 +22,9 @@ public final class LiveActivityService {
 
     public init() {}
 
-    public var isRunning: Bool { !Activity<JourneyActivityAttributes>.activities.isEmpty }
+    public func isRunning(for runId: String) -> Bool {
+        Activity<JourneyActivityAttributes>.activities.contains { $0.attributes.runId == runId }
+    }
 
     /// Sync the Live Activity to the current journey state.
     /// Returns false when no activity should be running.

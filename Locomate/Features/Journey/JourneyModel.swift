@@ -97,8 +97,12 @@ public final class JourneyModel {
                 )
                 guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
                 operations = loadedOperations
-                // Keep the Live Activity / Dynamic Island in step with the run.
-                await liveActivity.sync(journey: loaded, registerToken: tokenRegistrar(for: loaded.id))
+                // Restore only a Live Activity that the traveller started for this run.
+                if liveActivity.isRunning(for: loaded.id) {
+                    await liveActivity.sync(journey: loaded, registerToken: tokenRegistrar(for: loaded.id))
+                } else {
+                    await liveActivity.end()
+                }
             } catch {
                 guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
                 await liveActivity.end()
@@ -133,7 +137,7 @@ public final class JourneyModel {
         plan = loadedPlan
     }
 
-    /// Registers a push-to-update token with the gateway for server-driven ETA.
+    /// Registers a push-to-update token for gateway delivery when configured.
     private func tokenRegistrar(for runId: String) -> ((String) async -> Void)? {
         guard let service else { return nil }
         return { token in
@@ -178,7 +182,17 @@ public final class JourneyModel {
         await load()
     }
 
-    /// End the Live Activity (e.g. when alerts are turned off).
+    public func isLiveActivityRunning(for runId: String) -> Bool {
+        liveActivity.isRunning(for: runId)
+    }
+
+    /// Start a Lock Screen journey card only after an explicit tap.
+    public func startLiveActivity() async -> Bool {
+        guard !isPreview, !isCached, let journey else { return false }
+        return await liveActivity.sync(journey: journey, registerToken: tokenRegistrar(for: journey.id))
+    }
+
+    /// End the Lock Screen journey card.
     public func endLiveActivity() async {
         await liveActivity.end()
     }
