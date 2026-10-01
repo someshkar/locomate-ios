@@ -20,6 +20,7 @@
 		32F0354407D667D5931F610F /* RouteGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AFF5E160E411983E693A628 /* RouteGeometry.swift */; };
 		362853C49DDA1F8678529F9E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C50427D18F4C7E60BCBD8F /* Typography.swift */; };
 		3EC29C8DAF72A18A6F9641C3 /* DataReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E411A21676A43F23B04DE31 /* DataReport.swift */; };
+		49DF9587385C9F47580F3BF2 /* LocalGatewayIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */; };
 		5510C910EB660195549A2108 /* DataSourceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302118BD502B778928B2D4A0 /* DataSourceSheet.swift */; };
 		56734436EA551F5755619328 /* DomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE97A4E1410E4133B6E288E0 /* DomainTests.swift */; };
 		6043C73EF8C9062F1D014D34 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B4810BE4039C50CEC22F72 /* Theme.swift */; };
@@ -125,6 +126,7 @@
 		56107DD18F4B0A96F1291FEC /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
 		598BBB6E36D75DD5CA402ADA /* JourneyComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyComponents.swift; sourceTree = "<group>"; };
 		5C3736C1E7E0AB23927A69A7 /* JourneyCalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyCalendarService.swift; sourceTree = "<group>"; };
+		5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalGatewayIntegrationTests.swift; sourceTree = "<group>"; };
 		6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = LocomateWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EF8D8513F38692BB1E594A0 /* Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routes.swift; sourceTree = "<group>"; };
 		71D6BC2610056C92E9F84EA6 /* ForecastPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastPresentation.swift; sourceTree = "<group>"; };
@@ -312,6 +314,7 @@
 			isa = PBXGroup;
 			children = (
 				EE97A4E1410E4133B6E288E0 /* DomainTests.swift */,
+				5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */,
 				D457528F22290ED0F75A20DE /* Fixtures */,
 			);
 			path = LocomateTests;
@@ -602,6 +605,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				56734436EA551F5755619328 /* DomainTests.swift in Sources */,
+				49DF9587385C9F47580F3BF2 /* LocalGatewayIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -677,6 +681,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCOMOTE_LOCAL_GATEWAY_URL = "";
 				LOCOMOTE_RAIL_API_URL = "https://rail-intelligence-gateway.rail-intelligence-gateway.workers.dev";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -745,6 +750,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCOMOTE_LOCAL_GATEWAY_URL = "";
 				LOCOMOTE_RAIL_API_URL = "";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;

@@ -2,6 +2,35 @@ import XCTest
 
 final class NavigationUITests: XCTestCase {
     @MainActor
+    func testCurrentLocalGatewayJourneyAndNetwork() throws {
+        guard let gateway = ProcessInfo.processInfo.environment["LOCOMOTE_LOCAL_GATEWAY_URL"],
+              gateway.hasPrefix("http://127.0.0.1:") else {
+            throw XCTSkip("Run with a local Wrangler gateway to exercise the current public feed.")
+        }
+
+        let app = XCUIApplication()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = gateway
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Find your train"].waitForExistence(timeout: 10))
+        app.buttons["Find your train"].tap()
+        let field = app.textFields["Search trains"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("12137")
+        let result = app.buttons["12137 Punjab Mail"]
+        XCTAssertTrue(result.waitForExistence(timeout: 20))
+        result.tap()
+
+        XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 25))
+        XCTAssertFalse(app.staticTexts["Timetable sample"].exists)
+        app.buttons["Explore"].tap()
+        XCTAssertTrue(app.staticTexts["Rail network"].waitForExistence(timeout: 10))
+        let updated = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "UPDATED ")).firstMatch
+        XCTAssertTrue(updated.waitForExistence(timeout: 25))
+    }
+
+    @MainActor
     func testProductionStartsWithoutSampleTrain() {
         let app = XCUIApplication()
         app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = "https://example.invalid"

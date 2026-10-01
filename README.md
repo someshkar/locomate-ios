@@ -14,7 +14,20 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   test CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
 ```
 
-The 89 Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, Passport calculations, and device-only Keychain migration. Two UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
+The 89 routine Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, Passport calculations, and device-only Keychain migration. Two routine UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
+
+To exercise current public rail data without changing the deployed gateway, start the SmartRail gateway locally with its development secrets and D1 migrations, then run:
+
+```sh
+xcodebuild -project Locomate.xcodeproj -scheme Locomate \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
+  -parallel-testing-enabled NO \
+  -only-testing:LocomateTests/LocalGatewayIntegrationTests \
+  -only-testing:LocomateUITests/NavigationUITests/testCurrentLocalGatewayJourneyAndNetwork \
+  LOCOMOTE_LOCAL_GATEWAY_URL=http://127.0.0.1:8787 test
+```
+
+These two integration tests are skipped in normal CI. They check search, a dated journey, and the network against the running local Worker.
 
 The native app icon uses the same route-shaped L as Android. Its 1024px asset can be regenerated with `swift scripts/render-app-icon.swift`. GitHub Actions runs the simulator tests on the Xcode 27 runner for each pull request.
 
