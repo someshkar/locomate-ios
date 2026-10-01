@@ -33,6 +33,32 @@ These two integration tests are skipped in normal CI. They check search, a dated
 
 The native app icon uses the same route-shaped L as Android. Its 1024px asset can be regenerated with `swift scripts/render-app-icon.swift`. GitHub Actions runs the simulator tests on the Xcode 27 runner for each pull request.
 
+## Accessibility release gate
+
+Routine UI tests verify actual Dynamic Type growth from the standard size to the largest accessibility size, reachable tab/search controls, 44-point tap regions (with a 0.001-point floating-point tolerance), and spoken station names plus timetable times. The dock uses native large-content previews when accessibility text sizes require compact icon controls. The magnified Journey label and default/largest layouts were visually checked on the iPhone 18 Pro simulator with iOS 27 and Xcode 27.
+
+The full per-screen XCTest audit is explicitly opt-in and reports every category and every issue without exclusions:
+
+```sh
+xcodebuild -project Locomate.xcodeproj -scheme Locomate \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
+  -parallel-testing-enabled NO -collect-test-diagnostics never \
+  -only-testing:LocomateUITests/AccessibilityUITests \
+  LOCOMATE_RUN_ACCESSIBILITY_AUDITS=1 \
+  test CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
+```
+
+**This gate is still open.** On 2026-10-01 the routine suite passed all 115 Swift tests and six UI tests, including both focused accessibility regressions. Its seven opt-in audits and local-gateway UI test were skipped as configured. When explicitly enabled, all six dark-appearance full audits still failed. Remaining findings include:
+
+- MapKit's 29-by-11-point Legal attribution link and geographic image text with no identified accessibility element. The native map and its accessibility tree are preserved; these are not filtered from the audit.
+- A partial Dynamic Type warning for the native navigation-bar Done action.
+- Text-clipping warnings for the Passport empty heading, Search explanatory copy/date labels, and contribution headings. Some concern scroll content outside the visible viewport; those findings have **not** all been established as false positives.
+- Contrast warnings for the route-status pill, journey stats, and contribution text. Off-viewport content is represented among the findings, and further inspection is required before closing this gate.
+
+Light appearance also has an opt-in Settings audit. Its text/link/status tokens were darkened after measured contrast failures; the full audit result remains a separate gate from those token calculations. The test preserves the original dark appearance after checking light mode.
+
+Simulator auditing does not establish physical VoiceOver focus order, rotor navigation, live notification announcements, or accessibility of the production-only channel/quiet-hours form. Verify those with a current production journey on a physical iPhone before release.
+
 ## Rail data modes
 
 Debug builds default to clearly labeled historical route packs. They provide real route geometry for interface review, but no live position or ETA. Release builds target the deployed SmartRail rail gateway; `LOCOMOTE_RAIL_API_URL` can override the URL when building. The gateway creates an installation-scoped device session; provider credentials stay on the server. Live, predicted, scheduled, stale, and preview data retain separate labels. A production build opens with an empty journey state until a train is selected. A failed production request may show an aged cached run; it does not switch to a preview fixture.

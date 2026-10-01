@@ -25,8 +25,8 @@ public struct GlassSurface<S: InsettableShape>: View {
 
     private var tint: Color {
         colors.dark
-            ? Color(rgba: 17, 21, 28, heavy ? 0.34 : 0.16)
-            : Color(rgba: 250, 252, 255, heavy ? 0.40 : 0.18)
+            ? Color(rgba: 17, 21, 28, heavy ? 0.94 : 0.90)
+            : Color(rgba: 250, 252, 255, heavy ? 0.97 : 0.94)
     }
 
     private var highlight: Color {

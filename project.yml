@@ -15,6 +15,7 @@ settings:
     "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "YES"
     "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
     LOCOMOTE_LOCAL_GATEWAY_URL: ""
+    LOCOMATE_RUN_ACCESSIBILITY_AUDITS: "0"
     ENABLE_USER_SCRIPT_SANDBOXING: "NO"
   configs:
     Debug:
@@ -128,6 +129,7 @@ schemes:
       config: Debug
       environmentVariables:
         LOCOMOTE_LOCAL_GATEWAY_URL: "$(LOCOMOTE_LOCAL_GATEWAY_URL)"
+        LOCOMATE_RUN_ACCESSIBILITY_AUDITS: "$(LOCOMATE_RUN_ACCESSIBILITY_AUDITS)"
       targets:
         - LocomateTests
         - LocomateUITests

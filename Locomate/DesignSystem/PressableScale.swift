@@ -57,11 +57,20 @@ public struct ScaleButton<Label: View>: View {
     }
 
     public var body: some View {
+        if let accessibilityLabel {
+            button.accessibilityLabel(accessibilityLabel)
+        } else {
+            button
+        }
+    }
+
+    private var button: some View {
         Button(action: action) {
             label()
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleStyle(haptic: haptic))
-        .accessibilityLabel(accessibilityLabel ?? "")
         .accessibilityAddTraits(.isButton)
     }
 }
@@ -87,5 +96,15 @@ public struct PressableScale<Content: View>: View {
             content()
         }
         .buttonStyle(PressScaleStyle(haptic: haptic))
+    }
+}
+
+/// Keeps the whole visible text-action area tappable, including its padding.
+struct AccessibleTextButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

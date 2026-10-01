@@ -177,7 +177,6 @@ private struct ContributionToggle: View {
             Spacer(minLength: Spacing.units(2))
             AnimatedSwitch(isOn: isOn)
         }
-        .opacity(disabled ? 0.6 : 1)
         .contentShape(Rectangle())
         .onTapGesture {
             guard !disabled else { return }
@@ -185,8 +184,9 @@ private struct ContributionToggle: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
-        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityValue(disabled ? "Unavailable. " + meta : (isOn ? "On" : "Off"))
         .accessibilityAddTraits(.isButton)
+        .disabled(disabled)
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }

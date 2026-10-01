@@ -11,6 +11,7 @@ import SwiftUI
 import MapKit
 
 struct JourneyScreen: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(Preferences.self) private var preferences
@@ -37,7 +38,7 @@ struct JourneyScreen: View {
         GeometryReader { geometry in
             let detents = detents(for: geometry.size.height)
             ZStack(alignment: .top) {
-                colors.canvas.ignoresSafeArea()
+                colors.canvas.ignoresSafeArea(edges: .top)
                 map
                 mapChrome
                 if let model {
@@ -163,7 +164,7 @@ struct JourneyScreen: View {
                 Color.black.opacity(preferences.mapLighting == .day ? 0.03 : 0.34)
                     .allowsHitTesting(false)
             }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: .top)
         } else {
             Map(initialPosition: .region(MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: 22.6, longitude: 79.5),
@@ -182,7 +183,7 @@ struct JourneyScreen: View {
                         .padding(.top, 150)
                 }
             }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: .top)
         }
     }
 
@@ -190,7 +191,7 @@ struct JourneyScreen: View {
         guard let route = journey.routeCoordinates, route.count >= 2 else { return [] }
         return journey.stops.enumerated().compactMap { index, stop in
             guard let coordinate = try? RouteGeometry.coordinate(along: route, progress: stop.progress) else { return nil }
-            return MapStationMarker(id: stop.code, coordinate: coordinate, state: stop.state)
+            return MapStationMarker(id: stop.code, coordinate: coordinate, name: stop.name, state: stop.state)
         }
     }
 
@@ -238,7 +239,7 @@ struct JourneyScreen: View {
     private var emptyHeader: some View {
         HStack {
             Text("My Journeys")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.system(.title, design: .rounded, weight: .bold))
                 .tracking(-1)
                 .foregroundStyle(colors.textPrimary)
             Spacer()
@@ -342,20 +343,25 @@ struct JourneyScreen: View {
     }
 
     private func trainHeader(_ journey: Journey) -> some View {
-        HStack(spacing: Spacing.units(3)) {
+        (dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: Spacing.units(3)))) {
             Text("My Journeys")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.system(.title, design: .rounded, weight: .bold))
                 .tracking(-1)
                 .foregroundStyle(colors.textPrimary)
-            Spacer(minLength: 0)
-            iconButton(detentIndex == 0 ? "chevron.up" : "chevron.down",
-                       label: detentIndex == 0 ? "Show more map" : "Expand journey details",
-                       action: {
-                           withAnimation(Motion.animation(Motion.sheet, reduceMotion: reduceMotion)) {
-                               detentIndex = detentIndex == 0 ? 2 : 0
-                           }
-                       })
-            iconButton("arrow.up.right", label: "Edit your journey", action: { setupVisible = true })
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Spacing.units(3)) {
+                Spacer(minLength: 0)
+                iconButton(detentIndex == 0 ? "chevron.up" : "chevron.down",
+                           label: detentIndex == 0 ? "Show more map" : "Expand journey details",
+                           action: {
+                               withAnimation(Motion.animation(Motion.sheet, reduceMotion: reduceMotion)) {
+                                   detentIndex = detentIndex == 0 ? 2 : 0
+                               }
+                           })
+                iconButton("arrow.up.right", label: "Edit your journey", action: { setupVisible = true })
+            }
         }
         .padding(.horizontal, Spacing.units(4))
         .padding(.top, 10)

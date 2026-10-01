@@ -52,11 +52,13 @@ public struct RootView: View {
                 }
             }
             .environment(\.locomoteColors, colors)
-
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomDock(active: tab, onChange: switchTab)
                 .environment(\.locomoteColors, colors)
                 .padding(.horizontal, Spacing.units(3))
-                .padding(.bottom, Spacing.units(2))
+                .padding(.vertical, Spacing.units(2))
+                .background(colors.canvas)
         }
         .environment(\.locomoteColors, colors)
         .animation(Motion.fadeNormal, value: preferences.dark)

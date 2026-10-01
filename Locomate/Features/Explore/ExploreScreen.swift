@@ -12,6 +12,7 @@ import CoreLocation
 import MapKit
 
 struct ExploreScreen: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     @Environment(\.locomoteServices) private var services
 
@@ -26,7 +27,7 @@ struct ExploreScreen: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            colors.canvas.ignoresSafeArea()
+            colors.canvas.ignoresSafeArea(edges: .top)
             NetworkMapView(
                 trains: trains,
                 onBoundsChange: { newBounds in
@@ -35,7 +36,7 @@ struct ExploreScreen: View {
                 }
             )
             .overlay { Color.black.opacity(0.30).allowsHitTesting(false) }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: .top)
 
             header
                 .padding(.horizontal, Spacing.units(4))
@@ -45,7 +46,7 @@ struct ExploreScreen: View {
                 Spacer()
                 statsCard
                     .padding(.horizontal, Spacing.units(4))
-                    .padding(.bottom, 150)
+                    .padding(.bottom, 54)
             }
         }
         .task { await refresh() }
@@ -55,7 +56,7 @@ struct ExploreScreen: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(alignment: .center) {
+        (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .center))) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Rail network")
                     .font(LocomateFont.title)
@@ -101,6 +102,7 @@ struct ExploreScreen: View {
             Text(statsBody)
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
             Text(updatedLabel)
                 .font(LocomateFont.micro)
                 .monospacedDigit()
@@ -259,20 +261,15 @@ struct NetworkMapView: UIViewRepresentable {
             }
             guard let train = annotation as? NetworkAnnotation else { return nil }
             let reuse = train.observed ? "observed-train" : "estimated-train"
-            let view = mapView.dequeueReusableAnnotationView(withIdentifier: reuse)
-                ?? MKAnnotationView(annotation: train, reuseIdentifier: reuse)
+            let view = (mapView.dequeueReusableAnnotationView(withIdentifier: reuse) as? RailDotAnnotationView)
+                ?? RailDotAnnotationView(annotation: train, reuseIdentifier: reuse)
             view.annotation = train
-            view.frame = CGRect(x: 0, y: 0, width: 13, height: 13)
-            view.layer.cornerRadius = 6.5
-            view.backgroundColor = train.observed
+            view.configureDot(size: 13, color: train.observed
                 ? UIColor(red: 0.22, green: 0.79, blue: 0.51, alpha: 1)
-                : UIColor(red: 1, green: 0.72, blue: 0.30, alpha: 1)
-            view.layer.borderColor = UIColor.white.cgColor
-            view.layer.borderWidth = 1.5
-            view.layer.shadowColor = view.backgroundColor?.cgColor
-            view.layer.shadowOpacity = 0.75
-            view.layer.shadowRadius = 9
-            view.layer.shadowOffset = .zero
+                : UIColor(red: 1, green: 0.72, blue: 0.30, alpha: 1))
+            view.accessibilityLabel = train.title
+            view.accessibilityValue = train.subtitle
+            view.accessibilityHint = "Double-tap to show train details."
             view.canShowCallout = true
             view.clusteringIdentifier = "locomate-trains"
             view.displayPriority = .defaultLow

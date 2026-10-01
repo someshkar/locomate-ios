@@ -40,6 +40,10 @@ struct BottomDock: View {
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .caption) private var scaledDockHeight = 66.0
+    private var dockHeight: Double { dynamicTypeSize.isAccessibilitySize ? 74 : scaledDockHeight }
+
     let active: LocomateTab
     let onChange: (LocomateTab) -> Void
 
@@ -72,7 +76,7 @@ struct BottomDock: View {
                                 ? Color(rgba: 255, 255, 255, 0.12)
                                 : Color(rgba: 255, 255, 255, 0.66), lineWidth: 0.75)
                     )
-                    .frame(width: pillWidth, height: 54)
+                    .frame(width: pillWidth, height: dockHeight - 12)
                     .offset(x: targetX)
                     .opacity(isSearch ? 0 : 1)
                     .animation(Motion.animation(Motion.selection, reduceMotion: reduceMotion), value: active)
@@ -90,7 +94,7 @@ struct BottomDock: View {
             }
             .frame(maxHeight: .infinity)
         }
-        .frame(height: 66)
+        .frame(height: dockHeight)
         .background {
             ZStack {
                 GlassSurface(cornerRadius: 34)
@@ -128,6 +132,7 @@ struct BottomDock: View {
 }
 
 private struct DockItem: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -140,18 +145,24 @@ private struct DockItem: View {
             VStack(spacing: 4) {
                 Image(systemName: tab.systemImage)
                     .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(active ? colors.accentBase : colors.textPrimary)
+                    .foregroundStyle(active ? (colors.dark ? colors.accentSoft : colors.accentBase) : colors.textPrimary)
                     .offset(y: active && !reduceMotion ? -1 : 0)
                     .scaleEffect(active && !reduceMotion ? 1.045 : 1)
+                if !dynamicTypeSize.isAccessibilitySize {
                 Text(tab.label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(active ? colors.accentBase : colors.textPrimary)
-                    .lineLimit(1)
+                    .font(.system(.caption, weight: .medium))
+                    .foregroundStyle(active ? (colors.dark ? colors.accentSoft : colors.accentBase) : colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(Motion.animation(Motion.selection, reduceMotion: reduceMotion), value: active)
         }
         .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
+        .accessibilityShowsLargeContentViewer {
+            Label(tab.label, systemImage: tab.systemImage)
+        }
     }
 }
 

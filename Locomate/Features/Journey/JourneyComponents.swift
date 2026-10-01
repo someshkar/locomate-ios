@@ -34,7 +34,7 @@ struct JourneySections: View {
                         .font(LocomateFont.bodyStrong)
                         .foregroundStyle(isActive ? colors.textPrimary : colors.textSecondary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 40)
+                        .frame(minHeight: 44)
                         .background {
                             if isActive {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -54,6 +54,7 @@ struct JourneySections: View {
 // MARK: - PersonalizedTripCard
 
 struct PersonalizedTripCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
 
     let journey: Journey
@@ -83,32 +84,32 @@ struct PersonalizedTripCard: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: Spacing.units(4)) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 6))) {
                     Text("\(journey.trainNumber) · \(journey.trainName)")
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textSecondary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
                     Text(preview ? "PREVIEW · NOT LIVE" : StatusMapping.journeyModeLabel(mode))
                         .font(LocomateFont.micro)
                         .foregroundStyle(colors.pair(for: mode).fg)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                         .minimumScaleFactor(0.8)
                 }
                 VStack(alignment: .leading, spacing: 5) {
                     Text(preview ? "Timetable sample" : "Your railway journey")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(.title2, weight: .semibold))
                         .foregroundStyle(colors.textPrimary)
                     Text("\(plan.boarding.name) to \(plan.alighting.name)")
                         .font(LocomateFont.bodyStrong)
                         .foregroundStyle(colors.textSecondary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 // Two flexible outer columns of EQUAL width keep the centre
                 // column optically centred on the card. Using `Spacer`s here
                 // instead would centre the leftover *gap*, which drifts by half
                 // the difference between the two station-name widths.
-                HStack(alignment: .top, spacing: Spacing.units(3)) {
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(3)))) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(plan.boarding.code)
                             .font(LocomateFont.bodyStrong.monospacedDigit())
@@ -117,7 +118,7 @@ struct PersonalizedTripCard: View {
                         Text(boardingTime)
                             .font(LocomateFont.caption)
                             .foregroundStyle(preview ? colors.textSecondary : colors.pair(for: mode).fg)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -129,7 +130,7 @@ struct PersonalizedTripCard: View {
                         Text("\(Int(totalDistance)) km")
                             .font(LocomateFont.caption.monospacedDigit())
                             .foregroundStyle(colors.textTertiary)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                             .fixedSize()
                     }
                     .accessibilityHidden(true)
@@ -142,18 +143,18 @@ struct PersonalizedTripCard: View {
                         Text(alightingTime)
                             .font(LocomateFont.caption)
                             .foregroundStyle(preview ? colors.textSecondary : colors.pair(for: mode).fg)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
-                    "\(plan.boarding.name) to \(plan.alighting.name), \(Int(totalDistance)) kilometres"
+                    "\(plan.boarding.name), \(boardingTime), to \(plan.alighting.name), \(alightingTime). \(Int(totalDistance)) kilometres"
                 )
 
                 Divider().overlay(colors.borderSubtle)
 
-                HStack {
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout())) {
                     Text("\(segment.count) stops on your segment")
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)
@@ -180,6 +181,7 @@ struct PersonalizedTripCard: View {
 // MARK: - NextStopStat
 
 struct NextStopStat: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
 
     let journey: Journey
@@ -195,7 +197,7 @@ struct NextStopStat: View {
                     .font(LocomateFont.title)
                     .tracking(-1.2)
                     .foregroundStyle(colors.textPrimary)
-                HStack(alignment: .top, spacing: Spacing.units(4)) {
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16)) : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(4)))) {
                     Stat(label: isFuture ? "Scheduled" : "ETA",
                          value: RailTime.format(journey.prediction.expectedTime ?? journey.scheduledArrival))
                     Stat(label: "Distance",
@@ -235,8 +237,7 @@ struct DelayStat: View {
                 .font(LocomateFont.timeLarge)
                 .monospacedDigit()
                 .foregroundStyle(colors.pair(for: kind).fg)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                .fixedSize(horizontal: false, vertical: true)
                 .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -367,7 +368,7 @@ struct JourneyActions: View {
                 }
                 .frame(width: 52, height: 52)
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(.caption, weight: .medium))
                     .foregroundStyle(colors.textSecondary)
             }
             .frame(maxWidth: .infinity)

@@ -80,6 +80,11 @@
       </CommandLineArguments>
       <EnvironmentVariables>
          <EnvironmentVariable
+            key = "LOCOMATE_RUN_ACCESSIBILITY_AUDITS"
+            value = "$(LOCOMATE_RUN_ACCESSIBILITY_AUDITS)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
             key = "LOCOMOTE_LOCAL_GATEWAY_URL"
             value = "$(LOCOMOTE_LOCAL_GATEWAY_URL)"
             isEnabled = "YES">

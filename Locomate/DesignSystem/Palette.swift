@@ -55,15 +55,19 @@ public enum Palette {
     public static let green300 = Color(hex: 0x7FD8AE)
     public static let green400 = Color(hex: 0x37C982)
     public static let green600 = Color(hex: 0x28A068)
+    public static let green700 = Color(hex: 0x087744)
     public static let amber300 = Color(hex: 0xFFC670)
     public static let amber400 = Color(hex: 0xFFB84D)
     public static let amber600 = Color(hex: 0xD9931F)
+    public static let amber700 = Color(hex: 0x8D5700)
     public static let red300 = Color(hex: 0xFF8A82)
     public static let red400 = Color(hex: 0xFF6A61)
     public static let red600 = Color(hex: 0xDA4A41)
+    public static let red700 = Color(hex: 0xB52E28)
     public static let violet300 = Color(hex: 0xB4A6FF)
     public static let violet400 = Color(hex: 0x9C8BFF)
     public static let violet600 = Color(hex: 0x7C69E2)
+    public static let violet700 = Color(hex: 0x5C47BF)
 
     public static let white = Color.white
     public static let black = Color.black

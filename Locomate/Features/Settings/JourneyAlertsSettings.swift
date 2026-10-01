@@ -44,14 +44,14 @@ struct JourneyAlertsSettings: View {
                         showStopConfirmation = true
                     }
                     .font(LocomateFont.bodyStrong)
-                    .frame(minHeight: 44)
+                    .buttonStyle(AccessibleTextButtonStyle())
                     .disabled(busy)
                 }
                 Button("Open notification settings") {
                     JourneyAlertPresentation.openSystemSettings()
                 }
                 .font(LocomateFont.bodyStrong)
-                .frame(minHeight: 44)
+                .buttonStyle(AccessibleTextButtonStyle())
             }
             .tint(colors.accentBase)
         }
@@ -104,13 +104,13 @@ struct JourneyAlertsSettings: View {
             UIApplication.shared.open(url)
         }
         .font(LocomateFont.bodyStrong)
-        .frame(minHeight: 44)
+        .buttonStyle(AccessibleTextButtonStyle())
         if subscription.enabled {
             Button("Stop alerts", role: .destructive) {
                 Task { await stop(subscription.runId) }
             }
             .font(LocomateFont.bodyStrong)
-            .frame(minHeight: 44)
+            .buttonStyle(AccessibleTextButtonStyle())
             .disabled(busy)
         }
     }

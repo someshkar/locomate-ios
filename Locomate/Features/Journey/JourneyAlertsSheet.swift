@@ -97,7 +97,7 @@ struct JourneyAlertsSheet: View {
                         JourneyAlertPresentation.openSystemSettings()
                     }
                     .font(LocomateFont.bodyStrong)
-                    .frame(minHeight: 44)
+                    .buttonStyle(AccessibleTextButtonStyle())
                 }
                 .padding(Spacing.units(4))
             }
@@ -108,6 +108,10 @@ struct JourneyAlertsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .font(LocomateFont.bodyStrong)
+                        .foregroundStyle(colors.onAccent)
+                        .buttonStyle(.borderedProminent)
+                        .tint(colors.accentBase)
                 }
             }
         }
@@ -161,7 +165,7 @@ struct JourneyAlertsSheet: View {
                     Button("Stop alerts for this journey", role: .destructive) {
                         Task { await stop() }
                     }
-                    .frame(minHeight: 44)
+                    .buttonStyle(AccessibleTextButtonStyle())
                     .disabled(busy)
                 }
             }
@@ -227,6 +231,7 @@ struct JourneyAlertsSheet: View {
                         }
                         .font(LocomateFont.caption)
                         .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                     }
                     if startHour == endHour {
                         Text("Choose different start and end hours.")
@@ -248,7 +253,7 @@ struct JourneyAlertsSheet: View {
         .pickerStyle(.menu)
         .font(LocomateFont.body)
         .foregroundStyle(colors.textPrimary)
-        .frame(minHeight: 44)
+        .buttonStyle(AccessibleTextButtonStyle())
     }
 
     private var consentControls: some View {

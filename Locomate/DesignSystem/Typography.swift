@@ -11,21 +11,21 @@
 import SwiftUI
 
 public enum LocomateFont {
-    // UI voice — SF Pro (system)
-    public static let displayXL = Font.system(size: 44, weight: .regular)
-    public static let display = Font.system(size: 34, weight: .regular)
-    public static let title = Font.system(size: 32, weight: .semibold)
-    public static let headline = Font.system(size: 19, weight: .semibold)
-    public static let subhead = Font.system(size: 16, weight: .regular)
-    public static let body = Font.system(size: 16, weight: .regular)
-    public static let bodyStrong = Font.system(size: 16, weight: .semibold)
-    public static let caption = Font.system(size: 13, weight: .regular)
+    // Semantic styles follow the user's preferred size, including accessibility sizes.
+    public static let displayXL = Font.system(.largeTitle, weight: .regular)
+    public static let display = Font.system(.largeTitle, weight: .regular)
+    public static let title = Font.system(.title, weight: .semibold)
+    public static let headline = Font.system(.title3, weight: .semibold)
+    public static let subhead = Font.system(.body, weight: .regular)
+    public static let body = Font.system(.body, weight: .regular)
+    public static let bodyStrong = Font.system(.body, weight: .semibold)
+    public static let caption = Font.system(.footnote, weight: .regular)
 
-    // Numeric voice — SF Mono, tabular digits
-    public static let timeHero = Font.system(size: 40, weight: .medium, design: .monospaced)
-    public static let timeLarge = Font.system(size: 26, weight: .regular, design: .monospaced)
-    public static let data = Font.system(size: 11, weight: .regular, design: .monospaced)
-    public static let micro = Font.system(size: 11, weight: .semibold, design: .monospaced)
+    // Numeric voice — SF Mono, tabular digits, also scaled by Dynamic Type.
+    public static let timeHero = Font.system(.largeTitle, design: .monospaced, weight: .medium)
+    public static let timeLarge = Font.system(.title2, design: .monospaced, weight: .regular)
+    public static let data = Font.system(.caption, design: .monospaced, weight: .regular)
+    public static let micro = Font.system(.caption, design: .monospaced, weight: .semibold)
 }
 
 /// Text styles pairing a font with the tracking from `typography.ts`.

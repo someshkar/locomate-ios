@@ -89,6 +89,7 @@ struct PassportScreen: View {
 
             VStack(alignment: .leading, spacing: Spacing.units(2)) {
                 Text("A thousand places.\nYour first page.")
+                    .fixedSize(horizontal: false, vertical: true)
                     .font(LocomateFont.display)
                     .tracking(-1.4)
                     .foregroundStyle(colors.textPrimary)
@@ -145,7 +146,7 @@ struct PassportHeroCard: View {
             Text("SAVED RUNS · AS OF TODAY").eyebrow(colors.textTertiary)
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(Int(stats.distanceKm.rounded()).formatted())
-                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .font(.system(.largeTitle, design: .rounded, weight: .semibold))
                     .monospacedDigit()
                 Text("km")
                     .font(LocomateFont.title)

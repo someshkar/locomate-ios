@@ -11,6 +11,7 @@
 import SwiftUI
 
 struct SearchScreen: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locomoteServices) private var services
@@ -72,6 +73,7 @@ struct SearchScreen: View {
             Text("Find trains by name or number")
                 .font(LocomateFont.body)
                 .foregroundStyle(colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
@@ -80,7 +82,7 @@ struct SearchScreen: View {
     private var searchField: some View {
         HStack(spacing: Spacing.units(2.5)) {
             Image(systemName: "magnifyingglass").foregroundStyle(colors.textTertiary)
-            TextField("Train name or number", text: $query)
+            TextField(dynamicTypeSize.isAccessibilitySize ? "Train" : "Train name or number", text: $query)
                 .focused($isFieldFocused)
                 .font(LocomateFont.body)
                 .foregroundStyle(colors.textPrimary)
@@ -94,6 +96,8 @@ struct SearchScreen: View {
             } else if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(colors.textTertiary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Clear search")
             }
@@ -119,6 +123,7 @@ struct SearchScreen: View {
             Text("The origin date is the day the train starts in India — overnight runs may reach your station the next day.")
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -139,6 +144,7 @@ struct SearchScreen: View {
                     .font(LocomateFont.bodyStrong)
                     .monospacedDigit()
             }
+            .fixedSize()
             .foregroundStyle(selected ? colors.onAccent : colors.textPrimary)
             .padding(.horizontal, Spacing.units(3.5))
             .padding(.vertical, Spacing.units(2.5))
@@ -149,6 +155,7 @@ struct SearchScreen: View {
             .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(selected ? Color.clear : colors.borderSubtle, lineWidth: 0.75))
         }
+        .accessibilityValue(date)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
@@ -183,6 +190,7 @@ struct SearchScreen: View {
             Text("Search uses a historical Indian Railways snapshot. Results are real records, not current schedules.")
                 .font(LocomateFont.caption)
                 .foregroundStyle(pair.fg)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .padding(Spacing.units(3))

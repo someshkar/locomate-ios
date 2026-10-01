@@ -4,6 +4,7 @@ import MapKit
 struct MapStationMarker: Identifiable, Equatable {
     let id: String
     let coordinate: RailCoordinate
+    var name: String? = nil
     let state: StopState
 }
 
@@ -80,7 +81,7 @@ struct RailMapView: UIViewRepresentable {
                     RailAnnotation(
                         coordinate: CLLocationCoordinate2D(latitude: marker.coordinate.latitude,
                                                            longitude: marker.coordinate.longitude),
-                        title: marker.id, kind: .station
+                        title: marker.name.map { "\($0) (\(marker.id))" } ?? marker.id, kind: .station
                     )
                 }
                 mapView.addAnnotations(stationAnnotations)
@@ -132,7 +133,7 @@ struct RailMapView: UIViewRepresentable {
                 $0.union(MKMapRect(x: $1.x, y: $1.y, width: 0, height: 0))
             }
             let padding = UIEdgeInsets(top: 95, left: 42,
-                bottom: min(CGFloat(sheetVisibleHeight) + 45, mapView.bounds.height - 160), right: 42)
+                bottom: min(CGFloat(sheetVisibleHeight) + 45, mapView.bounds.height * 0.58), right: 42)
             mapView.setVisibleMapRect(rect, edgePadding: padding, animated: false)
         }
 
@@ -158,24 +159,18 @@ struct RailMapView: UIViewRepresentable {
                 case .preview: "preview-dot"
                 case .station: "station-dot"
             }
-            let view = mapView.dequeueReusableAnnotationView(withIdentifier: reuse)
-                ?? MKAnnotationView(annotation: point, reuseIdentifier: reuse)
+            let view = (mapView.dequeueReusableAnnotationView(withIdentifier: reuse) as? RailDotAnnotationView)
+                ?? RailDotAnnotationView(annotation: point, reuseIdentifier: reuse)
             view.annotation = point
-            let size: CGFloat = point.kind == .station ? 10 : 20
-            view.frame = CGRect(x: 0, y: 0, width: size, height: size)
-            view.layer.cornerRadius = size / 2
-            view.layer.borderWidth = point.kind == .station ? 1.5 : 3
-            view.layer.borderColor = UIColor.white.cgColor
-            view.backgroundColor = switch point.kind {
+            let color: UIColor = switch point.kind {
                 case .preview: UIColor(red: 0.61, green: 0.55, blue: 1, alpha: 1)
                 case .train: UIColor(red: 0.22, green: 0.79, blue: 0.51, alpha: 1)
                 case .stale: UIColor(red: 1, green: 0.72, blue: 0.3, alpha: 1)
                 case .station: UIColor(red: 0.37, green: 0.68, blue: 0.96, alpha: 1)
             }
-            view.layer.shadowColor = UIColor(red: 0.37, green: 0.68, blue: 0.96, alpha: 1).cgColor
-            view.layer.shadowRadius = point.kind == .station ? 5 : 12
-            view.layer.shadowOpacity = 0.8
-            view.layer.shadowOffset = .zero
+            view.configureDot(size: point.kind == .station ? 10 : 20, color: color)
+            view.accessibilityLabel = point.title
+            view.accessibilityHint = "Double-tap to show map details."
             view.canShowCallout = true
             view.displayPriority = point.kind == .station ? .defaultLow : .required
             return view
@@ -193,5 +188,32 @@ private final class RailAnnotation: NSObject, MKAnnotation {
         self.coordinate = coordinate
         self.title = title
         self.kind = kind
+    }
+}
+
+/// The visual dot stays compact while its native selection target is 44 points.
+final class RailDotAnnotationView: MKAnnotationView {
+    private let dot = UIView()
+
+    override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        frame = CGRect(x: 0, y: 0, width: 44, height: 44)
+        dot.isUserInteractionEnabled = false
+        dot.isAccessibilityElement = false
+        addSubview(dot)
+    }
+
+    required init?(coder: NSCoder) { super.init(coder: coder) }
+
+    func configureDot(size: CGFloat, color: UIColor) {
+        dot.frame = CGRect(x: (44 - size) / 2, y: (44 - size) / 2, width: size, height: size)
+        dot.backgroundColor = color
+        dot.layer.cornerRadius = size / 2
+        dot.layer.borderWidth = 1.5
+        dot.layer.borderColor = UIColor.white.cgColor
+        dot.layer.shadowColor = color.cgColor
+        dot.layer.shadowRadius = 5
+        dot.layer.shadowOpacity = 0.8
+        dot.layer.shadowOffset = .zero
     }
 }
