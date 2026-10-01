@@ -10,6 +10,7 @@ Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.
 xcodegen generate
 xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
+  -parallel-testing-enabled NO \
   test CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
 ```
 

@@ -27,6 +27,7 @@ jobs:
           -scheme Locomate
           -configuration Debug
           -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
+          -parallel-testing-enabled NO
           CODE_SIGNING_ALLOWED=YES
           CODE_SIGN_IDENTITY=-
           test
