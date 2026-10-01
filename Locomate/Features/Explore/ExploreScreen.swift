@@ -221,6 +221,17 @@ struct NetworkMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if let cluster = annotation as? MKClusterAnnotation {
+                let reuse = "train-cluster"
+                let view = (mapView.dequeueReusableAnnotationView(withIdentifier: reuse) as? MKMarkerAnnotationView)
+                    ?? MKMarkerAnnotationView(annotation: cluster, reuseIdentifier: reuse)
+                view.annotation = cluster
+                view.markerTintColor = UIColor(red: 0, green: 0.62, blue: 0.98, alpha: 1)
+                view.glyphText = "\(cluster.memberAnnotations.count)"
+                view.displayPriority = .defaultHigh
+                view.canShowCallout = true
+                return view
+            }
             guard let train = annotation as? NetworkAnnotation else { return nil }
             let reuse = train.observed ? "observed-train" : "estimated-train"
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: reuse)
@@ -238,6 +249,9 @@ struct NetworkMapView: UIViewRepresentable {
             view.layer.shadowRadius = 9
             view.layer.shadowOffset = .zero
             view.canShowCallout = true
+            view.clusteringIdentifier = "locomate-trains"
+            view.displayPriority = .defaultLow
+            view.collisionMode = .circle
             return view
         }
     }
