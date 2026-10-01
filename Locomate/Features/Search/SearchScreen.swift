@@ -14,20 +14,26 @@ struct SearchScreen: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.locomoteServices) private var services
     @Environment(Preferences.self) private var preferences
     var onSelect: (TrainSearchResult, String) -> Void = { _, _ in }
 
     @State private var query = ""
     @State private var results: [TrainSearchResult] = []
+    @State private var resultQuery = ""
     @State private var loading = false
     @State private var error: String?
     @State private var selectedDate = IndiaDate.today()
     @State private var searchTask: Task<Void, Never>?
     @FocusState private var isFieldFocused: Bool
+    @ScaledMetric(relativeTo: .body) private var fieldSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .footnote) private var subtitleSize: CGFloat = 13.5
 
     private var normalizedQuery: String { query.trimmingCharacters(in: .whitespaces) }
     private var production: Bool { services.mode.isProduction }
+    private var currentResults: [TrainSearchResult] { resultQuery == normalizedQuery ? results : [] }
+    private var currentError: String? { resultQuery == normalizedQuery ? error : nil }
 
     private var quickDates: [String] {
         let today = IndiaDate.today()
@@ -44,14 +50,14 @@ struct SearchScreen: View {
                     searchField
                     dateStrip
                     if !production { snapshotNotice }
-                    if let error {
+                    if let error = currentError {
                         EmptyState(icon: "wifi.exclamationmark",
                                    title: "Couldn't reach the railway feed",
                                    body: error,
                                    actionTitle: "Try again",
                                    onAction: { runSearch(immediate: true) })
                     }
-                    if !loading && error == nil && normalizedQuery.count >= 2 && results.isEmpty {
+                    if !loading && currentError == nil && normalizedQuery.count >= 2 && currentResults.isEmpty {
                         EmptyState(icon: "magnifyingglass",
                                    title: "No trains found",
                                    body: "Try a five-digit train number or part of the train's name.")
@@ -67,12 +73,12 @@ struct SearchScreen: View {
     }
 
     private var intro: some View {
-        VStack(alignment: .leading, spacing: Spacing.units(2)) {
+        VStack(alignment: .leading, spacing: 2) {
             Text("Search")
                 .pageHeading()
                 .foregroundStyle(colors.textPrimary)
             Text("Find trains by name or number")
-                .font(LocomateFont.body)
+                .font(.system(size: subtitleSize))
                 .foregroundStyle(colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -81,11 +87,11 @@ struct SearchScreen: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: Spacing.units(2.5)) {
-            Image(systemName: "magnifyingglass").foregroundStyle(colors.textTertiary)
+        HStack(spacing: 12) {
+            NavigationGlyph(tab: .search, side: 20).foregroundStyle(colors.textTertiary)
             TextField(dynamicTypeSize.isAccessibilitySize ? "Train" : "Train name or number", text: $query)
                 .focused($isFieldFocused)
-                .font(LocomateFont.body)
+                .font(.system(size: fieldSize, weight: .medium))
                 .foregroundStyle(colors.textPrimary)
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
@@ -103,11 +109,12 @@ struct SearchScreen: View {
                 .accessibilityLabel("Clear search")
             }
         }
-        .padding(.horizontal, Spacing.units(3.5))
-        .padding(.vertical, Spacing.units(3.5))
-        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(colors.elevated))
-        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-            .strokeBorder(colors.borderSubtle, lineWidth: 0.75))
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(colors.dark && !reduceTransparency ? Palette.white.opacity(0.05) : colors.elevated))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .strokeBorder(colors.dark ? Palette.white.opacity(0.09) : colors.borderSubtle, lineWidth: 1))
     }
 
     private var dateStrip: some View {
@@ -199,11 +206,13 @@ struct SearchScreen: View {
     }
 
     @ViewBuilder private var resultList: some View {
-        ForEach(Array(results.enumerated()), id: \.element.id) { index, train in
-            StaggerIn(index: index) {
-                SearchResultRow(train: train) {
-                    Haptics.tap()
-                    onSelect(train, selectedDate)
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(currentResults.enumerated()), id: \.element.id) { index, train in
+                StaggerIn(index: index) {
+                    SearchResultRow(train: train, showSeparator: index < currentResults.count - 1) {
+                        Haptics.tap()
+                        onSelect(train, selectedDate)
+                    }
                 }
             }
         }
@@ -213,6 +222,9 @@ struct SearchScreen: View {
 
     private func runSearch(immediate: Bool = false) {
         searchTask?.cancel()
+        let requestQuery = normalizedQuery
+        resultQuery = requestQuery
+        results = []
         guard normalizedQuery.count >= 2 else {
             results = []
             error = nil
@@ -221,8 +233,10 @@ struct SearchScreen: View {
         }
         guard let service = services.railService else {
             // Preview: match against bundled route packs.
+            loading = false
+            error = nil
             let matches = RoutePackStore.packs
-                .filter { $0.trainNumber.contains(normalizedQuery) || $0.name.localizedCaseInsensitiveContains(normalizedQuery) }
+                .filter { $0.trainNumber.contains(requestQuery) || $0.name.localizedCaseInsensitiveContains(requestQuery) }
                 .map { pack in
                     TrainSearchResult(
                         number: pack.trainNumber, name: pack.name,
@@ -243,14 +257,14 @@ struct SearchScreen: View {
             if !immediate { try? await Task.sleep(nanoseconds: 350_000_000) }
             guard !Task.isCancelled else { return }
             do {
-                let found = try await service.searchTrains(normalizedQuery)
-                guard !Task.isCancelled else { return }
+                let found = try await service.searchTrains(requestQuery)
+                guard !Task.isCancelled, normalizedQuery == requestQuery else { return }
                 await MainActor.run {
                     results = found
                     loading = false
                 }
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, normalizedQuery == requestQuery else { return }
                 await MainActor.run {
                     self.error = error.localizedDescription
                     loading = false
@@ -263,54 +277,62 @@ struct SearchScreen: View {
 private struct SearchResultRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
+    @ScaledMetric(relativeTo: .body) private var numberSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .footnote) private var detailSize: CGFloat = 12.5
     let train: TrainSearchResult
+    let showSeparator: Bool
     let onTap: () -> Void
 
     var body: some View {
         ScaleButton(accessibilityLabel: "\(train.number) \(train.name)", action: onTap) {
-            VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
-                metadataLayout {
+            metadataLayout {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(train.number)
-                        .font(LocomateFont.timeLarge)
+                        .font(.system(size: numberSize, weight: .semibold, design: .monospaced))
                         .monospacedDigit()
                         .foregroundStyle(colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("search.result.number.\(train.number)")
-                    if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.units(2)) }
-                    Text(train.live ? "LIVE" : train.sourceLabel.uppercased())
-                        .eyebrow(train.live ? colors.pair(for: .onTime).fg : colors.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("search.result.source.\(train.number)")
-                }
-                Text(train.name)
-                    .font(LocomateFont.bodyStrong)
-                    .foregroundStyle(colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("search.result.name.\(train.number)")
-                metadataLayout {
-                    Text("\(train.originCode) → \(train.destinationCode)")
-                        .font(LocomateFont.data)
+                    Text(train.name)
+                        .font(.system(size: detailSize))
                         .foregroundStyle(colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("search.result.route.\(train.number)")
-                    if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.units(2)) }
-                    if train.distanceKm > 0 {
-                        Text("\(Int(train.distanceKm)) km")
-                            .font(LocomateFont.data)
-                            .monospacedDigit()
-                            .foregroundStyle(colors.textTertiary)
+                        .accessibilityIdentifier("search.result.name.\(train.number)")
+                    metadataLayout {
+                        Text("\(train.originCode) → \(train.destinationCode)")
+                            .font(.system(size: detailSize, design: .monospaced))
+                            .foregroundStyle(colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("search.result.distance.\(train.number)")
+                            .accessibilityIdentifier("search.result.route.\(train.number)")
+                        if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.units(2)) }
+                        if train.distanceKm > 0 {
+                            Text("\(Int(train.distanceKm)) km")
+                                .font(.system(size: detailSize, design: .monospaced))
+                                .monospacedDigit()
+                                .foregroundStyle(colors.textTertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("search.result.distance.\(train.number)")
+                        }
                     }
                 }
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 12) }
+                Text(train.sourceLabel.isEmpty ? "Railway catalogue" : train.sourceLabel)
+                    .font(.system(size: detailSize, weight: .semibold))
+                    .foregroundStyle(colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 124, alignment: .leading)
+                    .accessibilityIdentifier("search.result.source.\(train.number)")
             }
-            .padding(Spacing.units(4))
+            .padding(.horizontal, 2)
+            .padding(.vertical, 13)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).fill(colors.elevated))
-            .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                .strokeBorder(colors.borderSubtle, lineWidth: 0.75))
+            .contentShape(Rectangle())
+            .overlay(alignment: .bottom) {
+                if showSeparator { colors.borderSubtle.opacity(0.42).frame(height: 1) }
+            }
         }
         .accessibilityIdentifier("search.result.\(train.number)")
+        .accessibilityValue("\(train.originName) to \(train.destinationName). \(train.sourceLabel)")
     }
 
     private var metadataLayout: AnyLayout {
