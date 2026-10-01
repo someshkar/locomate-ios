@@ -942,6 +942,18 @@ struct ObservationQueueTests {
         #expect(reopened.peek(limit: 1).first?.timestamp == 42)
     }
 
+    @Test("a duplicate callback keeps the first idempotent payload")
+    func duplicateTimestamp() {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let queue = ObservationQueue(directory: dir)
+        let first = observation(42)
+        queue.append(first)
+        queue.append(CompactObservation(runId: first.runId, timestamp: first.timestamp,
+            latE5: 999, lonE5: 999, speedKph: 120, accuracyM: 10,
+            routeProgress: 0.5, matchDistanceM: 5, consentVersion: 1))
+        #expect(queue.peek(limit: 10) == [first])
+    }
+
     @Test("pending observations are excluded from device backups")
     func localOnly() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

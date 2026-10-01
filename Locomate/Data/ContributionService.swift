@@ -325,9 +325,10 @@ public final class ObservationQueue: @unchecked Sendable {
 
     public func append(_ observation: CompactObservation) {
         lock.lock(); defer { lock.unlock() }
-        let existing = read().filter {
-            $0.runId != observation.runId || $0.timestamp != observation.timestamp
-        }
+        let existing = read()
+        guard !existing.contains(where: {
+            $0.runId == observation.runId && $0.timestamp == observation.timestamp
+        }) else { return }
         write(existing + [observation])
     }
 
