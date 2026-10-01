@@ -61,6 +61,7 @@ struct PersonalizedTripCard: View {
     let plan: JourneyPlan
     let mode: StatusKind
     let preview: Bool
+    var cached = false
     let onEdit: () -> Void
 
     private var segment: [StationStop] { JourneyPlanLogic.stops(journey: journey, plan: plan) }
@@ -90,16 +91,32 @@ struct PersonalizedTripCard: View {
                         .foregroundStyle(colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
-                    Text(preview ? "PREVIEW · NOT LIVE" : StatusMapping.journeyModeLabel(mode))
+                    Text(preview ? "PREVIEW · NOT LIVE" : StatusMapping.journeyModeLabel(mode, cached: cached))
                         .font(LocomateFont.micro)
-                        .foregroundStyle(colors.pair(for: mode).fg)
+                        .foregroundStyle(colors.pair(for: cached ? .stale : mode).fg)
                         .fixedSize(horizontal: false, vertical: true)
                         .minimumScaleFactor(0.8)
                 }
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(preview ? "Timetable sample" : "Your railway journey")
-                        .font(.system(.title2, weight: .semibold))
-                        .foregroundStyle(colors.textPrimary)
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        if let countdown = RailNaturalLanguage.departureCountdown(
+                            journey: journey, plan: plan, preview: preview, now: context.date
+                        ) {
+                            Text(countdown)
+                                .font(.system(.title2, weight: .semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(colors.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("journey.departureCountdown")
+                            Text("\(cached ? "Saved timetable · " : "")Scheduled boarding at \(plan.boarding.code)")
+                                .font(LocomateFont.caption)
+                                .foregroundStyle(colors.textSecondary)
+                        } else {
+                            Text(preview ? "Timetable sample" : "Your railway journey")
+                                .font(.system(.title2, weight: .semibold))
+                                .foregroundStyle(colors.textPrimary)
+                        }
+                    }
                     Text("\(plan.boarding.name) to \(plan.alighting.name)")
                         .font(LocomateFont.bodyStrong)
                         .foregroundStyle(colors.textSecondary)

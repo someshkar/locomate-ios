@@ -18,7 +18,9 @@ public final class LocomoteServices {
     public let contribution: ContributionService
     public let liveActivity: LiveActivityService
     public let journeyAlerts: JourneyAlertService
+    public let selectedJourney: SelectedJourneyStore
     public let mode: RailDataMode
+    public private(set) var contributionActivationRevision = 0
 
     public init(
         railService: RailServiceProtocol?,
@@ -27,7 +29,8 @@ public final class LocomoteServices {
         contribution: ContributionService = ContributionService(),
         liveActivity: LiveActivityService = LiveActivityService(),
         mode: RailDataMode,
-        journeyAlerts: JourneyAlertService? = nil
+        journeyAlerts: JourneyAlertService? = nil,
+        selectedJourney: SelectedJourneyStore? = nil
     ) {
         self.railService = railService
         self.cache = cache
@@ -39,6 +42,7 @@ public final class LocomoteServices {
         if case .production(let baseURL) = mode { alertScope = RailStorageScope.gateway(baseURL) }
         else { alertScope = "preview" }
         self.journeyAlerts = journeyAlerts ?? JourneyAlertService(api: railService, scope: alertScope)
+        self.selectedJourney = selectedJourney ?? SelectedJourneyStore(scope: alertScope)
     }
 
     public static func live() -> LocomoteServices {
@@ -73,6 +77,7 @@ public final class LocomoteServices {
         guard !PrivacyDeletionLatch.isPending, let railService else { throw ContributionConsentError.gatewayRequired }
         try await contribution.flushConsentEvidence(using: railService)
         try await railService.recordCommunityConsent(CommunityConsentEvidence(granted: true))
+        contributionActivationRevision += 1
         preferences.contributionsEnabled = true
     }
 
@@ -159,6 +164,7 @@ public final class LocomoteServices {
     /// A false result means the server succeeded but local erasure was partial.
     public func deletePrivacyData(preferences: Preferences) async throws -> Bool {
         try PrivacyDeletionLatch.begin()
+        selectedJourney.beginPrivacyDeletion()
         contribution.stop()
         // Stop the token observer before the server deletion can invalidate its session.
         await journeyAlerts.beginPrivacyDeletion()

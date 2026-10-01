@@ -92,6 +92,8 @@ targets:
     platform: iOS
     sources:
       - path: LocomateUITests
+      - path: LocomateTests/Fixtures
+        buildPhase: resources
     dependencies:
       - target: Locomate
     settings:

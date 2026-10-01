@@ -3,6 +3,68 @@ import Network
 
 final class NavigationUITests: XCTestCase {
     @MainActor
+    func testColdRelaunchRestoresScopedOfflineJourneyAndExplicitLinkWins() async throws {
+        let fixture = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "run-12137-2026-09-18", withExtension: "json"))
+        let ready = expectation(description: "Restoration gateway ready")
+        let gateway = try NetworkSelectionGateway(ready: ready, journeyData: Data(contentsOf: fixture))
+        defer { gateway.stop() }
+        let otherReady = expectation(description: "Other source ready")
+        let other = try NetworkSelectionGateway(ready: otherReady)
+        defer { other.stop() }
+        await fulfillment(of: [ready, otherReady], timeout: 5)
+        let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        app.launch()
+        app.open(try XCTUnwrap(URL(string: "locomate://journeys/12137?date=2026-09-18")))
+        XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts["Timetable sample"].exists)
+        app.terminate()
+
+        // A different gateway must not inherit the selected route or cache.
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(other.baseURL)
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Every journey starts here."].waitForExistence(timeout: 10))
+        XCTAssertFalse(other.paths.contains { $0.hasPrefix("/v1/runs/") })
+        app.terminate()
+
+        gateway.journeysUnavailable = true
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        app.launch()
+        // No new link or search: the selected dated route survives termination.
+        XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["SAVED JOURNEY"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["UPCOMING JOURNEY"].exists)
+        XCTAssertFalse(app.staticTexts["Timetable sample"].exists)
+        XCTAssertGreaterThanOrEqual(gateway.paths.filter { $0 == "/v1/runs/12137/2026-09-18" }.count, 2)
+        capture(app, "Cold-restored production cache after gateway failure")
+        app.terminate()
+
+        // Opening a URL from a terminated process must win over the saved route.
+        app.open(try XCTUnwrap(URL(string: "locomate://journeys/01234?date=2026-09-30")))
+        XCTAssertTrue(app.staticTexts["2026-09-30 · Dated journey request reached fixture."].waitForExistence(timeout: 15))
+        XCTAssertTrue(gateway.paths.contains("/v1/runs/01234/2026-09-30"))
+        XCTAssertFalse(app.staticTexts["12137 · Punjab Mail"].exists)
+        XCTAssertFalse(gateway.paths.contains { $0.contains("journey-alerts") || $0.contains("/privacy/consent") || $0.contains("observations") })
+
+        // Exercise the ordinary privacy flow against the fake gateway only.
+        app.buttons["Passport"].tap()
+        app.buttons["Open settings"].tap()
+        let erase = app.buttons["Delete my data"]
+        for _ in 0..<8 where !erase.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(erase.isHittable)
+        erase.tap()
+        app.buttons["Delete server and device data"].tap()
+        XCTAssertTrue(app.staticTexts["Every journey starts here."].waitForExistence(timeout: 15))
+        XCTAssertTrue(gateway.paths.contains("/v1/privacy/installation"))
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Every journey starts here."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["12137 · Punjab Mail"].exists)
+        app.terminate()
+    }
+
+    @MainActor
     func testNetworkTrainListOpensExactDatedJourney() async throws {
         for category in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
             let ready = expectation(description: "Loopback network fixture ready")
@@ -496,10 +558,17 @@ private final class NetworkSelectionGateway: @unchecked Sendable {
     private let queue = DispatchQueue(label: "NetworkSelectionGateway")
     private let lock = NSLock()
     private var requests: [String] = []
+    private var unavailable = false
+    private let journeyResponse: [String: Any]?
+    var journeysUnavailable: Bool {
+        get { lock.withLock { unavailable } }
+        set { lock.withLock { unavailable = newValue } }
+    }
     var paths: [String] { lock.withLock { requests } }
     var baseURL: String? { listener.port.map { "http://127.0.0.1:\($0.rawValue)" } }
 
-    init(ready: XCTestExpectation) throws {
+    init(ready: XCTestExpectation, journeyData: Data? = nil) throws {
+        journeyResponse = try journeyData.map { try JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? nil
         listener = try NWListener(using: .tcp, on: .any)
         listener.stateUpdateHandler = { state in
             if case .ready = state { ready.fulfill() }
@@ -536,6 +605,10 @@ private final class NetworkSelectionGateway: @unchecked Sendable {
     }
 
     private func response(for path: String) -> (status: String, body: [String: Any]) {
+        if path == "/v1/privacy/installation" { return ("200 OK", ["deleted": true]) }
+        if path == "/v1/runs/12137/2026-09-18", let journeyResponse, !journeysUnavailable {
+            return ("200 OK", journeyResponse)
+        }
         if path == "/v1/auth/device-session" {
             return ("200 OK", ["accessToken": "test-session", "expiresIn": 3600])
         }

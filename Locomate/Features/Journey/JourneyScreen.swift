@@ -117,7 +117,8 @@ struct JourneyScreen: View {
     }
 
     private func reconcileContribution() async {
-        guard preferences.contributionsEnabled, services.railService != nil,
+        guard request?.allowsContribution(currentActivationRevision: services.contributionActivationRevision) != false,
+              preferences.contributionsEnabled, services.railService != nil,
               let model, !model.isPreview, !model.isCached,
               let journey = model.journey, journey.completion < 1,
               ContributionObservation.isWithinRunWindow(originDate: model.originDate,
@@ -203,10 +204,10 @@ struct JourneyScreen: View {
             Spacer()
             if let model {
                 StatusPill(
-                    label: StatusMapping.journeyModeLabel(model.statusKind),
-                    kind: model.statusKind,
+                    label: StatusMapping.journeyModeLabel(model.statusKind, cached: model.isCached),
+                    kind: model.isCached ? .stale : model.statusKind,
                     onGlass: true,
-                    pulsing: model.modeInput.map { StatusMapping.isLivePulseAllowed($0) } ?? false
+                    pulsing: !model.isCached && (model.modeInput.map { StatusMapping.isLivePulseAllowed($0) } ?? false)
                 )
             } else {
                 StatusPill(label: "FIND A TRAIN", kind: .scheduled, onGlass: true, pulsing: false)
@@ -295,6 +296,7 @@ struct JourneyScreen: View {
                     plan: model.plan ?? JourneyPlanLogic.default(journey: journey, originDate: model.originDate),
                     mode: model.statusKind,
                     preview: model.isPreview,
+                    cached: model.isCached,
                     onEdit: { setupVisible = true }
                 )
                 if detentIndex == 0 {

@@ -22,6 +22,7 @@
 		362853C49DDA1F8678529F9E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C50427D18F4C7E60BCBD8F /* Typography.swift */; };
 		3C5387282959F3095DE99D18 /* JourneyAlertDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A2F5844BCB5E51E2908E56 /* JourneyAlertDelegate.swift */; };
 		3EC29C8DAF72A18A6F9641C3 /* DataReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E411A21676A43F23B04DE31 /* DataReport.swift */; };
+		430C18265E546B3348DA980E /* TimetablePassportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD24EEC53E962310683CC4F0 /* TimetablePassportUITests.swift */; };
 		49DF9587385C9F47580F3BF2 /* LocalGatewayIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */; };
 		4A4C26F781B2DC7F387F78E5 /* PrivacyDeletionLatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C70932B43912D748A7E000C /* PrivacyDeletionLatch.swift */; };
 		5510C910EB660195549A2108 /* DataSourceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302118BD502B778928B2D4A0 /* DataSourceSheet.swift */; };
@@ -40,6 +41,7 @@
 		80F0EC525A2871B620DC7342 /* LocomateWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB694339FD14795C7B65C3DB /* LocomateWidgets.swift */; };
 		81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D753E598289063F4C2E948 /* SettingsScreen.swift */; };
 		8229E764776C63DF94ABC90B /* ObservationSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */; };
+		84FFE2F569547766C3884C9B /* JourneyRestorationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF32D12838C63D9FD0EB11B /* JourneyRestorationTests.swift */; };
 		862F49FD3CACCE368CBDA990 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7734B47F77BD5FBB27E7F38 /* Models.swift */; };
 		890C95B9914FB52CC5A909D3 /* LocomateWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8A4FC173F01101E7AC947642 /* ContributionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2187F43800723D7D343099 /* ContributionSettings.swift */; };
@@ -50,6 +52,7 @@
 		9711B90409F7FB8BBEC4180E /* RoutePacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742FF165A9FB065C0F1C37AE /* RoutePacks.swift */; };
 		9845D924330E1EA99C9EB7BB /* ContributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB823F613867BB964ED5B752 /* ContributionService.swift */; };
 		9ABFC199FAB05D62D2477CBE /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F49C02507D73869F00FBB7 /* APIClient.swift */; };
+		9D87DC2D6499A2AAF7ECCC9B /* RailNaturalLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A6648F9636F67548562B888 /* RailNaturalLanguage.swift */; };
 		A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1543B7756311FD507CCE878 /* Services.swift */; };
 		A5F4E86345EECD41A7ACD1F2 /* RailStorageScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */; };
 		AA0E0C5336DCB904B7DB0407 /* SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */; };
@@ -61,6 +64,7 @@
 		C0459AAA2D30BB29D7288E49 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */; };
 		C7C5F8982128D6F6466EE978 /* JourneyAlertsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4801EB460D37DD9BAD96EA14 /* JourneyAlertsSheet.swift */; };
 		C7E76F9C45F2FC78490A3A51 /* JourneyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 598BBB6E36D75DD5CA402ADA /* JourneyComponents.swift */; };
+		C81ABF71215AFC058FFE23B6 /* NaturalLanguagePassportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFC02771E41222AD2DF54EAA /* NaturalLanguagePassportTests.swift */; };
 		CF374E14E2DCFB4D3446053E /* JourneyActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */; };
 		CF6E4DF2F32EC9D6DF182956 /* JourneyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */; };
 		D525888C2403AB89BB02BBD3 /* JourneyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3631B6854F32B3965C32036B /* JourneyPlan.swift */; };
@@ -68,8 +72,10 @@
 		D5BAD8044F7E3398D0A5B501 /* PassportScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06E9E14840D47CCB6666C82 /* PassportScreen.swift */; };
 		D97719A0CB4808694014C829 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */; };
 		DFDD352BB7A5B3CFFBBB4ABD /* PassportStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */; };
+		E133C49DAA6B8CAF8736F237 /* SelectedJourneyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E708B9040B3F95795D5B9D23 /* SelectedJourneyStore.swift */; };
 		E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C028E9C77E24D717A7837279 /* RailService.swift */; };
 		EA5A844900F4D07715CE95BA /* JourneyAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBA6C10BB98B18C8F24535C /* JourneyAlerts.swift */; };
+		F248F00AC29FC1D6CB275317 /* run-12137-2026-09-18.json in Resources */ = {isa = PBXBuildFile; fileRef = 3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */; };
 		F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */; };
 		F676C2CE6B00D543582D6533 /* PerformanceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */; };
 		FB196DB12892DEA724331CCE /* BottomDock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE583CF262143B60198CA75E /* BottomDock.swift */; };
@@ -127,6 +133,7 @@
 		2AF2F17C1BCEA6262649FA81 /* MapMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapMatcher.swift; sourceTree = "<group>"; };
 		2AFF5E160E411983E693A628 /* RouteGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteGeometry.swift; sourceTree = "<group>"; };
 		2B2187F43800723D7D343099 /* ContributionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionSettings.swift; sourceTree = "<group>"; };
+		2DF32D12838C63D9FD0EB11B /* JourneyRestorationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyRestorationTests.swift; sourceTree = "<group>"; };
 		2E2E0C7DEF27E3A528E5924B /* RailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapView.swift; sourceTree = "<group>"; };
 		302118BD502B778928B2D4A0 /* DataSourceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourceSheet.swift; sourceTree = "<group>"; };
 		332A67D79F4829342AFF6367 /* NetworkSnapshotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSnapshotModel.swift; sourceTree = "<group>"; };
@@ -134,6 +141,7 @@
 		3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "run-12137-2026-09-18.json"; sourceTree = "<group>"; };
 		41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceUITests.swift; sourceTree = "<group>"; };
 		4801EB460D37DD9BAD96EA14 /* JourneyAlertsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlertsSheet.swift; sourceTree = "<group>"; };
+		4A6648F9636F67548562B888 /* RailNaturalLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailNaturalLanguage.swift; sourceTree = "<group>"; };
 		4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchScreen.swift; sourceTree = "<group>"; };
 		4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
 		4E1DB4EC560163257AA19C3E /* NetworkSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSnapshotTests.swift; sourceTree = "<group>"; };
@@ -160,7 +168,9 @@
 		9764A28CB31A7EFF93F92590 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		97C50427D18F4C7E60BCBD8F /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		AB823F613867BB964ED5B752 /* ContributionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionService.swift; sourceTree = "<group>"; };
+		AD24EEC53E962310683CC4F0 /* TimetablePassportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetablePassportUITests.swift; sourceTree = "<group>"; };
 		AEBA6C10BB98B18C8F24535C /* JourneyAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlerts.swift; sourceTree = "<group>"; };
+		AFC02771E41222AD2DF54EAA /* NaturalLanguagePassportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaturalLanguagePassportTests.swift; sourceTree = "<group>"; };
 		BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailStorageScope.swift; sourceTree = "<group>"; };
 		BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDaylight.swift; sourceTree = "<group>"; };
 		BF89F017C9B92B9BB62877B6 /* PressableScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressableScale.swift; sourceTree = "<group>"; };
@@ -178,6 +188,7 @@
 		DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyScreen.swift; sourceTree = "<group>"; };
 		E06E9E14840D47CCB6666C82 /* PassportScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportScreen.swift; sourceTree = "<group>"; };
 		E2C3F1013E3EB42C6E8D563F /* JourneySetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneySetupSheet.swift; sourceTree = "<group>"; };
+		E708B9040B3F95795D5B9D23 /* SelectedJourneyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectedJourneyStore.swift; sourceTree = "<group>"; };
 		E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusKind.swift; sourceTree = "<group>"; };
 		EE97A4E1410E4133B6E288E0 /* DomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainTests.swift; sourceTree = "<group>"; };
 		F1543B7756311FD507CCE878 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
@@ -225,6 +236,7 @@
 				C028E9C77E24D717A7837279 /* RailService.swift */,
 				BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */,
 				742FF165A9FB065C0F1C37AE /* RoutePacks.swift */,
+				E708B9040B3F95795D5B9D23 /* SelectedJourneyStore.swift */,
 				F1543B7756311FD507CCE878 /* Services.swift */,
 				A9A6CB58B1E32F89AD601FA0 /* Resources */,
 			);
@@ -258,6 +270,7 @@
 				2AF2F17C1BCEA6262649FA81 /* MapMatcher.swift */,
 				C7734B47F77BD5FBB27E7F38 /* Models.swift */,
 				88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */,
+				4A6648F9636F67548562B888 /* RailNaturalLanguage.swift */,
 				2AFF5E160E411983E693A628 /* RouteGeometry.swift */,
 				6EF8D8513F38692BB1E594A0 /* Routes.swift */,
 			);
@@ -313,6 +326,7 @@
 			children = (
 				0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */,
 				41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */,
+				AD24EEC53E962310683CC4F0 /* TimetablePassportUITests.swift */,
 			);
 			path = LocomateUITests;
 			sourceTree = "<group>";
@@ -342,7 +356,9 @@
 			children = (
 				EE97A4E1410E4133B6E288E0 /* DomainTests.swift */,
 				4FD965AE762908BAC26F73B0 /* JourneyAlertTests.swift */,
+				2DF32D12838C63D9FD0EB11B /* JourneyRestorationTests.swift */,
 				5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */,
+				AFC02771E41222AD2DF54EAA /* NaturalLanguagePassportTests.swift */,
 				4E1DB4EC560163257AA19C3E /* NetworkSnapshotTests.swift */,
 				7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */,
 				D457528F22290ED0F75A20DE /* Fixtures */,
@@ -425,6 +441,7 @@
 			buildConfigurationList = 1B7F90D3B0E35ACADC75C9A1 /* Build configuration list for PBXNativeTarget "LocomateUITests" */;
 			buildPhases = (
 				0EB8CC86D83559B2D5C1F6CF /* Sources */,
+				703D71A6A4B56F22C31AB561 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -558,6 +575,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		703D71A6A4B56F22C31AB561 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F248F00AC29FC1D6CB275317 /* run-12137-2026-09-18.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -576,6 +601,7 @@
 			files = (
 				D97719A0CB4808694014C829 /* NavigationUITests.swift in Sources */,
 				F676C2CE6B00D543582D6533 /* PerformanceUITests.swift in Sources */,
+				430C18265E546B3348DA980E /* TimetablePassportUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -622,6 +648,7 @@
 				B2D82BD205A4192CBC31D698 /* PressableScale.swift in Sources */,
 				4A4C26F781B2DC7F387F78E5 /* PrivacyDeletionLatch.swift in Sources */,
 				2552FDEFCBDDB06E71C5B161 /* RailMapView.swift in Sources */,
+				9D87DC2D6499A2AAF7ECCC9B /* RailNaturalLanguage.swift in Sources */,
 				E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */,
 				A5F4E86345EECD41A7ACD1F2 /* RailStorageScope.swift in Sources */,
 				B4C06C5B212FCFD0F216505B /* ResizableSheet.swift in Sources */,
@@ -630,6 +657,7 @@
 				9711B90409F7FB8BBEC4180E /* RoutePacks.swift in Sources */,
 				B2FC1F9CE589FCA867F45006 /* Routes.swift in Sources */,
 				AA0E0C5336DCB904B7DB0407 /* SearchScreen.swift in Sources */,
+				E133C49DAA6B8CAF8736F237 /* SelectedJourneyStore.swift in Sources */,
 				A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */,
 				81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */,
 				954123DAFDCFEB1BA8AE57DF /* StatusKind.swift in Sources */,
@@ -645,7 +673,9 @@
 			files = (
 				56734436EA551F5755619328 /* DomainTests.swift in Sources */,
 				8BBE6CD6F52F6F162EA68E54 /* JourneyAlertTests.swift in Sources */,
+				84FFE2F569547766C3884C9B /* JourneyRestorationTests.swift in Sources */,
 				49DF9587385C9F47580F3BF2 /* LocalGatewayIntegrationTests.swift in Sources */,
+				C81ABF71215AFC058FFE23B6 /* NaturalLanguagePassportTests.swift in Sources */,
 				80B1A74AEC23527E1260DA71 /* NetworkSnapshotTests.swift in Sources */,
 				F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */,
 			);

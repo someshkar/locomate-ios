@@ -16,15 +16,25 @@ public struct RootView: View {
     @State private var tab: LocomateTab = .journey
     @State private var pendingJourney: JourneyRequest?
     @State private var searchPresented = false
+    @State private var restorationAttempted = false
 
     public init() {}
 
     public struct JourneyRequest: Equatable, Sendable {
         public let trainNumber: String
         public let originDate: String
-        public init(trainNumber: String, originDate: String) {
+        public let restored: Bool
+        public let contributionActivationRevision: Int
+        public init(trainNumber: String, originDate: String, restored: Bool = false,
+                    contributionActivationRevision: Int = 0) {
             self.trainNumber = trainNumber
             self.originDate = originDate
+            self.restored = restored
+            self.contributionActivationRevision = contributionActivationRevision
+        }
+
+        func allowsContribution(currentActivationRevision: Int) -> Bool {
+            !restored || currentActivationRevision > contributionActivationRevision
         }
     }
 
@@ -42,15 +52,13 @@ public struct RootView: View {
                     JourneyScreen(request: pendingJourney, onOpenSearch: { switchTab(.search) })
                 case .explore:
                     ExploreScreen(onSelect: { destination in
-                        pendingJourney = JourneyRequest(trainNumber: destination.trainNumber, originDate: destination.date)
-                        switchTab(.journey)
+                        selectJourney(destination)
                     })
                 case .passport:
                     PassportScreen(onOpenSearch: { switchTab(.search) })
                 case .search:
                     SearchScreen(onSelect: { train, date in
-                        pendingJourney = JourneyRequest(trainNumber: train.number, originDate: date)
-                        switchTab(.journey)
+                        selectJourney(.init(trainNumber: train.number, date: date))
                     })
                 }
             }
@@ -67,8 +75,7 @@ public struct RootView: View {
         .animation(Motion.fadeNormal, value: preferences.dark)
         .sheet(isPresented: $searchPresented) {
             SearchScreen(onSelect: { train, date in
-                pendingJourney = JourneyRequest(trainNumber: train.number, originDate: date)
-                switchTab(.journey)
+                selectJourney(.init(trainNumber: train.number, date: date))
             })
             .environment(\.locomoteColors, colors)
             .presentationDetents([.fraction(0.72), .large])
@@ -76,16 +83,12 @@ public struct RootView: View {
             .presentationCornerRadius(28)
             .presentationBackground(.ultraThinMaterial)
         }
-        .task { consumeNotificationRoute() }
+        .task { restoreJourneyIfNeeded() }
         .onChange(of: pushBridge.pendingPayload) { _, _ in consumeNotificationRoute() }
         .onOpenURL { url in
             // Deep links: locomate://journeys/{trainNumber}?date=yyyy-MM-dd
             guard let destination = Routes.parse(url) else { return }
-            pendingJourney = JourneyRequest(
-                trainNumber: destination.trainNumber,
-                originDate: destination.date
-            )
-            switchTab(.journey)
+            selectJourney(destination)
         }
     }
 
@@ -94,8 +97,26 @@ public struct RootView: View {
         pushBridge.pendingPayload = nil
         guard services.journeyAlerts.accepts(payload, presenting: false),
               let destination = Routes.parse(payload.url) else { return }
+        selectJourney(destination)
+    }
+
+    private func selectJourney(_ destination: Routes.JourneyDestination) {
+        guard Routes.isValidTrainNumber(destination.trainNumber), Routes.isValidCalendarDate(destination.date) else { return }
         pendingJourney = JourneyRequest(trainNumber: destination.trainNumber, originDate: destination.date)
+        try? services.selectedJourney.save(destination)
         switchTab(.journey)
+    }
+
+    private func restoreJourneyIfNeeded() {
+        guard !restorationAttempted else { return }
+        restorationAttempted = true
+        guard pendingJourney == nil else { return }
+        consumeNotificationRoute()
+        // A URL/search/notification delivered before this task wins. This tiny
+        // read is synchronous, so no late restore can overwrite a newer route.
+        guard pendingJourney == nil, let saved = services.selectedJourney.load() else { return }
+        pendingJourney = JourneyRequest(trainNumber: saved.trainNumber, originDate: saved.date, restored: true,
+                                        contributionActivationRevision: services.contributionActivationRevision)
     }
 
     private func switchTab(_ newTab: LocomateTab) {

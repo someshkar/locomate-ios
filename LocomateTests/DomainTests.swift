@@ -286,13 +286,13 @@ struct StatusMappingTests {
 
     @Test("delay labels carry provenance qualifiers")
     func labels() {
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: 12, delayStatus: .observed) == "+12 MIN")
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: 12, delayStatus: .estimated) == "+12 MIN · EST.")
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: 12, delayStatus: .stale) == "+12 MIN · STALE")
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: -4, delayStatus: .observed) == "4 MIN EARLY")
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: 0, delayStatus: .scheduled) == "SCHEDULED")
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: 0, delayStatus: .observed) == "ON TIME")
-        #expect(StatusMapping.delayStatusLabel(delayMinutes: nil, delayStatus: .unavailable) == "DELAY UNAVAILABLE")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: 12, delayStatus: .observed) == "12 minutes late")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: 12, delayStatus: .estimated) == "12 minutes late · estimated")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: 12, delayStatus: .stale) == "12 minutes late · stale")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: -4, delayStatus: .observed) == "4 minutes early")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: 0, delayStatus: .scheduled) == "Scheduled")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: 0, delayStatus: .observed) == "On time")
+        #expect(StatusMapping.delayStatusLabel(delayMinutes: nil, delayStatus: .unavailable) == "Delay unavailable")
     }
 
     @Test("journey mode labels")

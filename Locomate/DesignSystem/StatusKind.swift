@@ -78,7 +78,8 @@ public enum StatusMapping {
     }
 
     /// Short label for a journey-mode status pill.
-    public static func journeyModeLabel(_ status: StatusKind) -> String {
+    public static func journeyModeLabel(_ status: StatusKind, cached: Bool = false) -> String {
+        if cached && status != .preview && status != .error { return "SAVED JOURNEY" }
         switch status {
         case .onTime: return "LIVE JOURNEY"
         case .preview: return "ROUTE REPLAY"
@@ -89,26 +90,12 @@ public enum StatusMapping {
         }
     }
 
-    /// Delay label copy, provenance-qualified (e.g. "+12 MIN", "ON TIME · EST.").
+    /// Natural-language delay copy keeps estimated and stale evidence explicit.
     public static func delayStatusLabel(
         delayMinutes: Int?,
         delayStatus: DelayStatus?,
         predictionSource: DataSource? = nil
     ) -> String {
-        guard let delay = delayMinutes, delayStatus != .unavailable else {
-            return "DELAY UNAVAILABLE"
-        }
-        let qualifier: String
-        if delayStatus == .stale {
-            qualifier = " · STALE"
-        } else if delayStatus == .estimated || predictionSource == .predicted {
-            qualifier = " · EST."
-        } else {
-            qualifier = ""
-        }
-        if delay > 0 { return "+\(delay) MIN\(qualifier)" }
-        if delay < 0 { return "\(abs(delay)) MIN EARLY\(qualifier)" }
-        let base = (delayStatus == .scheduled || delayStatus == nil) ? "SCHEDULED" : "ON TIME"
-        return "\(base)\(qualifier)"
+        RailNaturalLanguage.delay(minutes: delayMinutes, status: delayStatus, source: predictionSource)
     }
 }

@@ -41,7 +41,7 @@ public actor JourneyCache {
 
     public func loadJourney(trainNumber: String, originDate: String) -> CachedJourney? {
         guard let data = try? Data(contentsOf: url("journey-\(trainNumber)-\(originDate).json")) else { return nil }
-        return try? JSONDecoder.locomote.decode(CachedJourney.self, from: data)
+        return try? JSONDecoder.locomoteDates.decode(CachedJourney.self, from: data)
     }
 
     public func savePlan(_ plan: JourneyPlan) {

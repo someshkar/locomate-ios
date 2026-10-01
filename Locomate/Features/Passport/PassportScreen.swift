@@ -17,8 +17,11 @@ struct PassportScreen: View {
     @State private var journeys: [SavedJourney] = []
     @State private var showSettings = false
     @State private var loaded = false
+    @State private var period = PassportPeriod.allTime
 
-    private var stats: PassportStats { Passport.summarize(journeys) }
+    private var visibleJourneys: [SavedJourney] { period.filter(journeys) }
+    private var stats: PassportStats { Passport.summarize(visibleJourneys) }
+    private var years: [Int] { PassportPeriod.years(in: journeys) }
 
     var body: some View {
         Group {
@@ -32,6 +35,9 @@ struct PassportScreen: View {
             guard !loaded else { return }
             journeys = await services.passport.load()
             loaded = true
+        }
+        .onChange(of: years) { _, available in
+            if case .year(let selected) = period, !available.contains(selected) { period = .allTime }
         }
     }
 
@@ -47,7 +53,9 @@ struct PassportScreen: View {
                 }
 
                 if !journeys.isEmpty {
-                    PassportHeroCard(stats: stats, previewCount: journeys.filter { $0.preview == true }.count)
+                    PassportPeriodPicker(years: years, selection: $period)
+                    PassportHeroCard(stats: stats, previewCount: visibleJourneys.filter { $0.preview == true }.count,
+                                     periodLabel: period.label)
                     journeyList
                 } else if loaded {
                     emptyState
@@ -57,6 +65,7 @@ struct PassportScreen: View {
             .padding(.bottom, 140)
         }
         .background(colors.canvas.ignoresSafeArea())
+        .accessibilityIdentifier("passport.content")
     }
 
     private func iconButton(_ system: String, label: String, action: @escaping () -> Void) -> some View {
@@ -114,8 +123,8 @@ struct PassportScreen: View {
 
     private var journeyList: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
-            Text("Saved journeys").eyebrow(colors.textTertiary)
-            ForEach(Array(journeys.enumerated()), id: \.element.id) { index, journey in
+            Text("\(period.label) saved journeys").eyebrow(colors.textTertiary)
+            ForEach(Array(visibleJourneys.enumerated()), id: \.element.id) { index, journey in
                 StaggerIn(index: index) {
                     SavedJourneyRow(journey: journey) {
                         Task { await remove(journey) }
@@ -134,16 +143,81 @@ struct PassportScreen: View {
     }
 }
 
+/// A run belongs to the year of its train's India origin date, not the year it
+/// was saved. Previews and legacy source-unknown entries stay in All-Time only.
+enum PassportPeriod: Equatable, Hashable {
+    case allTime
+    case year(Int)
+
+    var label: String {
+        switch self {
+        case .allTime: "All-Time"
+        case .year(let year): String(year)
+        }
+    }
+
+    static func years(in journeys: [SavedJourney]) -> [Int] {
+        Array(Set(journeys.compactMap(year))).sorted(by: >)
+    }
+
+    func filter(_ journeys: [SavedJourney]) -> [SavedJourney] {
+        guard case .year(let selected) = self else { return journeys }
+        return journeys.filter { Self.year($0) == selected }
+    }
+
+    private static func year(_ journey: SavedJourney) -> Int? {
+        guard journey.preview == false, Routes.isValidCalendarDate(journey.originDate) else { return nil }
+        return Int(journey.originDate.prefix(4))
+    }
+}
+
+struct PassportPeriodPicker: View {
+    @Environment(\.locomoteColors) private var colors
+    let years: [Int]
+    @Binding var selection: PassportPeriod
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Train origin year").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach([PassportPeriod.allTime] + years.map(PassportPeriod.year), id: \.self) { period in
+                        Button {
+                            guard selection != period else { return }
+                            Haptics.select()
+                            selection = period
+                        } label: {
+                            Text(period.label)
+                                .font(LocomateFont.bodyStrong)
+                                .fixedSize()
+                                .padding(.horizontal, 16)
+                                .frame(minHeight: 44)
+                                .foregroundStyle(selection == period ? colors.accentBase : colors.textSecondary)
+                                .background(selection == period ? colors.accentWash : colors.elevated, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("passport.period.\(period.label)")
+                        .accessibilityAddTraits(selection == period ? .isSelected : [])
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+            .accessibilityIdentifier("passport.periods")
+        }
+    }
+}
+
 // MARK: - Hero stats
 
 struct PassportHeroCard: View {
     @Environment(\.locomoteColors) private var colors
     let stats: PassportStats
     let previewCount: Int
+    var periodLabel = "All-Time"
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.units(3)) {
-            Text("SAVED RUNS · AS OF TODAY").eyebrow(colors.textTertiary)
+            Text("SAVED RUNS · \(periodLabel)").eyebrow(colors.textTertiary)
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(Int(stats.distanceKm.rounded()).formatted())
                     .font(.system(.largeTitle, design: .rounded, weight: .semibold))
