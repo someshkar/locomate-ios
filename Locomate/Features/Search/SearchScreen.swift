@@ -25,6 +25,8 @@ struct SearchScreen: View {
     @State private var loading = false
     @State private var error: String?
     @State private var selectedDate = IndiaDate.today()
+    @State private var calendarDraft = Date()
+    @State private var showsCalendar = false
     @State private var searchTask: Task<Void, Never>?
     @FocusState private var isFieldFocused: Bool
     @ScaledMetric(relativeTo: .body) private var fieldSize: CGFloat = 16
@@ -70,6 +72,7 @@ struct SearchScreen: View {
         }
         .onChange(of: query) { _, _ in runSearch() }
         .onDisappear { searchTask?.cancel() }
+        .sheet(isPresented: $showsCalendar) { originDateCalendar }
     }
 
     private var intro: some View {
@@ -119,7 +122,28 @@ struct SearchScreen: View {
 
     private var dateStrip: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
-            Text("Origin date").eyebrow(colors.textTertiary)
+            dateHeaderLayout {
+                Text("Origin date").eyebrow(colors.textTertiary)
+                if production {
+                    if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                    Button {
+                        isFieldFocused = false
+                        calendarDraft = (try? IndiaDate.instant(originDate: selectedDate, time: "12:00")) ?? Date()
+                        showsCalendar = true
+                    } label: {
+                        Label(selectedDateLabel, systemImage: "calendar")
+                            .font(LocomateFont.caption)
+                            .foregroundStyle(colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 44)
+                            .background(colors.elevated, in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .accessibilityLabel("Choose origin date")
+                    .accessibilityValue(selectedDate)
+                    .accessibilityIdentifier("search.originDate.calendar")
+                }
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.units(2)) {
                     ForEach(quickDates, id: \.self) { date in
@@ -133,6 +157,73 @@ struct SearchScreen: View {
                 .foregroundStyle(colors.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var dateHeaderLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
+    }
+
+    private var selectedDateLabel: String {
+        guard let date = try? IndiaDate.instant(originDate: selectedDate, time: "12:00") else { return selectedDate }
+        let formatter = DateFormatter()
+        formatter.calendar = IndiaDate.calendar
+        formatter.timeZone = IndiaDate.timeZone
+        formatter.locale = Locale(identifier: "en_IN")
+        formatter.dateFormat = "dd MMM yyyy"
+        return formatter.string(from: date)
+    }
+
+    private var originDateCalendar: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Choose the day the train starts in India.")
+                        .font(LocomateFont.body)
+                        .foregroundStyle(colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    DatePicker("Origin date", selection: $calendarDraft,
+                               in: (try! IndiaDate.instant(originDate: "0001-01-01", time: "12:00"))...(try! IndiaDate.instant(originDate: "9999-12-31", time: "12:00")),
+                               displayedComponents: .date)
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .environment(\.calendar, IndiaDate.calendar)
+                        .environment(\.timeZone, IndiaDate.timeZone)
+                        .accessibilityIdentifier("search.originDate.picker")
+                    Button {
+                        let date = IndiaDate.today(calendarDraft)
+                        guard IndiaDate.isValid(date) else { return }
+                        selectedDate = date
+                        showsCalendar = false
+                    } label: {
+                        Text("Use date")
+                            .font(LocomateFont.bodyStrong)
+                            .foregroundStyle(colors.onAccent)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("search.originDate.confirm")
+                    Button { showsCalendar = false } label: {
+                        Text("Cancel")
+                            .font(LocomateFont.bodyStrong)
+                            .foregroundStyle(colors.textPrimary)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(20)
+            }
+            .accessibilityIdentifier("search.originDate.scroll")
+            .background(colors.canvas)
+            .navigationTitle("Origin date")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .tint(colors.accentBase)
+        .preferredColorScheme(colors.dark ? .dark : .light)
+        .presentationDetents([.large])
     }
 
     private func dateChip(_ date: String) -> some View {
@@ -182,6 +273,8 @@ struct SearchScreen: View {
         parser.dateFormat = "yyyy-MM-dd"
         guard let value = parser.date(from: date) else { return date }
         let display = DateFormatter()
+        display.calendar = IndiaDate.calendar
+        display.timeZone = IndiaDate.timeZone
         display.locale = Locale(identifier: "en_IN")
         display.dateFormat = "EEE"
         return display.string(from: value)

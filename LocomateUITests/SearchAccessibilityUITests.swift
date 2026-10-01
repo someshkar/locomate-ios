@@ -3,6 +3,95 @@ import Network
 
 final class SearchAccessibilityUITests: XCTestCase {
     @MainActor
+    func testOriginCalendarConfirmsExactDateAndCancelRetainsQuickSelection() async throws {
+        try await verifyOriginCalendar(largest: false)
+    }
+
+    @MainActor
+    func testOriginCalendarAtLargestTextConfirmsExactDatedSelection() async throws {
+        try await verifyOriginCalendar(largest: true)
+    }
+
+    @MainActor
+    private func verifyOriginCalendar(largest: Bool) async throws {
+        continueAfterFailure = false
+        let ready = expectation(description: "Calendar gateway ready")
+        let gateway = try SearchSelectionGateway(ready: ready)
+        defer { gateway.stop() }
+        await fulfillment(of: [ready], timeout: 5)
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLocale", "en_US"]
+        if largest { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["Find a train"].waitForExistence(timeout: 10))
+        app.buttons["Find a train"].tap()
+        let field = app.textFields["Search trains"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap(); field.typeText("12951\n")
+        let scroll = app.scrollViews.firstMatch
+        reveal(app.buttons["Try again"], in: scroll, app: app)
+        app.buttons["Try again"].tap()
+        let calendar = app.buttons["search.originDate.calendar"]
+        reveal(calendar, in: scroll, app: app)
+        let yesterday = app.buttons["Yest"]
+        reveal(yesterday, in: scroll, app: app)
+        yesterday.tap()
+        let quickDate = try XCTUnwrap(yesterday.value as? String)
+        XCTAssertEqual(calendar.value as? String, quickDate)
+        reveal(calendar, in: scroll, app: app)
+        capture(app, "Shared origin date controls \(largest ? "largest" : "normal")")
+        calendar.tap()
+        XCTAssertTrue(app.pickerWheels.firstMatch.waitForExistence(timeout: 5))
+        let year = app.pickerWheels.matching(NSPredicate(format: "value MATCHES %@", "[0-9]{4}")).firstMatch
+        XCTAssertTrue(year.exists)
+        year.adjust(toPickerWheelValue: "2019")
+        revealCalendarAction(app.buttons["Cancel"], in: app)
+        XCTAssertGreaterThanOrEqual(app.buttons["Cancel"].frame.height, 44)
+        app.buttons["Cancel"].tap()
+        XCTAssertEqual(calendar.value as? String, quickDate)
+        calendar.tap()
+        XCTAssertTrue(app.pickerWheels.firstMatch.waitForExistence(timeout: 5))
+        let month = app.pickerWheels.matching(NSPredicate(format: "value MATCHES %@", "[A-Za-z]+" )).firstMatch
+        let day = app.pickerWheels.matching(NSPredicate(format: "value MATCHES %@", "[0-9]{1,2}")).firstMatch
+        year.adjust(toPickerWheelValue: "2019")
+        month.adjust(toPickerWheelValue: "February")
+        day.adjust(toPickerWheelValue: "15")
+        let confirm = app.buttons["search.originDate.confirm"]
+        revealCalendarAction(confirm, in: app)
+        XCTAssertTrue(confirm.isHittable)
+        XCTAssertGreaterThanOrEqual(confirm.frame.height, 44)
+        capture(app, "Native origin calendar \(largest ? "largest" : "normal")")
+        confirm.tap()
+        reveal(calendar, in: scroll, app: app)
+        XCTAssertEqual(calendar.value as? String, "2019-02-15")
+        capture(app, "Confirmed date outside the quick strip \(largest ? "largest" : "normal")")
+        let result = app.buttons["search.result.12951"]
+        reveal(result, in: scroll, app: app)
+        result.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Selected dated query reached fixture.")).firstMatch
+            .waitForExistence(timeout: 10))
+        XCTAssertTrue(gateway.paths.contains("/v1/runs/12951/2019-02-15"))
+        XCTAssertFalse(gateway.paths.contains { $0.contains("/privacy/consent") || $0.contains("journey-alerts") })
+    }
+
+    @MainActor
+    private func revealCalendarAction(_ element: XCUIElement, in app: XCUIApplication) {
+        let scroll = app.scrollViews["search.originDate.scroll"]
+        XCTAssertTrue(scroll.waitForExistence(timeout: 5))
+        for _ in 0..<8 {
+            if element.isHittable && scroll.frame.insetBy(dx: 8, dy: 8).contains(element.frame) { return }
+            let frame = scroll.frame
+            let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.minX + 8, dy: frame.midY + 120))
+            let end = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.minX + 8, dy: frame.midY - 120))
+            start.press(forDuration: 0, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
+        }
+        XCTAssertTrue(element.isHittable)
+        XCTAssertTrue(scroll.frame.insetBy(dx: 8, dy: 8).contains(element.frame))
+    }
+
+    @MainActor
     func testSearchRetriesAndReplacedQueriesCannotKeepOldActions() async throws {
         continueAfterFailure = false
         let ready = expectation(description: "Search gateway ready")
