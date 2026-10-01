@@ -820,6 +820,19 @@ struct ContributionTests {
         [RailCoordinate(latitude: 0, longitude: 0), RailCoordinate(latitude: 0, longitude: 1)]
     }
 
+    @Test("location starts only within the gateway's active-run window")
+    func activeRunWindow() throws {
+        let departure = try IndiaDate.instant(originDate: "2026-10-01", time: "12:00")
+        #expect(ContributionObservation.isWithinRunWindow(originDate: "2026-10-01",
+            departureTime: "12:00", durationMinutes: 180, now: departure.addingTimeInterval(-5 * 60 * 60)))
+        #expect(!ContributionObservation.isWithinRunWindow(originDate: "2026-10-01",
+            departureTime: "12:00", durationMinutes: 180, now: departure.addingTimeInterval(-7 * 60 * 60)))
+        #expect(!ContributionObservation.isWithinRunWindow(originDate: "2026-10-01",
+            departureTime: "12:00", durationMinutes: 180, now: departure.addingTimeInterval((180 + 25 * 60) * 60)))
+        #expect(!ContributionObservation.isWithinRunWindow(originDate: "2026-10-01",
+            departureTime: "12:00", durationMinutes: nil, now: departure))
+    }
+
     @Test("preview run ids are refused")
     func previewRefused() {
         #expect(ContributionObservation.isPreviewRunId("preview-12137-historical-route"))
@@ -956,10 +969,12 @@ struct PassportStorageTests {
 @Suite("Observation sync")
 struct ObservationSyncTests {
     private final class StubService: RailServiceProtocol, @unchecked Sendable {
+        func recordCommunityConsent(_ evidence: CommunityConsentEvidence) async throws {}
         func exportPrivacyData() async throws -> Data { Data("{}".utf8) }
         func deletePrivacyData() async throws {}
         var uploaded: [[CompactObservation]] = []
         var shouldFail = false
+        var acceptedLimit: Int?
         func searchTrains(_ query: String) async throws -> [TrainSearchResult] { [] }
         func journey(trainNumber: String, originDate: String) async throws -> Journey { fatalError() }
         func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse { fatalError() }
@@ -972,14 +987,16 @@ struct ObservationSyncTests {
         func uploadObservations(_ batch: [CompactObservation]) async throws -> [String] {
             if shouldFail { throw URLError(.notConnectedToInternet) }
             uploaded.append(batch)
-            return batch.map { "\($0.runId):\($0.timestamp)" }
+            return batch.prefix(acceptedLimit ?? batch.count).map { "\($0.runId):\($0.timestamp)" }
         }
     }
 
     private func observation(_ timestamp: Int, runId: String = "12137-2026-09-08") -> CompactObservation {
-        CompactObservation(runId: runId, timestamp: timestamp, latE5: 0, lonE5: 0,
+        let currentTimestamp = timestamp < 1_000_000
+            ? Int(Date().timeIntervalSince1970 * 1_000) + timestamp : timestamp
+        return CompactObservation(runId: runId, timestamp: currentTimestamp, latE5: 0, lonE5: 0,
                            speedKph: 80, accuracyM: 10, routeProgress: 0.5,
-                           matchDistanceM: 5, consentVersion: 1)
+                           matchDistanceM: 5, consentVersion: Consent.version)
     }
 
     private func makeQueue(_ items: [CompactObservation]) -> ObservationQueue {
@@ -1027,6 +1044,37 @@ struct ObservationSyncTests {
         #expect(retried.remaining == 0)
     }
 
+    @Test("only gateway-acknowledged observations leave the queue")
+    func partialAcknowledgement() async {
+        let queue = makeQueue([observation(1), observation(2)])
+        let service = StubService()
+        service.acceptedLimit = 1
+        let sync = ObservationSync(queue: queue, service: service)
+        let outcome = await sync.flush(consentGranted: true, maxBatches: 1)
+        #expect(outcome.uploaded == 1)
+        #expect(outcome.remaining == 1)
+    }
+
+    @Test("the gateway tuple format retains deltas and stable IDs")
+    func gatewayTupleContract() throws {
+        let first = observation(1)
+        let second = CompactObservation(runId: first.runId, timestamp: first.timestamp + 1_000,
+            latE5: 2, lonE5: 3, speedKph: 80, accuracyM: 10, routeProgress: 0.5,
+            matchDistanceM: 5, consentVersion: Consent.version)
+        let encoded = try ObservationBatchCodec.encode([second, first])
+        #expect(encoded.body["version"] as? Int == 1)
+        #expect(encoded.body["base"] as? [Int] == [first.timestamp, 0, 0])
+        let tuples = try #require(encoded.body["observations"] as? [[Any]])
+        #expect(tuples.count == 2)
+        #expect(tuples[0][3] as? Int == 0)
+        #expect(tuples[1][3] as? Int == 1_000)
+        #expect(tuples[1][4] as? Int == 2)
+        #expect(tuples[1][5] as? Int == 3)
+        #expect(tuples[0][6] as? Int == 800)
+        #expect(encoded.keysById[ObservationBatchCodec.localId(for: first)] == "\(first.runId):\(first.timestamp)")
+        #expect(encoded.idempotencyKey == (try ObservationBatchCodec.encode([second, first])).idempotencyKey)
+    }
+
     @Test("preview run observations are never uploaded")
     func previewFiltered() async {
         let queue = makeQueue([observation(1, runId: "preview-12137"), observation(2)])
@@ -1039,12 +1087,56 @@ struct ObservationSyncTests {
     }
 }
 
+@Suite("Consent migration")
+struct ConsentMigrationTests {
+    @Test("old consent does not silently authorize current location collection")
+    func oldConsentIsReset() {
+        let suite = "locomote-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: "locomote.contributions")
+        defaults.set(true, forKey: "locomote.backgroundLocation")
+        defaults.set(1, forKey: "locomote.consentVersion")
+        let preferences = Preferences(defaults: defaults)
+        #expect(!preferences.contributionsEnabled)
+        #expect(!preferences.backgroundLocationEnabled)
+        #expect(defaults.integer(forKey: "locomote.consentVersion") == Consent.version)
+    }
+
+    @Test("consent from one gateway cannot authorize another")
+    func consentIsScopedToGateway() {
+        let suite = "locomote-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: "locomote.contributions")
+        defaults.set(Consent.version, forKey: "locomote.consentVersion")
+        defaults.set("source-a", forKey: "locomote.consentScope")
+        #expect(Preferences(defaults: defaults, consentScope: "source-a").contributionsEnabled)
+        #expect(!Preferences(defaults: defaults, consentScope: "source-b").contributionsEnabled)
+    }
+
+    @Test("queued withdrawal evidence is durable and source isolated")
+    @MainActor
+    func withdrawalQueueIsScoped() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let first = ConsentEvidenceQueue(directory: base, scope: "source-a")
+        let record = CommunityConsentEvidence(granted: false)
+        try first.append(record)
+        #expect(ConsentEvidenceQueue(directory: base, scope: "source-a").pending.count == 1)
+        #expect(ConsentEvidenceQueue(directory: base, scope: "source-b").pending.isEmpty)
+        try first.remove(record.evidenceId)
+        #expect(first.pending.isEmpty)
+    }
+}
+
 // MARK: - Real gateway fixture decoding
 
 @Suite("Journey source isolation")
 @MainActor
 struct JourneySourceIsolationTests {
     private struct FailingService: RailServiceProtocol {
+        func recordCommunityConsent(_ evidence: CommunityConsentEvidence) async throws {}
         func exportPrivacyData() async throws -> Data { Data("{}".utf8) }
         func deletePrivacyData() async throws {}
         func searchTrains(_ query: String) async throws -> [TrainSearchResult] { [] }

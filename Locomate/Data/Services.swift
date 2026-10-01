@@ -10,6 +10,7 @@ import Security
 
 @MainActor
 public final class LocomoteServices {
+    public enum ContributionConsentError: Error { case gatewayRequired }
     public let railService: RailServiceProtocol?
     public let cache: JourneyCache
     public let passport: PassportRepository
@@ -55,9 +56,34 @@ public final class LocomoteServices {
                 railService: RailService(client: client),
                 cache: JourneyCache(scope: scope),
                 passport: PassportRepository(scope: scope),
+                contribution: ContributionService(scope: scope),
                 mode: mode
             )
         }
+    }
+
+    public func grantContributionConsent(preferences: Preferences) async throws {
+        guard let railService else { throw ContributionConsentError.gatewayRequired }
+        try await contribution.flushConsentEvidence(using: railService)
+        try await railService.recordCommunityConsent(CommunityConsentEvidence(granted: true))
+        preferences.contributionsEnabled = true
+    }
+
+    @discardableResult
+    public func revokeContributionConsent(preferences: Preferences) -> Bool {
+        preferences.contributionsEnabled = false
+        preferences.backgroundLocationEnabled = false
+        contribution.revoke()
+        do {
+            try contribution.queueWithdrawal()
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    public func flushPendingConsentEvidence() async throws {
+        try await contribution.flushConsentEvidence(using: railService)
     }
 
     /// The export keeps the gateway's exact schema and every local data-source

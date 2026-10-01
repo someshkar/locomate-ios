@@ -16,6 +16,70 @@ import Foundation
 import CoreLocation
 import Observation
 
+enum Consent {
+    static let version = 2
+    static let scope = "community_observations"
+    static let noticeHash = "85e622e058a604e15d9dd794416785a09245e085f69c97381e7cc47a600f4f25"
+    static let notice = "SmartRail privacy notice v2: optional community observations include onboard positions and user-entered physical locomotive or coach-plate numbers; no photos, GPS, PNR, coach/seat, or notes are collected with physical ID reports, and consent can be withdrawn at any time."
+}
+
+public struct CommunityConsentEvidence: Codable, Sendable {
+    public let evidenceId: String
+    public let purpose: String
+    public let decision: String
+    public let consentVersion: String
+    public let noticeHash: String
+    public let recordedAt: Int
+
+    public init(granted: Bool) {
+        evidenceId = UUID().uuidString
+        purpose = Consent.scope
+        decision = granted ? "granted" : "withdrawn"
+        consentVersion = String(Consent.version)
+        noticeHash = Consent.noticeHash
+        recordedAt = Int(Date().timeIntervalSince1970 * 1_000)
+    }
+}
+
+/// A withdrawal survives a network failure and is retried on the next foreground session.
+@MainActor
+final class ConsentEvidenceQueue {
+    private let url: URL
+
+    init(directory: URL? = nil, scope: String? = nil) {
+        let base = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let root = base.appendingPathComponent("locomote", isDirectory: true)
+        let folder = scope.map { root.appendingPathComponent($0, isDirectory: true) } ?? root
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        excludeFromBackup(folder)
+        url = folder.appendingPathComponent("consent-evidence.json")
+        if FileManager.default.fileExists(atPath: url.path) { excludeFromBackup(url) }
+    }
+
+    var pending: [CommunityConsentEvidence] {
+        (try? load()) ?? []
+    }
+
+    func append(_ evidence: CommunityConsentEvidence) throws {
+        try save(load() + [evidence])
+    }
+
+    func remove(_ evidenceId: String) throws {
+        try save(load().filter { $0.evidenceId != evidenceId })
+    }
+
+    fileprivate func load() throws -> [CommunityConsentEvidence] {
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        return try JSONDecoder().decode([CommunityConsentEvidence].self, from: Data(contentsOf: url))
+    }
+
+    private func save(_ records: [CommunityConsentEvidence]) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(records).write(to: url, options: .atomic)
+        excludeFromBackup(url)
+    }
+}
+
 @MainActor
 @Observable
 public final class ContributionService: NSObject {
@@ -34,51 +98,100 @@ public final class ContributionService: NSObject {
     private var context: ContributionContext?
     private var consentVersion: Int = Consent.version
     private let queue: ObservationQueue
+    private let consentEvidence: ConsentEvidenceQueue
+    private var observationSync: ObservationSync?
+    private var flushTask: Task<Void, Never>?
+    private var expiryTask: Task<Void, Never>?
+    private var stopAt: Date?
+    private var syncRevision = 0
+    private var backgroundEnabled = false
 
-    public init(queue: ObservationQueue = ObservationQueue()) {
-        self.queue = queue
+    public init(queue: ObservationQueue? = nil, scope: String? = nil, consentDirectory: URL? = nil) {
+        self.queue = queue ?? ObservationQueue(scope: scope)
+        self.consentEvidence = ConsentEvidenceQueue(directory: consentDirectory, scope: scope)
         super.init()
+        if self.queue.peek(limit: Int.max).contains(where: { $0.consentVersion != Consent.version }) {
+            self.queue.clear()
+        }
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.distanceFilter = 25
+        manager.distanceFilter = 50
         manager.activityType = .otherNavigation
-        queuedCount = queue.count()
+        queuedCount = self.queue.count()
     }
 
     // MARK: Consent-aware lifecycle
 
     /// Begin contributing for a specific run. `background` additionally enables
     /// background updates and an ongoing-location session.
-    public func start(runId: String, route: [RailCoordinate], background: Bool) async {
+    public func start(runId: String, route: [RailCoordinate], background: Bool,
+                      service: RailServiceProtocol? = nil, stopAt: Date? = nil) async {
         // Preview runs are never contributed.
         guard !ContributionObservation.isPreviewRunId(runId), route.count >= 2 else {
             state = .unavailable
             return
         }
+        if context?.runId == runId && backgroundEnabled == background && state == .collecting { return }
+        stop()
+        if let stopAt, stopAt <= Date() { state = .unavailable; return }
         context = ContributionContext(runId: runId, route: route)
+        observationSync = ObservationSync(queue: queue, service: service)
+        self.stopAt = stopAt
+        if let stopAt {
+            expiryTask = Task { [weak self] in
+                let interval = max(0, stopAt.timeIntervalSinceNow)
+                try? await Task.sleep(for: .seconds(interval))
+                guard !Task.isCancelled else { return }
+                self?.stop()
+            }
+        }
+        flushPendingObservations()
 
         guard manager.authorizationStatus != .denied, manager.authorizationStatus != .restricted else {
+            stop()
             state = .denied
             return
         }
         if manager.authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
+            return
         }
-        if background {
-            manager.allowsBackgroundLocationUpdates = true
-            manager.pausesLocationUpdatesAutomatically = false
-            manager.showsBackgroundLocationIndicator = true
-            if #available(iOS 17.0, *) {
-                manager.showsBackgroundLocationIndicator = true
-            }
+        guard manager.accuracyAuthorization == .fullAccuracy else {
+            stop()
+            state = .unavailable
+            return
         }
+        updateBackground(background)
         manager.startUpdatingLocation()
         state = .collecting
     }
 
+    public func updateBackground(_ enabled: Bool) {
+        backgroundEnabled = enabled
+        guard context != nil,
+              (manager.authorizationStatus == .authorizedWhenInUse
+                || manager.authorizationStatus == .authorizedAlways),
+              manager.accuracyAuthorization == .fullAccuracy else { return }
+        manager.allowsBackgroundLocationUpdates = enabled
+        manager.distanceFilter = enabled ? 100 : 50
+        manager.pausesLocationUpdatesAutomatically = true
+        manager.showsBackgroundLocationIndicator = enabled
+    }
+
     public func stop() {
+        syncRevision += 1
+        expiryTask?.cancel()
+        expiryTask = nil
+        flushTask?.cancel()
+        flushTask = nil
         manager.stopUpdatingLocation()
+        manager.allowsBackgroundLocationUpdates = false
+        manager.showsBackgroundLocationIndicator = false
+        manager.pausesLocationUpdatesAutomatically = true
         context = nil
+        observationSync = nil
+        stopAt = nil
+        backgroundEnabled = false
         state = .idle
     }
 
@@ -100,11 +213,24 @@ public final class ContributionService: NSObject {
         queuedCount = queue.count()
     }
 
+    func queueWithdrawal() throws {
+        try consentEvidence.append(CommunityConsentEvidence(granted: false))
+    }
+
+    func flushConsentEvidence(using service: RailServiceProtocol?) async throws {
+        guard let service else { return }
+        for evidence in try consentEvidence.load() {
+            try await service.recordCommunityConsent(evidence)
+            try consentEvidence.remove(evidence.evidenceId)
+        }
+    }
+
     private func record(_ location: CLLocation) {
         guard let context else { return }
+        if let stopAt, Date() >= stopAt { stop(); return }
         let device = DeviceLocation(
             timestamp: location.timestamp.timeIntervalSince1970 * 1000,
-            mocked: false,
+            mocked: location.sourceInformation?.isSimulatedBySoftware ?? false,
             latitude: location.coordinate.latitude,
             longitude: location.coordinate.longitude,
             accuracy: location.horizontalAccuracy,
@@ -118,6 +244,16 @@ public final class ContributionService: NSObject {
         queue.append(observation)
         queuedCount = queue.count()
         lastObservation = observation
+        flushPendingObservations()
+    }
+
+    private func flushPendingObservations() {
+        guard flushTask == nil, let observationSync else { return }
+        let revision = syncRevision
+        flushTask = Task { [weak self] in
+            _ = await observationSync.flush(consentGranted: self?.context != nil)
+            if self?.syncRevision == revision { self?.flushTask = nil }
+        }
     }
 }
 
@@ -135,10 +271,19 @@ extension ContributionService: CLLocationManagerDelegate {
         Task { @MainActor in
             switch status {
             case .denied, .restricted:
+                self.stop()
                 self.state = .denied
-                self.manager.stopUpdatingLocation()
             case .authorizedWhenInUse, .authorizedAlways:
-                if self.context != nil { self.state = .collecting }
+                if self.context != nil {
+                    guard self.manager.accuracyAuthorization == .fullAccuracy else {
+                        self.stop()
+                        self.state = .unavailable
+                        return
+                    }
+                    self.updateBackground(self.backgroundEnabled)
+                    self.manager.startUpdatingLocation()
+                    self.state = .collecting
+                }
             default:
                 break
             }
@@ -154,9 +299,10 @@ public final class ObservationQueue: @unchecked Sendable {
     private let url: URL
     private let lock = NSLock()
 
-    public init(directory: URL? = nil) {
+    public init(directory: URL? = nil, scope: String? = nil) {
         let base = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let folder = base.appendingPathComponent("locomote", isDirectory: true)
+        let root = base.appendingPathComponent("locomote", isDirectory: true)
+        let folder = scope.map { root.appendingPathComponent($0, isDirectory: true) } ?? root
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         excludeFromBackup(folder)
         self.url = folder.appendingPathComponent("observations.json")
@@ -179,7 +325,10 @@ public final class ObservationQueue: @unchecked Sendable {
 
     public func append(_ observation: CompactObservation) {
         lock.lock(); defer { lock.unlock() }
-        write(read() + [observation])
+        let existing = read().filter {
+            $0.runId != observation.runId || $0.timestamp != observation.timestamp
+        }
+        write(existing + [observation])
     }
 
     public func peek(limit: Int) -> [CompactObservation] {

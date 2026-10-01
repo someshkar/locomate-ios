@@ -185,6 +185,24 @@ public struct DeviceLocation: Sendable {
 }
 
 public enum ContributionObservation {
+    /// Match the gateway's active-run window before requesting device location.
+    public static func isWithinRunWindow(originDate: String, departureTime: String,
+                                         durationMinutes: Int?, now: Date = Date()) -> Bool {
+        guard let departure = try? IndiaDate.instant(originDate: originDate, time: departureTime),
+              let end = runWindowEnd(originDate: originDate, departureTime: departureTime,
+                                     durationMinutes: durationMinutes) else { return false }
+        return now >= departure.addingTimeInterval(-6 * 60 * 60)
+            && now <= end
+    }
+
+    public static func runWindowEnd(originDate: String, departureTime: String,
+                                    durationMinutes: Int?) -> Date? {
+        guard let durationMinutes, durationMinutes > 0, durationMinutes <= 7 * 24 * 60,
+              let departure = try? IndiaDate.instant(originDate: originDate, time: departureTime)
+        else { return nil }
+        return departure.addingTimeInterval(TimeInterval(durationMinutes + 24 * 60) * 60)
+    }
+
     /// Preview/demo runs must never be contributed as real observations.
     public static func isPreviewRunId(_ runId: String) -> Bool {
         let trimmed = runId.trimmingCharacters(in: .whitespaces)

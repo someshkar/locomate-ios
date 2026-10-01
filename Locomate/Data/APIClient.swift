@@ -132,6 +132,24 @@ public actor APIClient {
         )
     }
 
+    public func postData<T: Decodable>(
+        _ path: String,
+        bodyData: Data,
+        idempotencyKey: String? = nil
+    ) async throws -> T {
+        let session = try await validSession()
+        let (data, status, requestId) = try await performRequest(
+            path: path, method: "POST", body: nil, token: session.accessToken,
+            idempotencyKey: idempotencyKey, bodyData: bodyData
+        )
+        do {
+            return try JSONDecoder.locomote.decode(T.self, from: data)
+        } catch {
+            throw APIError(status: status, code: "decode_error", requestId: requestId, retryable: false,
+                           message: "The rail service returned an unexpected response.")
+        }
+    }
+
     public func delete(_ path: String) async throws {
         let session = try await validSession()
         _ = try await performRequest(path: path, method: "DELETE", body: nil, token: session.accessToken)
@@ -163,7 +181,8 @@ public actor APIClient {
         query: [String: String] = [:],
         body: [String: Any]?,
         token: String?,
-        idempotencyKey: String? = nil
+        idempotencyKey: String? = nil,
+        bodyData: Data? = nil
     ) async throws -> (Data, Int, String) {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
         if !query.isEmpty {
@@ -180,7 +199,10 @@ public actor APIClient {
         request.setValue("LocomateNative/1.0", forHTTPHeaderField: "User-Agent")
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         if let idempotencyKey { request.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key") }
-        if let body {
+        if let bodyData {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = bodyData
+        } else if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }

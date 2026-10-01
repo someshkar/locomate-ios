@@ -45,15 +45,32 @@ public final class Preferences {
         static let mapLighting = "locomote.mapLighting"
         static let contributions = "locomote.contributions"
         static let backgroundLocation = "locomote.backgroundLocation"
+        static let consentVersion = "locomote.consentVersion"
+        static let consentScope = "locomote.consentScope"
     }
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard, consentScope: String? = nil) {
         self.defaults = defaults
         // Dark-first, matching the product's default canvas.
         self.dark = defaults.object(forKey: Keys.dark) as? Bool ?? true
         let storedLighting = defaults.string(forKey: Keys.mapLighting)
         self.mapLighting = MapLighting(rawValue: storedLighting ?? "") ?? .automatic
-        self.contributionsEnabled = defaults.bool(forKey: Keys.contributions)
-        self.backgroundLocationEnabled = defaults.bool(forKey: Keys.backgroundLocation)
+        let activeScope = consentScope ?? {
+            switch RailDataMode.resolve() {
+            case .preview: return "preview"
+            case .production(let url): return RailStorageScope.gateway(url)
+            }
+        }()
+        let consentIsCurrent = defaults.integer(forKey: Keys.consentVersion) == Consent.version
+            && defaults.string(forKey: Keys.consentScope) == activeScope
+        let contributions = consentIsCurrent && defaults.bool(forKey: Keys.contributions)
+        self.contributionsEnabled = contributions
+        self.backgroundLocationEnabled = contributions && defaults.bool(forKey: Keys.backgroundLocation)
+        if !consentIsCurrent {
+            defaults.set(false, forKey: Keys.contributions)
+            defaults.set(false, forKey: Keys.backgroundLocation)
+            defaults.set(Consent.version, forKey: Keys.consentVersion)
+            defaults.set(activeScope, forKey: Keys.consentScope)
+        }
     }
 }

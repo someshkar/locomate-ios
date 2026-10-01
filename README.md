@@ -43,6 +43,8 @@ Settings offers **Export my data** and **Delete my data**. Export combines the c
 
 Production sessions, cached runs, journey plans, and Passport entries are scoped to the gateway origin. A development gateway's stored data cannot appear when the app points to production.
 
+Community location contribution is opt-in for a current production run. Settings records versioned consent with the gateway before enabling collection, stores failed withdrawal requests for retry, and immediately stops collection and clears queued observations when consent is revoked. Pending observations and withdrawals are scoped to the gateway origin. The collector rejects simulated, stale, inaccurate, and off-route fixes, and uploads fresh batches using the gateway's delta-encoded contract. Foreground collection stops when the app backgrounds unless the separate background option is enabled. Background operation and revocation still need physical-device verification.
+
 A live train position marker requires recent observed evidence from an official, community, or device source. Scheduled or predicted route progress does not create a live marker; historical previews use a separately labeled violet sample marker.
 
 The **Live card** action starts a Lock Screen Live Activity after an explicit tap when the current production run has a known delay. It updates when the app loads fresh run data and marks its ETA stale after ten minutes without a refresh. Server-sent ActivityKit updates still require gateway APNs delivery.

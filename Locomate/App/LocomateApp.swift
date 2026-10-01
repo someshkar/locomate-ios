@@ -13,12 +13,16 @@ struct LocomateApp: App {
         WindowGroup {
             RootView()
                 .id(dataRevision)
+                .task { try? await services.flushPendingConsentEvidence() }
                 .environment(preferences)
                 .environment(\.locomoteServices, services)
                 .preferredColorScheme(preferences.dark ? .dark : .light)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         NotificationCenter.default.post(name: .locomoteForeground, object: nil)
+                        Task { try? await services.flushPendingConsentEvidence() }
+                    } else if phase == .background && !preferences.backgroundLocationEnabled {
+                        services.contribution.stop()
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .locomotePrivacyReset)) { notification in

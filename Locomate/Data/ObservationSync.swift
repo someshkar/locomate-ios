@@ -45,16 +45,26 @@ public actor ObservationSync {
 
         var uploaded = 0
         for _ in 0..<maxBatches {
-            let batch = queue.peek(limit: batchSize)
-                .filter { !ContributionObservation.isPreviewRunId($0.runId) }
-            guard !batch.isEmpty else { break }
+            if Task.isCancelled { break }
+            let now = Int(Date().timeIntervalSince1970 * 1_000)
+            let queued = queue.peek(limit: min(batchSize, 100))
+            let discarded = queued.filter {
+                $0.timestamp < now - 9 * 60_000 || $0.timestamp > now + 60_000
+                    || $0.consentVersion != Consent.version
+                    || ContributionObservation.isPreviewRunId($0.runId)
+            }
+            if !discarded.isEmpty { queue.remove(discarded) }
+            let batch = queued.filter { !discarded.contains($0) }
+            if batch.isEmpty {
+                if discarded.isEmpty { break }
+                continue
+            }
             do {
-                _ = try await service.uploadObservations(batch)
-                // Acknowledge regardless of the per-item list: the gateway
-                // de-duplicates by local id, and a rejected item is not useful
-                // to retry forever.
-                queue.remove(batch)
-                uploaded += batch.count
+                let accepted = Set(try await service.uploadObservations(batch))
+                let acknowledged = batch.filter { accepted.contains("\($0.runId):\($0.timestamp)") }
+                queue.remove(acknowledged)
+                uploaded += acknowledged.count
+                if acknowledged.isEmpty { break }
             } catch {
                 return Outcome(uploaded: uploaded, remaining: queue.count(), failed: true)
             }

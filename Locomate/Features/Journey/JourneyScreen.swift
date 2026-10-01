@@ -72,8 +72,10 @@ struct JourneyScreen: View {
             guard let newValue else { return }
             Task {
                 if let model {
+                    services.contribution.stop()
                     await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate)
                     alertsEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
+                    await reconcileContribution()
                 } else {
                     await ensureModel()
                 }
@@ -81,6 +83,13 @@ struct JourneyScreen: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .locomoteForeground)) { _ in
             recomputeDaylight()
+            Task { await reconcileContribution() }
+        }
+        .onChange(of: preferences.contributionsEnabled) { _, _ in
+            Task { await reconcileContribution() }
+        }
+        .onChange(of: preferences.backgroundLocationEnabled) { _, _ in
+            Task { await reconcileContribution() }
         }
     }
 
@@ -101,7 +110,25 @@ struct JourneyScreen: View {
             await created.load()
             alertsEnabled = created.journey.map { created.isLiveActivityRunning(for: $0.id) } ?? false
             recomputeDaylight()
+            await reconcileContribution()
         }
+    }
+
+    private func reconcileContribution() async {
+        guard preferences.contributionsEnabled, services.railService != nil,
+              let model, !model.isPreview, !model.isCached,
+              let journey = model.journey, journey.completion < 1,
+              ContributionObservation.isWithinRunWindow(originDate: model.originDate,
+                  departureTime: journey.departureTime,
+                  durationMinutes: journey.scheduledDurationMinutes),
+              let route = journey.routeCoordinates, route.count >= 2 else {
+            services.contribution.stop()
+            return
+        }
+        await services.contribution.start(runId: journey.id, route: route,
+            background: preferences.backgroundLocationEnabled, service: services.railService,
+            stopAt: ContributionObservation.runWindowEnd(originDate: model.originDate,
+                departureTime: journey.departureTime, durationMinutes: journey.scheduledDurationMinutes))
     }
 
     private func recomputeDaylight() {
@@ -251,7 +278,7 @@ struct JourneyScreen: View {
                 title: "Train run unavailable",
                 body: "\(model.originDate) · \(error)",
                 actionTitle: "Try again",
-                onAction: { Task { await model.load() } }
+                onAction: { Task { await model.load(); await reconcileContribution() } }
             )
         case .loaded(let journey):
             loadedContent(model: model, journey: journey, height: height)

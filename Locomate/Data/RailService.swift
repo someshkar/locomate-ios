@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CryptoKit
 
 public struct TrainSearchResult: Codable, Sendable, Identifiable {
     public var id: String { number }
@@ -34,6 +35,7 @@ private struct JourneyResponse: Decodable {
 }
 
 public protocol RailServiceProtocol: Sendable {
+    func recordCommunityConsent(_ evidence: CommunityConsentEvidence) async throws
     func exportPrivacyData() async throws -> Data
     func deletePrivacyData() async throws
     func registerLiveActivityToken(
@@ -52,6 +54,19 @@ public struct RailService: RailServiceProtocol {
     private let client: APIClient
 
     public init(client: APIClient) { self.client = client }
+
+    public func recordCommunityConsent(_ evidence: CommunityConsentEvidence) async throws {
+        struct Ack: Decodable { let recorded: Bool }
+        let ack: Ack = try await client.post("/v1/privacy/consent", body: [
+            "evidenceId": evidence.evidenceId,
+            "purpose": evidence.purpose,
+            "decision": evidence.decision,
+            "consentVersion": evidence.consentVersion,
+            "noticeHash": evidence.noticeHash,
+            "recordedAt": evidence.recordedAt,
+        ])
+        guard ack.recorded else { throw URLError(.badServerResponse) }
+    }
 
     public func exportPrivacyData() async throws -> Data {
         try await client.getRaw("/v1/privacy/export")
@@ -96,51 +111,14 @@ public struct RailService: RailServiceProtocol {
     /// idempotent, no passenger identity).
     public func uploadObservations(_ batch: [CompactObservation]) async throws -> [String] {
         guard !batch.isEmpty else { return [] }
-        struct Request: Encodable {
-            struct Item: Encodable {
-                let localId: String
-                let runId: String
-                let timestamp: Int
-                let latE5: Int
-                let lonE5: Int
-                let speedKph: Double
-                let accuracyM: Double
-                let routeProgress: Double
-                let matchDistanceM: Double
-                let consentVersion: Int
-            }
-            let consentVersion: Int
-            let observations: [Item]
-        }
-        struct Response: Decodable { let acceptedLocalIds: [String] }
-
-        let body = Request(
-            consentVersion: batch.map(\.consentVersion).max() ?? Consent.version,
-            observations: batch.map { item in
-                Request.Item(
-                    localId: "\(item.runId):\(item.timestamp)",
-                    runId: item.runId,
-                    timestamp: item.timestamp,
-                    latE5: item.latE5,
-                    lonE5: item.lonE5,
-                    speedKph: item.speedKph,
-                    accuracyM: item.accuracyM,
-                    routeProgress: item.routeProgress,
-                    matchDistanceM: item.matchDistanceM,
-                    consentVersion: item.consentVersion
-                )
-            }
-        )
-
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(body)
-        let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        let response: Response = try await client.post(
+        struct Response: Decodable { let acceptedRecordIds: [Int] }
+        let encoded = try ObservationBatchCodec.encode(batch)
+        let response: Response = try await client.postData(
             "/v1/observations/batch",
-            body: payload,
-            idempotencyKey: "batch-\(batch.first?.runId ?? "unknown")-\(batch.last?.timestamp ?? 0)"
+            bodyData: encoded.bodyData,
+            idempotencyKey: encoded.idempotencyKey
         )
-        return response.acceptedLocalIds
+        return response.acceptedRecordIds.compactMap { encoded.keysById[$0] }
     }
 
     public func searchTrains(_ query: String) async throws -> [TrainSearchResult] {
@@ -169,6 +147,61 @@ public struct RailService: RailServiceProtocol {
 
     public func trainHistory(trainNumber: String, limit: Int = 20) async throws -> TrainHistoryResponse {
         try await client.get("/v1/trains/\(trainNumber)/history", query: ["limit": String(limit)])
+    }
+}
+
+/// Exact v1 tuple contract consumed by the gateway observation decoder.
+enum ObservationBatchCodec {
+    struct Encoded {
+        let body: [String: Any]
+        let bodyData: Data
+        let keysById: [Int: String]
+        let idempotencyKey: String
+    }
+
+    enum EncodingError: Error { case invalidBatch, duplicateLocalId }
+
+    static func localId(for item: CompactObservation) -> Int {
+        let digest = SHA256.hash(data: Data("\(item.runId):\(item.timestamp)".utf8))
+        // 48 bits remain exact in JavaScript numbers and fit SQLite INTEGER.
+        return digest.prefix(6).reduce(0) { ($0 << 8) | Int($1) }
+    }
+
+    static func encode(_ batch: [CompactObservation]) throws -> Encoded {
+        guard !batch.isEmpty, batch.count <= 100 else { throw EncodingError.invalidBatch }
+        let ordered = batch.sorted { $0.timestamp < $1.timestamp }
+        guard let first = ordered.first else { throw EncodingError.invalidBatch }
+        var previous = first
+        var keysById: [Int: String] = [:]
+        var tuples: [[Any]] = []
+        for (index, item) in ordered.enumerated() {
+            guard item.consentVersion == Consent.version,
+                  item.runId.range(of: "^[A-Za-z0-9:_.-]{1,128}$", options: .regularExpression) != nil
+            else { throw EncodingError.invalidBatch }
+            let id = localId(for: item)
+            guard keysById[id] == nil else { throw EncodingError.duplicateLocalId }
+            keysById[id] = "\(item.runId):\(item.timestamp)"
+            tuples.append([
+                id, item.runId, item.consentVersion,
+                index == 0 ? 0 : item.timestamp - previous.timestamp,
+                index == 0 ? 0 : item.latE5 - previous.latE5,
+                index == 0 ? 0 : item.lonE5 - previous.lonE5,
+                Int((item.speedKph * 10).rounded()),
+                Int((item.accuracyM * 10).rounded()),
+                Int((item.routeProgress * 1_000_000).rounded()),
+                Int((item.matchDistanceM * 10).rounded()),
+            ])
+            previous = item
+        }
+        let body: [String: Any] = [
+            "version": 1,
+            "base": [first.timestamp, first.latE5, first.lonE5],
+            "observations": tuples,
+        ]
+        let payload = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
+        let digest = SHA256.hash(data: payload).map { String(format: "%02x", $0) }.joined()
+        return Encoded(body: body, bodyData: payload, keysById: keysById,
+            idempotencyKey: "observations-\(digest)")
     }
 }
 
