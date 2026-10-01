@@ -11,7 +11,7 @@ struct MapStationMarker: Identifiable, Equatable {
 struct RailMapView: UIViewRepresentable {
     let route: [RailCoordinate]
     let progress: Double
-    let preview: Bool
+    let positionDisplay: JourneyPositionDisplay
     let markers: [MapStationMarker]
     let daylight: MapDaylight
     let lightingMode: Preferences.MapLighting
@@ -35,7 +35,8 @@ struct RailMapView: UIViewRepresentable {
     func updateUIView(_ mapView: MKMapView, context: Context) {
         mapView.overrideUserInterfaceStyle = lightingMode == .day ? .light : .dark
         context.coordinator.update(mapView: mapView, route: route, progress: progress,
-                                   preview: preview, markers: markers, sheetVisibleHeight: sheetVisibleHeight)
+                                   positionDisplay: positionDisplay, markers: markers,
+                                   sheetVisibleHeight: sheetVisibleHeight)
     }
 
     @MainActor final class Coordinator: NSObject, @preconcurrency MKMapViewDelegate {
@@ -46,11 +47,12 @@ struct RailMapView: UIViewRepresentable {
         private var trainAnnotation: RailAnnotation?
         private var previousMarkers = ""
         private var previousProgress = -1.0
-        private var previousPreview: Bool?
+        private var previousPositionDisplay: JourneyPositionDisplay?
         private var previousSheetHeight = -1.0
         private var fitted = false
 
-        func update(mapView: MKMapView, route: [RailCoordinate], progress: Double, preview: Bool,
+        func update(mapView: MKMapView, route: [RailCoordinate], progress: Double,
+                    positionDisplay: JourneyPositionDisplay,
                     markers: [MapStationMarker], sheetVisibleHeight: Double) {
             guard route.count >= 2 else { return }
             if route != previousRoute {
@@ -84,15 +86,29 @@ struct RailMapView: UIViewRepresentable {
                 mapView.addAnnotations(stationAnnotations)
             }
 
-            if abs(progress - previousProgress) > 0.0001 || previousPreview != preview {
+            if abs(progress - previousProgress) > 0.0001 || previousPositionDisplay != positionDisplay {
                 previousProgress = progress
-                previousPreview = preview
-                if let point = try? RouteGeometry.coordinate(along: route, progress: progress) {
-                    trainAnnotation.map { mapView.removeAnnotation($0) }
+                previousPositionDisplay = positionDisplay
+                trainAnnotation.map { mapView.removeAnnotation($0) }
+                trainAnnotation = nil
+                if positionDisplay != .hidden,
+                   let point = try? RouteGeometry.coordinate(along: route, progress: progress) {
+                    let title: String = switch positionDisplay {
+                        case .preview: "Historical route sample · not live"
+                        case .observed: "Observed train position"
+                        case .stale: "Last observed position · stale"
+                        case .hidden: ""
+                    }
+                    let kind: RailAnnotation.Kind = switch positionDisplay {
+                        case .preview: .preview
+                        case .observed: .train
+                        case .stale: .stale
+                        case .hidden: .train
+                    }
                     let train = RailAnnotation(
                         coordinate: CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude),
-                        title: preview ? "Historical route sample · not live" : "Train position · verify source in journey details",
-                        kind: preview ? .preview : .train
+                        title: title,
+                        kind: kind
                     )
                     trainAnnotation = train
                     mapView.addAnnotation(train)
@@ -136,7 +152,12 @@ struct RailMapView: UIViewRepresentable {
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             guard let point = annotation as? RailAnnotation else { return nil }
-            let reuse = point.kind == .train ? "train-dot" : (point.kind == .preview ? "preview-dot" : "station-dot")
+            let reuse = switch point.kind {
+                case .train: "train-dot"
+                case .stale: "stale-dot"
+                case .preview: "preview-dot"
+                case .station: "station-dot"
+            }
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: reuse)
                 ?? MKAnnotationView(annotation: point, reuseIdentifier: reuse)
             view.annotation = point
@@ -145,11 +166,12 @@ struct RailMapView: UIViewRepresentable {
             view.layer.cornerRadius = size / 2
             view.layer.borderWidth = point.kind == .station ? 1.5 : 3
             view.layer.borderColor = UIColor.white.cgColor
-            view.backgroundColor = point.kind == .preview
-                ? UIColor(red: 0.61, green: 0.55, blue: 1, alpha: 1)
-                : (point.kind == .train
-                    ? UIColor(red: 0.0, green: 0.62, blue: 0.98, alpha: 1)
-                    : UIColor(red: 0.37, green: 0.68, blue: 0.96, alpha: 1))
+            view.backgroundColor = switch point.kind {
+                case .preview: UIColor(red: 0.61, green: 0.55, blue: 1, alpha: 1)
+                case .train: UIColor(red: 0.22, green: 0.79, blue: 0.51, alpha: 1)
+                case .stale: UIColor(red: 1, green: 0.72, blue: 0.3, alpha: 1)
+                case .station: UIColor(red: 0.37, green: 0.68, blue: 0.96, alpha: 1)
+            }
             view.layer.shadowColor = UIColor(red: 0.37, green: 0.68, blue: 0.96, alpha: 1).cgColor
             view.layer.shadowRadius = point.kind == .station ? 5 : 12
             view.layer.shadowOpacity = 0.8
@@ -162,7 +184,7 @@ struct RailMapView: UIViewRepresentable {
 }
 
 private final class RailAnnotation: NSObject, MKAnnotation {
-    enum Kind { case train, preview, station }
+    enum Kind { case train, stale, preview, station }
     let coordinate: CLLocationCoordinate2D
     let title: String?
     let kind: Kind

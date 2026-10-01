@@ -1040,6 +1040,32 @@ struct GatewayContractTests {
         let status = StatusMapping.statusForJourneyMode(mode)
         #expect(status == .scheduled || status == .stale)
         #expect(!StatusMapping.isLivePulseAllowed(mode))
+        #expect(JourneyPositionEvidence.display(journey: journey, cached: false, preview: false) == .hidden)
+    }
+
+    @Test("a map marker requires a recent observed source")
+    func positionEvidence() throws {
+        struct Envelope: Decodable { let journey: Journey }
+        var root = try #require(JSONSerialization.jsonObject(with: fixtureData()) as? [String: Any])
+        var rawJourney = try #require(root["journey"] as? [String: Any])
+        var position = try #require(rawJourney["position"] as? [String: Any])
+        var provenance = try #require(rawJourney["provenance"] as? [String: Any])
+        let observedAt = try #require(position["observedAt"] as? NSNumber).doubleValue
+        position["source"] = "official"
+        provenance["freshness"] = "live"
+        rawJourney["position"] = position
+        rawJourney["provenance"] = provenance
+        root["journey"] = rawJourney
+        let journey = try JSONDecoder.locomote.decode(Envelope.self,
+            from: JSONSerialization.data(withJSONObject: root)).journey
+        let now = Date(timeIntervalSince1970: observedAt / 1_000 + 60)
+
+        #expect(JourneyPositionEvidence.display(journey: journey, cached: false,
+            preview: false, now: now) == .observed)
+        #expect(JourneyPositionEvidence.display(journey: journey, cached: true,
+            preview: false, now: now) == .stale)
+        #expect(JourneyPositionEvidence.display(journey: journey, cached: false,
+            preview: false, now: now.addingTimeInterval(11 * 60)) == .hidden)
     }
 
     @Test("real data survives the passport summary")

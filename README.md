@@ -13,7 +13,7 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   test CODE_SIGNING_ALLOWED=NO
 ```
 
-The project has 84 Swift tests covering gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, and Passport calculations. Two UI tests cover primary navigation and a fresh production launch without sample data. Both suites passed on fresh iPhone 18 Pro simulators.
+The project has 85 Swift tests covering gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, and Passport calculations. Two UI tests cover primary navigation and a fresh production launch without sample data. Both suites passed on fresh iPhone 18 Pro simulators.
 
 ## Rail data modes
 
@@ -22,5 +22,7 @@ The default build uses clearly labeled historical route packs. They provide real
 Saved journeys stay on the device. Route previews are excluded from Passport's saved-run distance, and a forecast is not counted as an observed on-time outcome.
 
 Production sessions, cached runs, journey plans, and Passport entries are scoped to the gateway origin. A development gateway's stored data cannot appear when the app points to production.
+
+A live train position marker requires recent observed evidence from an official, community, or device source. Scheduled or predicted route progress does not create a live marker; historical previews use a separately labeled violet sample marker.
 
 This repository is still under active implementation. Physical-device background location, push delivery, accessibility review, and performance profiling require further verification.

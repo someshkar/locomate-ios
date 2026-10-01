@@ -120,7 +120,8 @@ struct JourneyScreen: View {
             RailMapView(
                 route: route,
                 progress: journey.position.progress,
-                preview: model?.isPreview == true,
+                positionDisplay: JourneyPositionEvidence.display(
+                    journey: journey, cached: model?.isCached == true, preview: model?.isPreview == true),
                 markers: markers(for: journey),
                 daylight: daylight,
                 lightingMode: preferences.mapLighting,

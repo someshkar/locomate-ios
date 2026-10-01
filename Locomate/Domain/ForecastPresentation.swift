@@ -136,6 +136,38 @@ extension StationStop {
 
 // MARK: - Journey mode derivation
 
+public enum JourneyPositionDisplay: Sendable, Equatable {
+    case hidden, observed, stale, preview
+}
+
+public enum JourneyPositionEvidence {
+    /// A route-progress estimate is not evidence of a train's live location.
+    public static func display(
+        journey: Journey,
+        cached: Bool,
+        preview: Bool,
+        now: Date = Date()
+    ) -> JourneyPositionDisplay {
+        if preview { return .preview }
+        guard !IndiaDate.isFuture(journey.travelDate),
+              journey.position.progress.isFinite,
+              (0...1).contains(journey.position.progress),
+              Set<DataSource>([.official, .community, .device]).contains(journey.position.source),
+              journey.position.observedAt.isFinite,
+              journey.position.observedAt > 0 else { return .hidden }
+        let age = now.timeIntervalSince1970 * 1_000 - journey.position.observedAt
+        guard age >= -60_000 else { return .hidden }
+        let freshness = journey.provenance?.freshness
+        if cached || freshness == "stale" {
+            return age <= 72 * 60 * 60 * 1_000 ? .stale : .hidden
+        }
+        if (freshness == "live" || freshness == nil), age >= 0, age <= 10 * 60 * 1_000 {
+            return .observed
+        }
+        return .hidden
+    }
+}
+
 public enum JourneyMode {
     /// Derive the mode inputs from a loaded journey state. Kept in the domain so
     /// the "never look live unless live" rules live in one tested place.
@@ -145,15 +177,12 @@ public enum JourneyMode {
         preview: Bool,
         historicalRoute: Bool,
         originDate: String,
-        error: String?
+        error: String?,
+        now: Date = Date()
     ) -> JourneyModeInput {
         let future = IndiaDate.isFuture(originDate) || journey.stops.allSatisfy { $0.delayStatus == .scheduled }
-        let freshLiveSources: Set<DataSource> = [.community, .device, .official]
-        let provenanceLive = journey.provenance?.freshness == "live"
-            || (journey.provenance == nil && freshLiveSources.contains(journey.position.source))
         let live = !cached && !preview && !historicalRoute && !future
-            && freshLiveSources.contains(journey.position.source)
-            && provenanceLive
+            && JourneyPositionEvidence.display(journey: journey, cached: cached, preview: preview, now: now) == .observed
         return JourneyModeInput(
             preview: preview,
             historicalRoute: historicalRoute,
