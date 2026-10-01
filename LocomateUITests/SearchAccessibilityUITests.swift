@@ -63,20 +63,21 @@ final class SearchAccessibilityUITests: XCTestCase {
         func region() -> CGRect {
             let frame = scroll.frame
             let top = max(frame.minY, 64) + 8
+            let dockTop = app.buttons["Find a train"].frame.minY - 12
             return CGRect(x: frame.minX + 8, y: top, width: frame.width - 16,
-                          height: max(0, min(frame.maxY, app.frame.maxY - 34) - top - 8))
+                          height: max(0, min(frame.maxY, dockTop) - top - 8))
         }
-        for _ in 0..<24 {
+        for _ in 0..<36 {
             let reading = region()
             if element.exists && element.isHittable && reading.contains(element.frame) { return }
             let frame = element.frame
             let downward = frame.minY < reading.minY
             let overflow = downward ? reading.minY - frame.minY : frame.maxY - reading.maxY
-            let distance = min(160, max(40, overflow + 12), max(40, reading.height - 48))
+            let distance = min(280, max(40, overflow + 12), max(40, reading.height - 48))
             let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(
-                dx: scroll.frame.minX + 2, dy: reading.midY + (downward ? -distance / 2 : distance / 2)))
+                dx: scroll.frame.minX + 24, dy: reading.midY + (downward ? -distance / 2 : distance / 2)))
             let end = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(
-                dx: scroll.frame.minX + 2, dy: reading.midY + (downward ? distance / 2 : -distance / 2)))
+                dx: scroll.frame.minX + 24, dy: reading.midY + (downward ? distance / 2 : -distance / 2)))
             start.press(forDuration: 0, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
         }
         XCTAssertTrue(element.isHittable)

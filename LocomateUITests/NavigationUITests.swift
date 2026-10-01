@@ -170,7 +170,7 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
-    func testSearchSheetSelectsPreviewJourney() {
+    func testSearchPageSelectsPreviewJourney() {
         let app = XCUIApplication()
         app.launch()
 
@@ -178,11 +178,25 @@ final class NavigationUITests: XCTestCase {
         app.buttons["Find a train"].tap()
         let field = app.textFields["Search trains"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
+        for label in ["Journey", "Explore", "Passport", "Find a train"] {
+            XCTAssertTrue(app.buttons[label].isHittable, "Search must keep native navigation visible.")
+        }
+        capture(app, "Search page with navigation")
         field.tap()
         field.typeText("12951")
+        XCTAssertTrue(app.keyboards.firstMatch.exists)
+        for label in ["Journey", "Explore", "Passport", "Find a train"] {
+            let control = app.buttons[label]
+            XCTAssertTrue(control.isHittable)
+            XCTAssertLessThanOrEqual(control.frame.maxY, app.keyboards.firstMatch.frame.minY)
+        }
+        capture(app, "Search page with keyboard and navigation")
+        field.typeText("\n")
 
         let result = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "12951 ")).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 10))
+        revealForReading(result, in: app, screen: "Complete Search result above navigation")
+        capture(app, "Search result above navigation")
         result.tap()
 
         let journey = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "12951 ·")).firstMatch
@@ -479,11 +493,11 @@ final class AccessibilityUITests: XCTestCase {
 
         app.buttons["Find a train"].tap()
         XCTAssertTrue(app.textFields["Search trains"].waitForExistence(timeout: 5))
-        try revealAndAudit(app.buttons["Today"], in: app, screen: "Search origin dates fully scrolled", modal: true)
+        try revealAndAudit(app.buttons["Today"], in: app, screen: "Search origin dates fully scrolled")
         try revealAndAudit(app.staticTexts["The origin date is the day the train starts in India — overnight runs may reach your station the next day."],
-                           in: app, screen: "Search origin help fully scrolled", modal: true)
+                           in: app, screen: "Search origin help fully scrolled")
         try revealAndAudit(app.staticTexts["Search uses a historical Indian Railways snapshot. Results are real records, not current schedules."],
-                           in: app, screen: "Search snapshot notice fully scrolled", modal: true)
+                           in: app, screen: "Search snapshot notice fully scrolled")
         app.terminate()
         app.launch()
         app.buttons["Passport"].tap()

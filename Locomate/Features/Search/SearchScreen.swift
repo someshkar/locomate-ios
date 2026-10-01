@@ -35,31 +35,33 @@ struct SearchScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.units(4)) {
-                intro
-                searchField
-                dateStrip
-                if !production { snapshotNotice }
-                if let error {
-                    EmptyState(icon: "wifi.exclamationmark",
-                               title: "Couldn't reach the railway feed",
-                               body: error,
-                               actionTitle: "Try again",
-                               onAction: { runSearch(immediate: true) })
+        OverviewPage(hidesMap: isFieldFocused) {
+            PassportMapBackdrop()
+        } sheet: {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.units(4)) {
+                    intro
+                    searchField
+                    dateStrip
+                    if !production { snapshotNotice }
+                    if let error {
+                        EmptyState(icon: "wifi.exclamationmark",
+                                   title: "Couldn't reach the railway feed",
+                                   body: error,
+                                   actionTitle: "Try again",
+                                   onAction: { runSearch(immediate: true) })
+                    }
+                    if !loading && error == nil && normalizedQuery.count >= 2 && results.isEmpty {
+                        EmptyState(icon: "magnifyingglass",
+                                   title: "No trains found",
+                                   body: "Try a five-digit train number or part of the train's name.")
+                    }
+                    resultList
                 }
-                if !loading && error == nil && normalizedQuery.count >= 2 && results.isEmpty {
-                    EmptyState(icon: "magnifyingglass",
-                               title: "No trains found",
-                               body: "Try a five-digit train number, a different station, or part of the train's name.")
-                }
-                resultList
+                .padding(Spacing.units(5))
             }
-            .padding(Spacing.units(4.5))
-            .padding(.bottom, 140)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .background(colors.glass.ignoresSafeArea())
-        .scrollDismissesKeyboard(.interactively)
         .onChange(of: query) { _, _ in runSearch() }
         .onDisappear { searchTask?.cancel() }
     }

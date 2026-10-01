@@ -60,6 +60,7 @@ public extension GlassSurface where S == RoundedRectangle {
 struct OverviewPage<MapContent: View, SheetContent: View>: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
+    var hidesMap = false
     @ViewBuilder var map: () -> MapContent
     @ViewBuilder var sheet: () -> SheetContent
 
@@ -69,8 +70,10 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
                 ? 96 : max(128, min(190, geometry.size.height * 0.24))
             VStack(spacing: 0) {
                 map()
-                    .frame(height: mapHeight + geometry.safeAreaInsets.top)
-                    .padding(.top, -geometry.safeAreaInsets.top)
+                    .frame(height: hidesMap ? 0 : mapHeight + geometry.safeAreaInsets.top)
+                    .clipped()
+                    .padding(.top, hidesMap ? 0 : -geometry.safeAreaInsets.top)
+                    .accessibilityHidden(hidesMap)
                 sheet()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background { OverviewSheetSurface() }

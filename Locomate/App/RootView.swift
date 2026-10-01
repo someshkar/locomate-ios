@@ -15,7 +15,6 @@ public struct RootView: View {
     @Environment(Preferences.self) private var preferences
     @State private var tab: LocomateTab = .journey
     @State private var pendingJourney: JourneyRequest?
-    @State private var searchPresented = false
     @State private var restorationAttempted = false
 
     public init() {}
@@ -80,16 +79,6 @@ public struct RootView: View {
         }
         .environment(\.locomoteColors, colors)
         .animation(Motion.fadeNormal, value: preferences.dark)
-        .sheet(isPresented: $searchPresented) {
-            SearchScreen(onSelect: { train, date in
-                selectJourney(.init(trainNumber: train.number, date: date))
-            })
-            .environment(\.locomoteColors, colors)
-            .presentationDetents([.fraction(0.72), .large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(28)
-            .presentationBackground(.ultraThinMaterial)
-        }
         .task { restoreJourneyIfNeeded() }
         .onChange(of: pushBridge.pendingPayload) { _, _ in consumeNotificationRoute() }
         .onOpenURL { url in
@@ -128,11 +117,6 @@ public struct RootView: View {
     }
 
     private func switchTab(_ newTab: LocomateTab) {
-        if newTab == .search {
-            searchPresented = true
-            return
-        }
-        searchPresented = false
         withAnimation(Motion.fadeNormal) { tab = newTab }
     }
 }

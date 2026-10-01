@@ -14,6 +14,12 @@ The Passport map is an unannotated basemap: saved summaries do not contain verif
 
 On 2026-10-01, the final map sizing and navigation layout passed **three simulator cases in 54.871 seconds**: ordinary navigation, largest-text navigation, and an actual HTTP-configured network list opening the exact dated journey at both text sizes. The strengthened network test separately passed in **26.638 seconds**, requiring the complete train-list target to lie inside the reading region above the dock. The dated Save/year-filter flow (**113.347 seconds**) and saved-segment reopening/independent deletion (**88.755 seconds**) passed before the final map-only safe-area/viewport adjustment. Four final navigation/network captures and four earlier hero/year captures were inspected. Current Release simulator build passed. Logs: `/tmp/locomate-ios-overview-final-ui.log`, `/tmp/locomate-ios-overview-network-bounds.log`, `/tmp/locomate-ios-overview-repaired-ui.log`, `/tmp/locomate-ios-overview-actions.log`, `/tmp/locomate-ios-overview-release-build.log`; final captures: `/tmp/locomate-ios-overview-final-captures`. These are focused native layout/behavior checks, not a full accessibility, physical VoiceOver, performance or exact map-imagery parity pass.
 
+## Shared Search page
+
+Search is a primary map-backed page with the floating dock visible, following the shared Doop composition. The native MapKit view stays mounted while the map viewport collapses during typing. The dock follows the keyboard safe area, and the scrollable results reserve its actual footprint. Origin-date chips, historical/source labels, canceled requests, and exact dated Journey selection retain their existing behavior. Search currently supports train names and numbers.
+
+On 2026-10-01, four focused simulator cases passed (77.419 seconds): normal primary navigation, largest-text navigation, keyboard/dock bounds with preview selection, and the complete long train name, number, source, route, and distance at the largest Dynamic Type size. Search screenshots were inspected. The updated Release performance workload also passed its one simulator dry-run case (16.955 seconds), returning through the Journey dock action. These are layout and interaction results; physical performance and the full accessibility gate remain open. Logs: `/tmp/locomate-ios-search-page-final-ui.log` and `/tmp/locomate-ios-search-performance-dryrun.log`; captures: `/tmp/locomate-ios-search-page-final-captures`.
+
 ## Build and test
 
 Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.

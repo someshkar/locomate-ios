@@ -132,10 +132,9 @@ final class PerformanceUITests: XCTestCase {
         app.buttons["Find a train"].tap()
         let search = app.textFields["Search trains"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
-        let grabber = app.buttons["Sheet Grabber"]
-        XCTAssertTrue(grabber.isHittable)
-        grabber.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.99)))
+        let journey = app.buttons["Journey"]
+        XCTAssertTrue(journey.isHittable)
+        journey.tap()
         XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"), object: search)], timeout: 5), .completed)
         XCTAssertTrue(expand.waitForExistence(timeout: 5))
