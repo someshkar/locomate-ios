@@ -1,6 +1,27 @@
 import SwiftUI
 import MapKit
 
+/// An unannotated native basemap. Saved summaries contain no verified route geometry.
+struct PassportMapBackdrop: UIViewRepresentable {
+    func makeUIView(context: Context) -> MKMapView {
+        let map = MKMapView(frame: .zero)
+        map.mapType = .hybridFlyover
+        map.overrideUserInterfaceStyle = .dark
+        map.showsCompass = false
+        map.isScrollEnabled = false
+        map.isZoomEnabled = false
+        map.isRotateEnabled = false
+        map.isPitchEnabled = false
+        map.setRegion(MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 22.6, longitude: 79.5),
+            span: MKCoordinateSpan(latitudeDelta: 6, longitudeDelta: 18)
+        ), animated: false)
+        return map
+    }
+
+    func updateUIView(_ map: MKMapView, context: Context) {}
+}
+
 struct MapStationMarker: Identifiable, Equatable {
     let id: String
     let coordinate: RailCoordinate

@@ -2,9 +2,8 @@
 //  ExploreScreen.swift
 //  Locomate
 //
-//  Full-bleed rail network map with a floating frosted header and a floating
-//  stats card — ported from SmartRail `src/screens/Network/NetworkView.tsx`.
-//  In preview mode the stats card states honestly that no live layer is drawn.
+//  Native network map above the approved shared Explore data sheet.
+//  Every position keeps its source, expiry and dated journey action.
 //
 
 import SwiftUI
@@ -26,8 +25,7 @@ struct ExploreScreen: View {
     private var markers: [NetworkMarker] { network.markers }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            colors.canvas.ignoresSafeArea(edges: .top)
+        OverviewPage {
             NetworkMapView(
                 markers: markers,
                 onSelect: openJourney,
@@ -37,9 +35,7 @@ struct ExploreScreen: View {
                     scheduleRefresh()
                 }
             )
-            .overlay { Color.black.opacity(0.30).allowsHitTesting(false) }
-            .ignoresSafeArea(edges: .top)
-
+        } sheet: {
             ExploreNetworkOverlay(production: production, markers: markers,
                                   loading: network.loading, error: network.error,
                                   expired: network.expired, generatedAt: network.snapshot?.generatedAt,
@@ -107,9 +103,7 @@ struct ExploreScreen: View {
 
 }
 
-// The production overlay is separately hostable for deterministic layout checks.
-// At accessibility sizes its header reserves space above the scrollable stats;
-// the enclosing RootView reserves the bottom navigation dock.
+// Separately hostable, with the same scrollable sheet at every text size.
 struct ExploreNetworkOverlay: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
@@ -122,102 +116,34 @@ struct ExploreNetworkOverlay: View {
     var onShowTrains: () -> Void = {}
 
     var body: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(spacing: Spacing.units(4)) {
-                    header
-                        .padding(.horizontal, Spacing.units(4))
-                        .safeAreaPadding(.top)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
-                    statsCard
-                        .padding(.horizontal, Spacing.units(4))
-                        .padding(.bottom, 54)
-                }
-            } else {
-                ZStack(alignment: .top) {
-                    header
-                        .padding(.horizontal, Spacing.units(4))
-                        .safeAreaPadding(.top)
-                    VStack {
-                        Spacer()
-                        statsCard
-                            .padding(.horizontal, Spacing.units(4))
-                            .padding(.bottom, 54)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Explore")
+                        .pageHeading()
+                        .foregroundStyle(colors.textPrimary)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("explore.heading")
+                    Text(production ? "The network, live" : "The network, in preview")
+                        .font(LocomateFont.caption)
+                        .foregroundStyle(colors.textSecondary)
+                    if !production {
+                        Text("PREVIEW · NOT LIVE").eyebrow(colors.pair(for: .preview).fg)
                     }
                 }
+                statsContent
             }
+            .padding(22)
+            .padding(.bottom, 24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    }
-
-    // MARK: Header
-
-    private var header: some View {
-        (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .center))) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Rail network")
-                    .pageHeading()
-                    .foregroundStyle(colors.textPrimary)
-                Text("Pan, zoom and inspect active services")
-                    .font(LocomateFont.caption)
-                    .foregroundStyle(colors.textTertiary)
-            }
-            Spacer(minLength: Spacing.units(3))
-            if !production {
-                Text("PREVIEW").eyebrow(colors.pair(for: .preview).fg)
-            } else {
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text("\(markers.count)")
-                        .font(LocomateFont.timeLarge)
-                        .monospacedDigit()
-                        .foregroundStyle(colors.textPrimary)
-                        .contentTransition(.numericText())
-                    Text("IN VIEW").eyebrow(colors.textTertiary)
-                }
-            }
-        }
-        .padding(Spacing.units(3.5))
-        .background {
-            GlassSurface(shape: RoundedRectangle(cornerRadius: Radius.xl, style: .continuous))
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    // MARK: Stats card
-
-    private var statsCard: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                ScrollView {
-                    statsContent.padding(Spacing.units(3.5))
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .accessibilityIdentifier("explore.networkStats")
-            } else {
-                statsContent.padding(Spacing.units(3.5))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            GlassSurface(shape: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous), heavy: true)
-        }
+        .scrollBounceBehavior(.basedOnSize)
+        .accessibilityIdentifier("explore.networkStats")
     }
 
     private var statsContent: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
-            if production {
-                Button(action: onShowTrains) {
-                    Label("View trains", systemImage: "list.bullet")
-                        .font(LocomateFont.body)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
-                }
-                .foregroundStyle(colors.accentBase)
-                .accessibilityIdentifier("explore.viewTrains")
-                .accessibilityHint("Opens a list of current train positions and dated journeys.")
-            }
+            if production, dynamicTypeSize.isAccessibilitySize { viewTrainsButton }
             if production, !markers.isEmpty {
                 (dynamicTypeSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
@@ -227,6 +153,8 @@ struct ExploreNetworkOverlay: View {
                     networkStat("PREDICTED", value: markers.filter { $0.kind == .predicted }.count)
                 }
             }
+            if production, !dynamicTypeSize.isAccessibilitySize { viewTrainsButton }
+            Text("POSITION SOURCES").eyebrow(colors.textTertiary)
             Text(statsBody)
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textTertiary)
@@ -236,6 +164,18 @@ struct ExploreNetworkOverlay: View {
                 .monospacedDigit()
                 .foregroundStyle(colors.accentBase)
         }
+    }
+
+    private var viewTrainsButton: some View {
+        Button(action: onShowTrains) {
+            Label("View trains", systemImage: "list.bullet")
+                .font(LocomateFont.body)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .foregroundStyle(colors.accentBase)
+        .accessibilityIdentifier("explore.viewTrains")
+        .accessibilityHint("Opens a list of current train positions and dated journeys.")
     }
 
     private func networkStat(_ label: String, value: Int) -> some View {
@@ -305,7 +245,7 @@ struct NetworkMapView: UIViewRepresentable {
         mapView.isPitchEnabled = false
         mapView.setRegion(MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 22.6, longitude: 79.5),
-            span: MKCoordinateSpan(latitudeDelta: 25, longitudeDelta: 27)
+            span: MKCoordinateSpan(latitudeDelta: 6, longitudeDelta: 18)
         ), animated: false)
         return mapView
     }

@@ -79,8 +79,8 @@ final class NavigationUITests: XCTestCase {
             app.buttons["Explore"].tap()
             let listButton = app.buttons["explore.viewTrains"]
             XCTAssertTrue(listButton.waitForExistence(timeout: 10))
-            for _ in 0..<6 where !listButton.isHittable { app.scrollViews.firstMatch.swipeUp() }
-            XCTAssertTrue(listButton.isHittable)
+            let buttonRegion = revealForReading(listButton, in: app, screen: "Explore train-list action above navigation")
+            XCTAssertTrue(buttonRegion.contains(listButton.frame), "The complete train-list action must be above the dock.")
             listButton.tap()
             let journey = app.buttons["explore.openJourney.opaque-provider-run|01234|2026-09-30"]
             XCTAssertTrue(journey.waitForExistence(timeout: 10))
@@ -130,7 +130,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 25))
         XCTAssertFalse(app.staticTexts["Timetable sample"].exists)
         app.buttons["Explore"].tap()
-        XCTAssertTrue(app.staticTexts["Rail network"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["explore.heading"].waitForExistence(timeout: 10))
         let updated = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "UPDATED ")).firstMatch
         XCTAssertTrue(updated.waitForExistence(timeout: 25))
     }
@@ -157,7 +157,7 @@ final class NavigationUITests: XCTestCase {
         capture(app, "Journey")
 
         app.buttons["Explore"].tap()
-        XCTAssertTrue(app.staticTexts["Rail network"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["explore.heading"].waitForExistence(timeout: 5))
         capture(app, "Explore")
 
         app.buttons["Passport"].tap()
@@ -282,7 +282,7 @@ final class NavigationUITests: XCTestCase {
         capture(app, "Journey largest text")
         app.buttons["Journey"].press(forDuration: 4)
         app.buttons["Explore"].tap()
-        XCTAssertTrue(app.staticTexts["Rail network"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["explore.heading"].waitForExistence(timeout: 5))
         capture(app, "Explore largest text")
         app.buttons["Passport"].tap()
         XCTAssertTrue(app.buttons["Open settings"].waitForExistence(timeout: 5))
@@ -407,7 +407,7 @@ final class AccessibilityUITests: XCTestCase {
     func testExploreAccessibility() throws {
         let app = previewApp()
         app.buttons["Explore"].tap()
-        XCTAssertTrue(app.staticTexts["Rail network"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["explore.heading"].waitForExistence(timeout: 5))
         try audit(app, screen: "Explore")
     }
 

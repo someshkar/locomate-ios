@@ -43,31 +43,37 @@ struct PassportScreen: View {
     }
 
     private var content: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.units(4)) {
-                SectionHeader(
-                    eyebrow: "THE PLACES YOU GO",
-                    title: "Passport",
-                    pageHeading: .passport,
-                    meta: "Saved rail runs, private on this device."
-                ) {
-                    iconButton("gearshape", label: "Open settings") { showSettings = true }
-                }
+        OverviewPage {
+            PassportMapBackdrop()
+        } sheet: {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.units(4)) {
+                    HStack(alignment: .top) {
+                        Text("Passport")
+                            .pageHeading(.passport)
+                            .foregroundStyle(colors.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        iconButton("gearshape", label: "Open settings") { showSettings = true }
+                    }
+                    Text("Saved rail runs, private on this device.")
+                        .font(LocomateFont.caption)
+                        .foregroundStyle(colors.textSecondary)
 
-                if !journeys.isEmpty {
-                    PassportPeriodPicker(years: years, selection: $period)
-                    PassportHeroCard(stats: stats, previewCount: visibleJourneys.filter { $0.preview == true }.count,
-                                     periodLabel: period.label)
-                    journeyList
-                } else if loaded {
-                    emptyState
+                    if !journeys.isEmpty {
+                        PassportPeriodPicker(years: years, selection: $period)
+                        PassportHeroCard(stats: stats, previewCount: visibleJourneys.filter { $0.preview == true }.count,
+                                         periodLabel: period.label)
+                        journeyList
+                    } else if loaded {
+                        emptyState
+                    }
                 }
+                .padding(20)
+                .padding(.bottom, 24)
             }
-            .padding(Spacing.units(4.5))
-            .padding(.bottom, 140)
+            .accessibilityIdentifier("passport.content")
         }
-        .background(colors.canvas.ignoresSafeArea())
-        .accessibilityIdentifier("passport.content")
     }
 
     private func iconButton(_ system: String, label: String, action: @escaping () -> Void) -> some View {
@@ -195,8 +201,8 @@ struct PassportPeriodPicker: View {
                                 .fixedSize()
                                 .padding(.horizontal, 16)
                                 .frame(minHeight: 44)
-                                .foregroundStyle(selection == period ? colors.accentBase : colors.textSecondary)
-                                .background(selection == period ? colors.accentWash : colors.elevated, in: Capsule())
+                                .foregroundStyle(selection == period ? colors.textPrimary : colors.textSecondary)
+                                .background(colors.textPrimary.opacity(selection == period ? 0.12 : 0.05), in: Capsule())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("passport.period.\(period.label)")
@@ -215,25 +221,37 @@ struct PassportPeriodPicker: View {
 struct PassportHeroCard: View {
     @Environment(\.locomoteColors) private var colors
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var distanceSize: CGFloat = 56
+    @ScaledMetric(relativeTo: .headline) private var unitSize: CGFloat = 22
+    @ScaledMetric(relativeTo: .headline) private var metricSize: CGFloat = 20
+    private let primary = Color.white
+    private let secondary = Color(hex: 0xCDBAF6)
+    private let heroLabel = Color(hex: 0xBEACF1)
     let stats: PassportStats
     let previewCount: Int
     var periodLabel = "All-Time"
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.units(3)) {
-            Text("SAVED RUNS · \(periodLabel)").eyebrow(colors.textTertiary)
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text("SAVED RUNS · \(periodLabel)").eyebrow(heroLabel)
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 5))) {
                 Text(Int(stats.distanceKm.rounded()).formatted())
-                    .font(.system(.largeTitle, weight: .heavy))
+                    .font(dynamicTypeSize.isAccessibilitySize ? .system(.largeTitle, weight: .heavy)
+                          : .system(size: distanceSize, weight: .heavy))
+                    .tracking(-2)
+                    .fixedSize(horizontal: false, vertical: true)
                     .monospacedDigit()
                 Text("km")
-                    .font(LocomateFont.title)
+                    .font(.system(size: unitSize, weight: .bold))
+                    .foregroundStyle(secondary)
             }
-            .foregroundStyle(colors.textPrimary)
+            .foregroundStyle(primary)
             Text("Distance in saved runs, not verified travel history.\(previewCount > 0 ? " \(previewCount) route preview\(previewCount == 1 ? " is" : "s are") excluded." : "")")
                 .font(LocomateFont.caption)
-                .foregroundStyle(colors.textSecondary)
-            Divider().overlay(colors.borderSubtle)
+                .foregroundStyle(secondary)
+            Divider().overlay(heroLabel.opacity(0.18))
             (dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(3)))
                 : AnyLayout(HStackLayout(spacing: Spacing.units(2)))) {
@@ -244,30 +262,30 @@ struct PassportHeroCard: View {
             if let top = stats.routeFrequency.first {
                 Text("Most saved: \(top.originCode) → \(top.destinationCode) · \(top.trips) \(top.trips == 1 ? "run" : "runs")")
                     .font(LocomateFont.caption)
-                    .foregroundStyle(colors.textTertiary)
+                    .foregroundStyle(heroLabel)
             }
         }
         .padding(Spacing.units(5))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(colors.elevated)
+                .fill(LinearGradient(colors: [Color(hex: 0x17123A), Color(hex: 0x100D28), Color(hex: 0x0A0A1C)],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay {
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(LinearGradient(colors: [Palette.violet400.opacity(0.18), colors.accentWash],
-                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .strokeBorder(heroLabel.opacity(0.22), lineWidth: 1)
                 }
         }
-        .shadow(color: .black.opacity(0.3), radius: 20, y: 12)
+        .shadow(color: Color(hex: 0x28085A).opacity(0.35), radius: 20, y: 10)
         .accessibilityElement(children: .contain)
     }
 
     private func metric(_ label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).eyebrow(colors.textTertiary)
+            Text(label).eyebrow(heroLabel)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("passport.metric.\(label)")
-            Text(value).font(LocomateFont.title).monospacedDigit().foregroundStyle(colors.textPrimary)
+            Text(value).font(.system(size: metricSize, weight: .heavy)).monospacedDigit().foregroundStyle(primary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

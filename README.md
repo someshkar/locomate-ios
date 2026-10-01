@@ -6,6 +6,14 @@ The [Doop canvas](https://doop.design/c/ha6YK6QvsY) is the visual reference. The
 
 Main headings use the approved canvas’s native sans-serif fallback: a 32-point heavy system font for Journey, Search, and Explore, and a 34-point Passport heading, with −1.2/−1.3 tracking. These base sizes scale relative to Large Title across Dynamic Type categories. Journey titles have layout priority beside their controls so ordinary text stays on one line; accessibility layouts still put controls beneath the title. Passport’s distance uses the same unrounded, heavier font.
 
+## Shared Passport and Explore layout
+
+Both native repos now use the approved iOS composition: a native map above one rounded, scrollable bottom sheet, with the production dock kept outside the reading area. Explore's heading and source-aware viewport counts share that sheet. At accessibility sizes, the train-list action precedes the statistics so it can be reached without crossing the dock. Passport uses neutral All-Time/year filters and the canvas's deep violet gradient card, a 56-point distance total at ordinary text sizes, 22-point units, and 20-point supporting metrics. Accessibility categories use an adaptive distance layout and vertically stacked metrics.
+
+The Passport map is an unannotated basemap: saved summaries do not contain verified route geometry. MapKit's native attribution stays in the map viewport above the sheet. The map also covers the top safe area; it does not leave an empty band between the map and sheet. The app retains its honest saved-run and source wording, instead of importing the canvas's illustrative network counts or treating saved runs as verified travel.
+
+On 2026-10-01, the final map sizing and navigation layout passed **three simulator cases in 54.871 seconds**: ordinary navigation, largest-text navigation, and an actual HTTP-configured network list opening the exact dated journey at both text sizes. The strengthened network test separately passed in **26.638 seconds**, requiring the complete train-list target to lie inside the reading region above the dock. The dated Save/year-filter flow (**113.347 seconds**) and saved-segment reopening/independent deletion (**88.755 seconds**) passed before the final map-only safe-area/viewport adjustment. Four final navigation/network captures and four earlier hero/year captures were inspected. Current Release simulator build passed. Logs: `/tmp/locomate-ios-overview-final-ui.log`, `/tmp/locomate-ios-overview-network-bounds.log`, `/tmp/locomate-ios-overview-repaired-ui.log`, `/tmp/locomate-ios-overview-actions.log`, `/tmp/locomate-ios-overview-release-build.log`; final captures: `/tmp/locomate-ios-overview-final-captures`. These are focused native layout/behavior checks, not a full accessibility, physical VoiceOver, performance or exact map-imagery parity pass.
+
 ## Build and test
 
 Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.
