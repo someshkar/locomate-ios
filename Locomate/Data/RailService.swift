@@ -44,6 +44,8 @@ public protocol RailServiceProtocol: JourneyAlertAPI {
     func unregisterLiveActivity(runId: String) async throws
     func uploadObservations(_ batch: [CompactObservation]) async throws -> [String]
     func searchTrains(_ query: String) async throws -> [TrainSearchResult]
+    func searchStations(_ query: String) async throws -> [StationSearchResult]
+    func stationTrains(_ code: String) async throws -> StationTrainsResult
     func journey(trainNumber: String, originDate: String) async throws -> Journey
     func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse
     func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse
@@ -128,6 +130,24 @@ public struct RailService: RailServiceProtocol {
             idempotencyKey: encoded.idempotencyKey
         )
         return response.acceptedRecordIds.compactMap { encoded.keysById[$0] }
+    }
+
+    public func searchStations(_ query: String) async throws -> [StationSearchResult] {
+        struct Response: Decodable { let stations: [StationSearchResult] }
+        let response: Response = try await client.get("/v1/stations/search", query: ["q": query])
+        guard response.stations.count <= 50, response.stations.allSatisfy({
+            $0.code.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil && !$0.name.isEmpty
+        }) else { throw URLError(.badServerResponse) }
+        return response.stations
+    }
+
+    public func stationTrains(_ code: String) async throws -> StationTrainsResult {
+        guard code.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil else { throw URLError(.badURL) }
+        let response: StationTrainsResult = try await client.get("/v1/stations/\(code)/trains")
+        guard response.station.code == code, response.trains.count <= 1000,
+              response.trains.allSatisfy({ Routes.isValidTrainNumber($0.number) && !$0.name.isEmpty && !$0.live })
+        else { throw URLError(.badServerResponse) }
+        return response
     }
 
     public func searchTrains(_ query: String) async throws -> [TrainSearchResult] {

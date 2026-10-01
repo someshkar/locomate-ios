@@ -3,6 +3,74 @@ import Network
 
 final class SearchAccessibilityUITests: XCTestCase {
     @MainActor
+    func testStationShortcutLookupRetryAndExactDatedJourney() async throws { try await verifyStationSearch(largest: false) }
+
+    @MainActor
+    func testStationChoicesAndTimetableRemainReadableAtLargestText() async throws { try await verifyStationSearch(largest: true) }
+
+    @MainActor
+    private func verifyStationSearch(largest: Bool) async throws {
+        continueAfterFailure = false
+        let ready = expectation(description: "Station gateway ready")
+        let fixture = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "run-12137-2026-09-18", withExtension: "json"))
+        let gateway = try SearchSelectionGateway(ready: ready, stationJourney: Data(contentsOf: fixture))
+        defer { gateway.stop() }
+        await fulfillment(of: [ready], timeout: 5)
+        let app = XCUIApplication()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        if largest { app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        app.launch(); defer { app.terminate() }
+        app.buttons["Find a train"].tap()
+        var scroll = app.scrollViews.firstMatch
+        let shortcut = app.buttons["search.station.NDLS"]
+        reveal(shortcut, in: scroll, app: app)
+        XCTAssertEqual(shortcut.label, "Find trains at New Delhi, NDLS")
+        XCTAssertGreaterThanOrEqual(shortcut.frame.height, 44)
+        capture(app, "Station shortcuts " + (largest ? "largest" : "normal"))
+        shortcut.tap()
+        let retry = app.buttons["Try again"]
+        reveal(retry, in: scroll, app: app); retry.tap()
+        let source = app.staticTexts["search.result.source.12137"]
+        reveal(source, in: scroll, app: app)
+        XCTAssertEqual(source.label, "RailRadar station timetable")
+        capture(app, "Scheduled station train source " + (largest ? "largest" : "normal"))
+        let yesterday = app.buttons["Yest"]
+        reveal(yesterday, in: scroll, app: app); yesterday.tap()
+        let date = try XCTUnwrap(yesterday.value as? String)
+        let name = app.staticTexts["search.result.name.12137"]
+        reveal(name, in: scroll, app: app)
+        XCTAssertEqual(name.label, "Station Express With A Complete Long Name")
+        capture(app, "Complete scheduled station train " + (largest ? "largest" : "normal"))
+        name.tap()
+        XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 10))
+        XCTAssertTrue(gateway.paths.contains("/v1/runs/12137/\(date)"))
+        XCTAssertTrue(gateway.paths.contains("/v1/stations/NDLS/trains"))
+        app.buttons["Find a train"].tap(); scroll = app.scrollViews.firstMatch
+        let field = app.textFields["Search trains"]
+        reveal(field, in: scroll, app: app); field.tap(); field.typeText("Delhi\n")
+        let stationRetry = app.buttons["Retry station search"]
+        reveal(stationRetry, in: scroll, app: app); stationRetry.tap()
+        reveal(shortcut, in: scroll, app: app)
+        XCTAssertFalse(app.staticTexts["No trains found"].exists)
+        capture(app, "Station autocomplete after retry " + (largest ? "largest" : "normal"))
+        shortcut.tap(); reveal(name, in: scroll, app: app)
+        XCTAssertTrue(gateway.paths.contains("/v1/stations/search?q=Delhi"))
+        XCTAssertFalse(gateway.paths.contains { $0.contains("privacy/consent") || $0.contains("journey-alerts") })
+        if !largest {
+            let clear = app.buttons["Clear search"]
+            reveal(clear, in: scroll, app: app); clear.tap()
+            reveal(field, in: scroll, app: app); field.tap(); field.typeText("Obsolete\n")
+            let held = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in gateway.waitingForStationReply }, object: nil)
+            await fulfillment(of: [held], timeout: 5)
+            reveal(clear, in: scroll, app: app); clear.tap()
+            gateway.releaseHeldStationReply()
+            XCTAssertFalse(app.buttons["search.station.XYZ"].waitForExistence(timeout: 1))
+            XCTAssertFalse(app.buttons["search.result.12137"].exists)
+            capture(app, "Cleared search rejects obsolete station reply")
+        }
+    }
+
+    @MainActor
     func testRecentTrainPersistsReopensChosenDateAndStaysInItsGatewayScope() async throws {
         continueAfterFailure = false
         let ready = expectation(description: "Recent gateway ready")
@@ -339,10 +407,16 @@ private final class SearchSelectionGateway: @unchecked Sendable {
     private var requests: [String] = []
     private var failedFirstRequest = false
     private var held: [NWConnection] = []
+    private var heldStations: [NWConnection] = []
+    private var failedStationLookup = false
+    private var failedStationBoard = false
+    private let stationJourney: [String: Any]?
+    var waitingForStationReply: Bool { lock.withLock { requests.contains("/v1/stations/search?q=Obsolete") } }
     var paths: [String] { lock.withLock { requests } }
     var baseURL: String? { listener.port.map { "http://127.0.0.1:\($0.rawValue)" } }
 
-    init(ready: XCTestExpectation) throws {
+    init(ready: XCTestExpectation, stationJourney: Data? = nil) throws {
+        self.stationJourney = try stationJourney.map { try JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? nil
         listener = try NWListener(using: .tcp, on: .any)
         listener.stateUpdateHandler = { if case .ready = $0 { ready.fulfill() } }
         listener.newConnectionHandler = { [weak self] connection in
@@ -355,7 +429,15 @@ private final class SearchSelectionGateway: @unchecked Sendable {
 
     func stop() {
         listener.cancel()
-        queue.async { [self] in held.forEach { $0.cancel() }; held.removeAll() }
+        queue.async { [self] in (held + heldStations).forEach { $0.cancel() }; held.removeAll(); heldStations.removeAll() }
+    }
+
+    func releaseHeldStationReply() {
+        queue.async { [self] in
+            for connection in heldStations { send(connection, body: ["stations": [["code": "XYZ", "name": "Obsolete Station",
+                "sourceLabel": "Fixture catalogue", "sourceUpdatedAt": NSNull()]]]) }
+            heldStations.removeAll()
+        }
     }
 
     func releaseHeldResponse() {
@@ -379,6 +461,36 @@ private final class SearchSelectionGateway: @unchecked Sendable {
             self.lock.withLock { self.requests.append(path) }
             if path == "/v1/auth/device-session" {
                 self.send(connection, body: ["accessToken": "fixture-only", "expiresIn": 3600])
+            } else if self.stationJourney != nil && path == "/v1/stations/search?q=Obsolete" {
+                self.heldStations.append(connection)
+            } else if self.stationJourney != nil && path.hasPrefix("/v1/stations/search?") {
+                if !self.failedStationLookup {
+                    self.failedStationLookup = true
+                    self.send(connection, status: "503 Unavailable", body: ["error": ["message": "Station lookup temporarily unavailable."]])
+                } else { self.send(connection, body: ["stations": [["code": "NDLS", "name": "New Delhi",
+                    "sourceLabel": "RailRadar station catalogue", "sourceUpdatedAt": NSNull()]]]) }
+            } else if self.stationJourney != nil && path == "/v1/stations/NDLS/trains" {
+                if !self.failedStationBoard {
+                    self.failedStationBoard = true
+                    self.send(connection, status: "503 Unavailable", body: ["error": ["message": "Station timetable temporarily unavailable."]])
+                } else {
+                    var catalogue = self.catalogue("12137", "Station Express With A Complete Long Name")
+                    var trains = catalogue["trains"] as! [[String: Any]]
+                    trains[0]["sourceLabel"] = "RailRadar station timetable"; trains[0]["distanceKm"] = 0
+                    catalogue["trains"] = trains
+                    catalogue["station"] = ["code": "NDLS", "name": "New Delhi", "sourceLabel": "RailRadar station timetable", "sourceUpdatedAt": NSNull()]
+                    catalogue["truncated"] = false
+                    self.send(connection, body: catalogue)
+                }
+            } else if let journey = self.stationJourney, path.hasPrefix("/v1/runs/12137/") && !path.contains("working") {
+                var response = journey
+                var body = response["journey"] as! [String: Any]
+                let date = String(path.split(separator: "/").last ?? "")
+                body["id"] = "12137:\(date)"; body["travelDate"] = date
+                response["journey"] = body
+                self.send(connection, body: response)
+            } else if self.stationJourney != nil && path.hasPrefix("/v1/trains/search?") {
+                self.send(connection, body: ["trains": []])
             } else if path == "/v1/trains/search?q=129512" {
                 self.held.append(connection)
             } else if path.hasPrefix("/v1/trains/search?q=") {

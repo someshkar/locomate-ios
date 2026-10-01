@@ -23,6 +23,7 @@
 		32F0354407D667D5931F610F /* RouteGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AFF5E160E411983E693A628 /* RouteGeometry.swift */; };
 		3444D81DAAE580C56F74BB6A /* ReliabilityHistoryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954CA15543E2A01DA85D85AF /* ReliabilityHistoryUITests.swift */; };
 		362853C49DDA1F8678529F9E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C50427D18F4C7E60BCBD8F /* Typography.swift */; };
+		38E9954951E69C8D693986FA /* StationSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFFD2C73B93E4E2F431170A /* StationSearch.swift */; };
 		3C5387282959F3095DE99D18 /* JourneyAlertDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A2F5844BCB5E51E2908E56 /* JourneyAlertDelegate.swift */; };
 		3EC29C8DAF72A18A6F9641C3 /* DataReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E411A21676A43F23B04DE31 /* DataReport.swift */; };
 		430C18265E546B3348DA980E /* TimetablePassportUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD24EEC53E962310683CC4F0 /* TimetablePassportUITests.swift */; };
@@ -151,6 +152,7 @@
 		0A89C0E6D56650F359DAE04E /* ReliabilitySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliabilitySummary.swift; sourceTree = "<group>"; };
 		0B203974EC00159BD3B5137B /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
 		0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
+		0CFFD2C73B93E4E2F431170A /* StationSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationSearch.swift; sourceTree = "<group>"; };
 		0E411A21676A43F23B04DE31 /* DataReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataReport.swift; sourceTree = "<group>"; };
 		17D0138F3195BF28F6B27F17 /* Locomate.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Locomate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1F8928C2D3AF7B987984312B /* JourneyAlertsSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlertsSettings.swift; sourceTree = "<group>"; };
@@ -282,6 +284,7 @@
 				742FF165A9FB065C0F1C37AE /* RoutePacks.swift */,
 				E708B9040B3F95795D5B9D23 /* SelectedJourneyStore.swift */,
 				F1543B7756311FD507CCE878 /* Services.swift */,
+				0CFFD2C73B93E4E2F431170A /* StationSearch.swift */,
 				A9A6CB58B1E32F89AD601FA0 /* Resources */,
 			);
 			path = Data;
@@ -735,6 +738,7 @@
 				E133C49DAA6B8CAF8736F237 /* SelectedJourneyStore.swift in Sources */,
 				A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */,
 				81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */,
+				38E9954951E69C8D693986FA /* StationSearch.swift in Sources */,
 				954123DAFDCFEB1BA8AE57DF /* StatusKind.swift in Sources */,
 				6043C73EF8C9062F1D014D34 /* Theme.swift in Sources */,
 				362853C49DDA1F8678529F9E /* Typography.swift in Sources */,

@@ -21,6 +21,14 @@ struct SearchScreen: View {
 
     @State private var query = ""
     @State private var results: [TrainSearchResult] = []
+    @State private var selectedStation: StationSearchResult?
+    @State private var resultStationCode: String?
+    @State private var stations: [StationSearchResult] = []
+    @State private var stationResultQuery = ""
+    @State private var stationError: String?
+    @State private var stationLoading = false
+    @State private var stationTruncated = false
+    @State private var stationTask: Task<Void, Never>?
     @State private var resultQuery = ""
     @State private var loading = false
     @State private var error: String?
@@ -35,8 +43,15 @@ struct SearchScreen: View {
 
     private var normalizedQuery: String { query.trimmingCharacters(in: .whitespaces) }
     private var production: Bool { services.mode.isProduction }
-    private var currentResults: [TrainSearchResult] { resultQuery == normalizedQuery ? results : [] }
-    private var currentError: String? { resultQuery == normalizedQuery ? error : nil }
+    private var currentResults: [TrainSearchResult] { resultQuery == normalizedQuery && resultStationCode == selectedStation?.code ? results : [] }
+    private var currentError: String? { resultQuery == normalizedQuery && resultStationCode == selectedStation?.code ? error : nil }
+
+    private var currentStations: [StationSearchResult] {
+        selectedStation == nil && stationResultQuery == normalizedQuery ? stations : []
+    }
+    private var currentStationError: String? {
+        selectedStation == nil && stationResultQuery == normalizedQuery ? stationError : nil
+    }
 
     private var quickDates: [String] {
         let today = IndiaDate.today()
@@ -54,6 +69,12 @@ struct SearchScreen: View {
                     dateStrip
                     if !production { snapshotNotice }
                     if normalizedQuery.isEmpty { recentList }
+                    if let station = selectedStation {
+                        Text("Trains at \(station.name)").font(LocomateFont.headline).foregroundStyle(colors.textPrimary)
+                        Text(production ? "Scheduled services. Choose the train’s origin date to open a run." : "Services in the historical route pack.")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if let error = currentError {
                         EmptyState(icon: "wifi.exclamationmark",
                                    title: "Couldn't reach the railway feed",
@@ -61,19 +82,25 @@ struct SearchScreen: View {
                                    actionTitle: "Try again",
                                    onAction: { runSearch(immediate: true) })
                     }
-                    if !loading && currentError == nil && normalizedQuery.count >= 2 && currentResults.isEmpty {
+                    if !loading && !stationLoading && currentError == nil && currentStationError == nil && normalizedQuery.count >= 2 && currentResults.isEmpty && currentStations.isEmpty {
                         EmptyState(icon: "magnifyingglass",
                                    title: "No trains found",
-                                   body: "Try a five-digit train number or part of the train's name.")
+                                   body: "Try a train number, train name or station name/code.")
                     }
                     resultList
+                    if stationTruncated && resultStationCode == selectedStation?.code {
+                        Text("Showing the first 1,000 scheduled services.").font(LocomateFont.caption)
+                    }
+                    stationChoices
                 }
                 .padding(Spacing.units(5))
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .onChange(of: query) { _, _ in runSearch() }
-        .onDisappear { searchTask?.cancel() }
+        .onChange(of: [normalizedQuery, selectedStation?.code ?? ""]) { _, _ in
+            runSearch(immediate: selectedStation != nil)
+        }
+        .onDisappear { searchTask?.cancel(); stationTask?.cancel() }
         .sheet(isPresented: $showsCalendar) { originDateCalendar }
     }
 
@@ -82,7 +109,7 @@ struct SearchScreen: View {
             Text("Search")
                 .pageHeading()
                 .foregroundStyle(colors.textPrimary)
-            Text("Find trains by name or number")
+            Text("Find trains and stations")
                 .font(.system(size: subtitleSize))
                 .foregroundStyle(colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -94,7 +121,7 @@ struct SearchScreen: View {
     private var searchField: some View {
         HStack(spacing: 12) {
             NavigationGlyph(tab: .search, side: 20).foregroundStyle(colors.textTertiary)
-            TextField(dynamicTypeSize.isAccessibilitySize ? "Train" : "Train name or number", text: $query)
+            TextField(dynamicTypeSize.isAccessibilitySize ? "Train or station" : "Train no. or station", text: Binding(get: { query }, set: { query = $0; selectedStation = nil }))
                 .focused($isFieldFocused)
                 .font(.system(size: fieldSize, weight: .medium))
                 .foregroundStyle(colors.textPrimary)
@@ -103,10 +130,10 @@ struct SearchScreen: View {
                 .submitLabel(.search)
                 .accessibilityLabel("Search trains")
                 .onSubmit { isFieldFocused = false }
-            if loading {
+            if loading || stationLoading {
                 ProgressView().controlSize(.small).tint(colors.accentBase)
             } else if !query.isEmpty {
-                Button { query = "" } label: {
+                Button { query = ""; selectedStation = nil } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(colors.textTertiary)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
@@ -352,13 +379,79 @@ struct SearchScreen: View {
         }
     }
 
+    @ViewBuilder private var stationChoices: some View {
+        if selectedStation == nil && (normalizedQuery.isEmpty || !currentStations.isEmpty || currentStationError != nil) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Stations").eyebrow(colors.textTertiary)
+                let choices = normalizedQuery.isEmpty ? StationSearch.shortcuts : currentStations
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 280 : 145), alignment: .leading)],
+                          alignment: .leading, spacing: 8) {
+                    ForEach(choices) { station in
+                        Button {
+                            isFieldFocused = false
+                            selectedStation = station
+                            query = station.code
+                        } label: {
+                            (Text(station.code).monospaced().foregroundStyle(colors.accentBase) + Text(" " + station.name))
+                                .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 14).frame(minHeight: 44)
+                                .padding(.vertical, 4)
+                                .background(colors.elevated, in: RoundedRectangle(cornerRadius: 20))
+                                .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(colors.borderSubtle))
+                        }
+                        .accessibilityLabel("Find trains at \(station.name), \(station.code)")
+                        .accessibilityIdentifier("search.station.\(station.code)")
+                    }
+                }
+                if let error = currentStationError {
+                    Text("Station search unavailable. " + error).font(LocomateFont.caption)
+                        .foregroundStyle(colors.textSecondary).fixedSize(horizontal: false, vertical: true)
+                    Button("Retry station search") { runStationSearch(immediate: true) }
+                        .frame(minHeight: 44)
+                }
+            }
+        }
+    }
+
+    private func runStationSearch(immediate: Bool = false) {
+        stationTask?.cancel()
+        stations = []; stationError = nil; stationLoading = false
+        let requestQuery = normalizedQuery
+        stationResultQuery = requestQuery
+        guard selectedStation == nil, requestQuery.count >= 2,
+              requestQuery.rangeOfCharacter(from: .letters) != nil else { return }
+        guard let service = services.railService else {
+            stations = StationSearch.previewStations.filter {
+                $0.code.localizedCaseInsensitiveContains(requestQuery) || $0.name.localizedCaseInsensitiveContains(requestQuery)
+            }
+            return
+        }
+        stationLoading = true
+        stationTask = Task {
+            if !immediate { try? await Task.sleep(nanoseconds: 350_000_000) }
+            guard !Task.isCancelled else { return }
+            do {
+                let found = try await service.searchStations(requestQuery)
+                guard !Task.isCancelled, selectedStation == nil, normalizedQuery == requestQuery else { return }
+                stations = found; stationLoading = false
+            } catch {
+                guard !Task.isCancelled, selectedStation == nil, normalizedQuery == requestQuery else { return }
+                stationError = error.localizedDescription; stationLoading = false
+            }
+        }
+    }
+
     // MARK: Search execution
 
     private func runSearch(immediate: Bool = false) {
         searchTask?.cancel()
+        runStationSearch(immediate: immediate)
         let requestQuery = normalizedQuery
+        let requestedStation = selectedStation
         resultQuery = requestQuery
-        results = []
+        resultStationCode = requestedStation?.code
+        results = []; stationTruncated = false
         guard normalizedQuery.count >= 2 else {
             results = []
             error = nil
@@ -369,18 +462,10 @@ struct SearchScreen: View {
             // Preview: match against bundled route packs.
             loading = false
             error = nil
-            let matches = RoutePackStore.packs
-                .filter { $0.trainNumber.contains(requestQuery) || $0.name.localizedCaseInsensitiveContains(requestQuery) }
-                .map { pack in
-                    TrainSearchResult(
-                        number: pack.trainNumber, name: pack.name,
-                        originCode: pack.originCode, originName: pack.originName,
-                        destinationCode: pack.destinationCode, destinationName: pack.destinationName,
-                        departure: String(pack.departure.prefix(5)), arrival: String(pack.arrival.prefix(5)),
-                        durationHours: Double(pack.durationMinutes) / 60, distanceKm: pack.distanceKm,
-                        sourceLabel: "Historical route pack", sourceUpdatedAt: "", live: false
-                    )
-                }
+            let matches = RoutePackStore.packs.filter { pack in
+                if let station = requestedStation { return pack.calls.contains { $0.code == station.code } }
+                return pack.trainNumber.contains(requestQuery) || pack.name.localizedCaseInsensitiveContains(requestQuery)
+            }.map(StationSearch.previewTrain)
             results = matches
             return
         }
@@ -391,14 +476,20 @@ struct SearchScreen: View {
             if !immediate { try? await Task.sleep(nanoseconds: 350_000_000) }
             guard !Task.isCancelled else { return }
             do {
-                let found = try await service.searchTrains(requestQuery)
-                guard !Task.isCancelled, normalizedQuery == requestQuery else { return }
+                let found: [TrainSearchResult]
+                let truncated: Bool
+                if let station = requestedStation {
+                    let board = try await service.stationTrains(station.code)
+                    found = board.trains; truncated = board.truncated
+                } else { found = try await service.searchTrains(requestQuery); truncated = false }
+                guard !Task.isCancelled, normalizedQuery == requestQuery, selectedStation?.code == requestedStation?.code else { return }
                 await MainActor.run {
                     results = found
+                    stationTruncated = truncated
                     loading = false
                 }
             } catch {
-                guard !Task.isCancelled, normalizedQuery == requestQuery else { return }
+                guard !Task.isCancelled, normalizedQuery == requestQuery, selectedStation?.code == requestedStation?.code else { return }
                 await MainActor.run {
                     self.error = error.localizedDescription
                     loading = false
