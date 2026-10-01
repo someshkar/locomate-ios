@@ -22,8 +22,11 @@ public struct TrainSearchResult: Codable, Sendable, Identifiable {
     public let durationHours: Double
     public let distanceKm: Double
     public let sourceLabel: String
-    public let sourceUpdatedAt: String
+    public let sourceUpdatedAt: String?
     public let live: Bool
+    public var originDate: String? = nil
+    public var boardingDay: Int? = nil
+    public var arrivalDay: Int? = nil
 }
 
 private struct TrainSearchResponse: Decodable {
@@ -46,6 +49,7 @@ public protocol RailServiceProtocol: JourneyAlertAPI {
     func searchTrains(_ query: String) async throws -> [TrainSearchResult]
     func searchStations(_ query: String) async throws -> [StationSearchResult]
     func stationTrains(_ code: String) async throws -> StationTrainsResult
+    func trainsBetween(from: String, to: String, travelDate: String) async throws -> BetweenStationsResult
     func journey(trainNumber: String, originDate: String) async throws -> Journey
     func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse
     func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse
@@ -146,6 +150,20 @@ public struct RailService: RailServiceProtocol {
         let response: StationTrainsResult = try await client.get("/v1/stations/\(code)/trains")
         guard response.station.code == code, response.trains.count <= 1000,
               response.trains.allSatisfy({ Routes.isValidTrainNumber($0.number) && !$0.name.isEmpty && !$0.live })
+        else { throw URLError(.badServerResponse) }
+        return response
+    }
+
+    public func trainsBetween(from: String, to: String, travelDate: String) async throws -> BetweenStationsResult {
+        guard from.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil,
+              to.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil,
+              from != to, IndiaDate.isValid(travelDate) else { throw URLError(.badURL) }
+        let response: BetweenStationsResult = try await client.get("/v1/trains/between", query: [
+            "from": from, "to": to, "date": travelDate
+        ])
+        guard response.from.code == from, response.to.code == to, response.trains.count <= 1000,
+              response.trains.allSatisfy({ Routes.isValidTrainNumber($0.number) && !$0.live &&
+                  ($0.originDate.map(IndiaDate.isValid) ?? false) && ($0.boardingDay ?? 0) > 0 && ($0.arrivalDay ?? 0) > 0 })
         else { throw URLError(.badServerResponse) }
         return response
     }

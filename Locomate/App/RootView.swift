@@ -16,6 +16,7 @@ public struct RootView: View {
     @State private var tab: LocomateTab = .journey
     @State private var pendingJourney: JourneyRequest?
     @State private var restorationAttempted = false
+    @State private var searchOriginDate = IndiaDate.today()
 
     public init() {}
 
@@ -63,7 +64,7 @@ public struct RootView: View {
                 case .search:
                     SearchScreen(onSelect: { train, date in
                         selectJourney(.init(trainNumber: train.number, date: date))
-                    })
+                    }, sharedSelectedDate: $searchOriginDate)
                 }
             }
             .environment(\.locomoteColors, colors)

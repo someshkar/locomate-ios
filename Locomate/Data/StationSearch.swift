@@ -14,6 +14,13 @@ public struct StationTrainsResult: Decodable, Sendable {
     public let truncated: Bool
 }
 
+public struct BetweenStationsResult: Decodable, Sendable {
+    public let from: StationSearchResult
+    public let to: StationSearchResult
+    public let trains: [TrainSearchResult]
+    public let truncated: Bool
+}
+
 // Fixed catalogue shortcuts from the approved Search design; they do not imply live services.
 enum StationSearch {
     static let shortcuts = [("NDLS", "New Delhi"), ("MMCT", "Mumbai Central"), ("KOTA", "Kota Jn"), ("BRC", "Vadodara Jn")]
@@ -41,4 +48,7 @@ enum StationSearch {
 public extension RailServiceProtocol {
     func searchStations(_ query: String) async throws -> [StationSearchResult] { throw URLError(.unsupportedURL) }
     func stationTrains(_ code: String) async throws -> StationTrainsResult { throw URLError(.unsupportedURL) }
+    func trainsBetween(from: String, to: String, travelDate: String) async throws -> BetweenStationsResult {
+        throw URLError(.unsupportedURL)
+    }
 }

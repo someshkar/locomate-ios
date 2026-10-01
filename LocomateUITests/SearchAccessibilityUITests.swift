@@ -3,6 +3,55 @@ import Network
 
 final class SearchAccessibilityUITests: XCTestCase {
     @MainActor
+    func testBetweenStationsUsesBoardingDateAndOpensDerivedOriginRun() async throws { try await verifyBetween(largest: false) }
+
+    @MainActor
+    func testBetweenStationsRemainsReadableAtLargestText() async throws { try await verifyBetween(largest: true) }
+
+    @MainActor
+    private func verifyBetween(largest: Bool) async throws {
+        continueAfterFailure = false
+        let ready = expectation(description: "Route gateway ready")
+        let fixture = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "run-12137-2026-09-18", withExtension: "json"))
+        let gateway = try SearchSelectionGateway(ready: ready, stationJourney: Data(contentsOf: fixture))
+        defer { gateway.stop() }
+        await fulfillment(of: [ready], timeout: 5)
+        let app = XCUIApplication()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        if largest { app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        app.launch(); defer { app.terminate() }
+        app.buttons["Find a train"].tap()
+        let scroll = app.scrollViews.firstMatch
+        let from = app.buttons["search.between.from"]
+        reveal(from, in: scroll, app: app); from.tap()
+        app.buttons["search.between.station.NDLS"].tap()
+        let to = app.buttons["search.between.to"]
+        reveal(to, in: scroll, app: app); to.tap()
+        app.buttons["search.between.station.MMCT"].tap()
+        let find = app.buttons["search.between.submit"]
+        reveal(find, in: scroll, app: app); XCTAssertTrue(find.isEnabled); find.tap()
+        let name = app.staticTexts["search.result.name.12137"]
+        reveal(name, in: scroll, app: app)
+        XCTAssertEqual(app.staticTexts["search.result.source.12137"].label, "RailRadar route timetable")
+        let schedule = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "16:55 → 08:35")).firstMatch
+        reveal(schedule, in: scroll, app: app)
+        XCTAssertTrue(schedule.label.contains("train origin"))
+        capture(app, "Native route search with dated scheduled service " + (largest ? "largest" : "normal"))
+        let routePath = try XCTUnwrap(gateway.paths.first { $0.hasPrefix("/v1/trains/between?") })
+        let travelDate = try XCTUnwrap(URLComponents(string: "http://localhost\(routePath)")?.queryItems?.first(where: { $0.name == "date" })?.value)
+        let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"; formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        let boarding = try XCTUnwrap(formatter.date(from: travelDate))
+        let origin = formatter.string(from: try XCTUnwrap(Calendar(identifier: .gregorian).date(byAdding: .day, value: -1, to: boarding)))
+        reveal(name, in: scroll, app: app)
+        name.tap()
+        XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 10))
+        XCTAssertTrue(gateway.paths.contains("/v1/runs/12137/\(origin)"))
+        app.buttons["Find a train"].tap()
+        XCTAssertEqual(app.buttons["search.originDate.calendar"].value as? String, origin)
+        XCTAssertFalse(gateway.paths.contains { $0.contains("privacy/consent") || $0.contains("journey-alerts") })
+    }
+
+    @MainActor
     func testStationShortcutLookupRetryAndExactDatedJourney() async throws { try await verifyStationSearch(largest: false) }
 
     @MainActor
@@ -482,6 +531,20 @@ private final class SearchSelectionGateway: @unchecked Sendable {
                     catalogue["truncated"] = false
                     self.send(connection, body: catalogue)
                 }
+            } else if self.stationJourney != nil && path.hasPrefix("/v1/trains/between?") {
+                let date = URLComponents(string: "http://localhost\(path)")?.queryItems?.first(where: { $0.name == "date" })?.value ?? "2026-10-02"
+                let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"; formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                let boarding = formatter.date(from: date) ?? Date()
+                let origin = formatter.string(from: Calendar(identifier: .gregorian).date(byAdding: .day, value: -1, to: boarding) ?? boarding)
+                self.send(connection, body: [
+                    "from": ["code": "NDLS", "name": "New Delhi", "sourceLabel": "RailRadar route timetable", "sourceUpdatedAt": NSNull()],
+                    "to": ["code": "MMCT", "name": "Mumbai Central", "sourceLabel": "RailRadar route timetable", "sourceUpdatedAt": NSNull()],
+                    "truncated": false,
+                    "trains": [["number": "12137", "name": "Station Express With A Complete Long Name",
+                        "originCode": "NDLS", "originName": "New Delhi", "destinationCode": "MMCT", "destinationName": "Mumbai Central",
+                        "departure": "16:55", "arrival": "08:35", "durationHours": 15.67, "distanceKm": 1388.4,
+                        "sourceLabel": "RailRadar route timetable", "sourceUpdatedAt": NSNull(), "live": false,
+                        "originDate": origin, "boardingDay": 2, "arrivalDay": 3]]])
             } else if let journey = self.stationJourney, path.hasPrefix("/v1/runs/12137/") && !path.contains("working") {
                 var response = journey
                 var body = response["journey"] as! [String: Any]

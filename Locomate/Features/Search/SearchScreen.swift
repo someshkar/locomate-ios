@@ -18,6 +18,7 @@ struct SearchScreen: View {
     @Environment(\.locomoteServices) private var services
     @Environment(Preferences.self) private var preferences
     var onSelect: (TrainSearchResult, String) -> Void = { _, _ in }
+    var sharedSelectedDate: Binding<String>? = nil
 
     @State private var query = ""
     @State private var results: [TrainSearchResult] = []
@@ -32,7 +33,7 @@ struct SearchScreen: View {
     @State private var resultQuery = ""
     @State private var loading = false
     @State private var error: String?
-    @State private var selectedDate = IndiaDate.today()
+    @State private var localSelectedDate = IndiaDate.today()
     @State private var calendarDraft = Date()
     @State private var showsCalendar = false
     @State private var recentNotice: String?
@@ -42,6 +43,13 @@ struct SearchScreen: View {
     @ScaledMetric(relativeTo: .footnote) private var subtitleSize: CGFloat = 13.5
 
     private var normalizedQuery: String { query.trimmingCharacters(in: .whitespaces) }
+    private var selectedDate: String {
+        get { sharedSelectedDate?.wrappedValue ?? localSelectedDate }
+        nonmutating set {
+            if let sharedSelectedDate { sharedSelectedDate.wrappedValue = newValue }
+            else { localSelectedDate = newValue }
+        }
+    }
     private var production: Bool { services.mode.isProduction }
     private var currentResults: [TrainSearchResult] { resultQuery == normalizedQuery && resultStationCode == selectedStation?.code ? results : [] }
     private var currentError: String? { resultQuery == normalizedQuery && resultStationCode == selectedStation?.code ? error : nil }
@@ -92,6 +100,10 @@ struct SearchScreen: View {
                         Text("Showing the first 1,000 scheduled services.").font(LocomateFont.caption)
                     }
                     stationChoices
+                    BetweenStationsSection { train, originDate in
+                        selectedDate = originDate
+                        onSelect(train, originDate)
+                    }
                 }
                 .padding(Spacing.units(5))
             }
@@ -132,7 +144,8 @@ struct SearchScreen: View {
                 .onSubmit { isFieldFocused = false }
             if loading || stationLoading {
                 ProgressView().controlSize(.small).tint(colors.accentBase)
-            } else if !query.isEmpty {
+            }
+            if !query.isEmpty {
                 Button { query = ""; selectedStation = nil } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(colors.textTertiary)
                         .frame(width: 44, height: 44)
@@ -564,5 +577,265 @@ private struct SearchResultRow: View {
         dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
             : AnyLayout(HStackLayout(spacing: Spacing.units(2)))
+    }
+}
+
+private enum BetweenStationSide: String, Identifiable {
+    case from, to
+    var id: String { rawValue }
+    var title: String { self == .from ? "Board at" : "Leave at" }
+}
+
+private struct BetweenStationsSection: View {
+    @Environment(\.locomoteColors) private var colors
+    @Environment(\.locomoteServices) private var services
+    let onSelect: (TrainSearchResult, String) -> Void
+    @State private var from: StationSearchResult?
+    @State private var to: StationSearchResult?
+    @State private var pickerSide: BetweenStationSide?
+    @State private var travelDate = IndiaDate.today()
+    @State private var draftDate = Date()
+    @State private var showsDatePicker = false
+    @State private var trains: [TrainSearchResult] = []
+    @State private var truncated = false
+    @State private var loading = false
+    @State private var searched = false
+    @State private var error: String?
+    @State private var task: Task<Void, Never>?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Between stations").eyebrow(colors.textTertiary)
+            Text("Find trains for a boarding date at your station.")
+                .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                stationButton(.from, station: from)
+                Image(systemName: "arrow.right").foregroundStyle(colors.textTertiary)
+                stationButton(.to, station: to)
+            }
+            Button {
+                draftDate = (try? IndiaDate.instant(originDate: travelDate, time: "12:00")) ?? Date()
+                showsDatePicker = true
+            } label: {
+                Label("Boarding date: \(travelDate)", systemImage: "calendar")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textPrimary)
+                    .frame(minHeight: 44)
+            }
+            .accessibilityIdentifier("search.between.date")
+            Button { search() } label: {
+                HStack {
+                    if loading { ProgressView().tint(colors.onAccent) }
+                    Text("Find trains between stations")
+                }
+                .font(LocomateFont.bodyStrong).foregroundStyle(colors.onAccent)
+                .frame(maxWidth: .infinity, minHeight: 48)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(from == nil || to == nil || from?.code == to?.code || loading)
+            .accessibilityIdentifier("search.between.submit")
+            if from?.code == to?.code && from != nil {
+                Text("Choose different boarding and destination stations.")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+            }
+            if let error {
+                Text("Route search unavailable. \(error)").font(LocomateFont.caption)
+                    .foregroundStyle(colors.textSecondary).fixedSize(horizontal: false, vertical: true)
+                Button("Retry route search") { search() }.frame(minHeight: 44)
+            } else if searched && !loading && trains.isEmpty {
+                Text(services.mode.isProduction ? "No scheduled trains found for these stations and boarding date."
+                    : "No historical route matches these stations.")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+            }
+            if !trains.isEmpty {
+                Text(services.mode.isProduction ? "Scheduled route timetable. Choose a train to open its dated run."
+                    : "Historical route pack. Choose a train to open its preview.")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(trains.enumerated()), id: \.element.id) { index, train in
+                        VStack(alignment: .leading, spacing: 2) {
+                            SearchResultRow(train: train, showSeparator: false) {
+                                guard let originDate = train.originDate else { return }
+                                Haptics.tap()
+                                try? services.recentTrains.record(train)
+                                onSelect(train, originDate)
+                            }
+                            Text("\(train.departure) → \(train.arrival) · train origin \(train.originDate ?? "unknown")")
+                                .font(LocomateFont.caption).foregroundStyle(colors.textTertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.bottom, index < trains.count - 1 ? 8 : 0)
+                        }
+                    }
+                }
+                if truncated { Text("Showing the first 1,000 scheduled trains.").font(LocomateFont.caption) }
+            }
+        }
+        .sheet(item: $pickerSide) { side in
+            BetweenStationPicker(title: side.title) { station in
+                if side == .from { from = station } else { to = station }
+                resetResults()
+                pickerSide = nil
+            }
+        }
+        .sheet(isPresented: $showsDatePicker) { datePicker }
+        .onDisappear { task?.cancel() }
+    }
+
+    private func stationButton(_ side: BetweenStationSide, station: StationSearchResult?) -> some View {
+        Button { pickerSide = side } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(side.title.uppercased()).eyebrow(colors.textTertiary)
+                Text(station.map { "\($0.code) · \($0.name)" } ?? "Choose station")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .padding(10)
+            .background(colors.elevated, in: RoundedRectangle(cornerRadius: 16))
+        }
+        .accessibilityIdentifier("search.between.\(side.rawValue)")
+    }
+
+    private var datePicker: some View {
+        NavigationStack {
+            VStack(spacing: 18) {
+                Text("Choose the day you board at the first station.")
+                    .font(LocomateFont.body).foregroundStyle(colors.textSecondary)
+                DatePicker("Boarding date", selection: $draftDate,
+                           in: (try! IndiaDate.instant(originDate: "0001-01-01", time: "12:00"))...(try! IndiaDate.instant(originDate: "9999-12-31", time: "12:00")),
+                           displayedComponents: .date)
+                    .datePickerStyle(.wheel).labelsHidden()
+                    .environment(\.calendar, IndiaDate.calendar).environment(\.timeZone, IndiaDate.timeZone)
+                Button("Use boarding date") {
+                    travelDate = IndiaDate.today(draftDate)
+                    resetResults()
+                    showsDatePicker = false
+                }.frame(minHeight: 48)
+                Button("Cancel") { showsDatePicker = false }.frame(minHeight: 48)
+            }
+            .padding(20)
+            .navigationTitle("Boarding date")
+        }
+    }
+
+    private func resetResults() {
+        task?.cancel(); trains = []; error = nil; loading = false; searched = false; truncated = false
+    }
+
+    private func search() {
+        guard let from, let to, from.code != to.code else { return }
+        resetResults()
+        let date = travelDate
+        loading = true; searched = true
+        task = Task {
+            do {
+                let result: BetweenStationsResult
+                if let service = services.railService {
+                    result = try await service.trainsBetween(from: from.code, to: to.code, travelDate: date)
+                } else {
+                    result = previewBetween(from: from, to: to, date: date)
+                }
+                guard !Task.isCancelled, self.from?.code == from.code, self.to?.code == to.code,
+                      travelDate == date else { return }
+                trains = result.trains; truncated = result.truncated; loading = false
+            } catch {
+                guard !Task.isCancelled, self.from?.code == from.code, self.to?.code == to.code,
+                      travelDate == date else { return }
+                self.error = error.localizedDescription; loading = false
+            }
+        }
+    }
+
+    private func previewBetween(from: StationSearchResult, to: StationSearchResult, date: String) -> BetweenStationsResult {
+        let results: [TrainSearchResult] = RoutePackStore.packs.compactMap { pack in
+            guard let start = pack.calls.firstIndex(where: { $0.code == from.code }),
+                  let end = pack.calls.firstIndex(where: { $0.code == to.code }), start < end,
+                  let originDate = try? IndiaDate.addDays(date, 1 - pack.calls[start].day) else { return nil }
+            let boarding = pack.calls[start], arrival = pack.calls[end]
+            var train = TrainSearchResult(number: pack.trainNumber, name: pack.name,
+                originCode: from.code, originName: from.name, destinationCode: to.code, destinationName: to.name,
+                departure: boarding.departure ?? "—", arrival: arrival.arrival ?? "—",
+                durationHours: 0, distanceKm: 0, sourceLabel: "Historical route pack",
+                sourceUpdatedAt: nil, live: false)
+            train.originDate = originDate; train.boardingDay = boarding.day; train.arrivalDay = arrival.day
+            return train
+        }
+        return BetweenStationsResult(from: from, to: to, trains: results, truncated: false)
+    }
+}
+
+private struct BetweenStationPicker: View {
+    @Environment(\.locomoteColors) private var colors
+    @Environment(\.locomoteServices) private var services
+    let title: String
+    let onSelect: (StationSearchResult) -> Void
+    @State private var query = ""
+    @State private var stations: [StationSearchResult] = []
+    @State private var resultQuery = ""
+    @State private var error: String?
+    @State private var loading = false
+    @State private var task: Task<Void, Never>?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Station name or code", text: $query)
+                        .textInputAutocapitalization(.characters).autocorrectionDisabled()
+                        .font(LocomateFont.body)
+                        .padding(14)
+                        .background(colors.elevated, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityIdentifier("search.between.stationQuery")
+                    if loading { ProgressView() }
+                    if let error {
+                        Text("Station lookup unavailable. \(error)").font(LocomateFont.caption)
+                        Button("Retry station lookup") { search(immediate: true) }.frame(minHeight: 44)
+                    }
+                    ForEach(query.trimmingCharacters(in: .whitespaces).isEmpty ? StationSearch.shortcuts :
+                        (resultQuery == query.trimmingCharacters(in: .whitespaces) ? stations : [])) { station in
+                        Button { onSelect(station) } label: {
+                            HStack {
+                                Text(station.code).monospaced().foregroundStyle(colors.accentBase)
+                                Text(station.name).foregroundStyle(colors.textPrimary)
+                                Spacer(minLength: 0)
+                            }
+                            .font(LocomateFont.body).frame(minHeight: 48)
+                        }
+                        .accessibilityIdentifier("search.between.station.\(station.code)")
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle(title)
+        }
+        .onChange(of: query) { _, _ in search() }
+        .onDisappear { task?.cancel() }
+    }
+
+    private func search(immediate: Bool = false) {
+        task?.cancel(); stations = []; error = nil; loading = false
+        let term = query.trimmingCharacters(in: .whitespaces)
+        resultQuery = term
+        guard term.count >= 2 else { return }
+        if let service = services.railService {
+            loading = true
+            task = Task {
+                if !immediate { try? await Task.sleep(nanoseconds: 350_000_000) }
+                guard !Task.isCancelled else { return }
+                do {
+                    let found = try await service.searchStations(term)
+                    guard !Task.isCancelled, query.trimmingCharacters(in: .whitespaces) == term else { return }
+                    stations = found; loading = false
+                } catch {
+                    guard !Task.isCancelled, query.trimmingCharacters(in: .whitespaces) == term else { return }
+                    self.error = error.localizedDescription; loading = false
+                }
+            }
+        } else {
+            stations = StationSearch.previewStations.filter {
+                $0.code.localizedCaseInsensitiveContains(term) || $0.name.localizedCaseInsensitiveContains(term)
+            }
+        }
     }
 }

@@ -28,7 +28,7 @@ struct RecentTrainTests {
         #expect(reopened.trains.first?.name == "Updated full name")
         #expect(reopened.trains.first?.sourceLabel == "Historical railway snapshot")
         #expect(reopened.trains.first?.originName == "New Delhi")
-        #expect(reopened.trains.allSatisfy { !$0.live && $0.departure.isEmpty && $0.arrival.isEmpty && $0.sourceUpdatedAt.isEmpty })
+        #expect(reopened.trains.allSatisfy { !$0.live && $0.departure.isEmpty && $0.arrival.isEmpty && $0.sourceUpdatedAt == "" })
         let data = try Data(contentsOf: root.appendingPathComponent("locomote/a/recent-trains.json"))
         let text = String(decoding: data, as: UTF8.self)
         #expect(!text.contains("originDate") && !text.contains("sourceUpdatedAt") && !text.contains("\"live\""))
