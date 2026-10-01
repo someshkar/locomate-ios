@@ -43,6 +43,7 @@
 		9845D924330E1EA99C9EB7BB /* ContributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB823F613867BB964ED5B752 /* ContributionService.swift */; };
 		9ABFC199FAB05D62D2477CBE /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F49C02507D73869F00FBB7 /* APIClient.swift */; };
 		A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1543B7756311FD507CCE878 /* Services.swift */; };
+		A5F4E86345EECD41A7ACD1F2 /* RailStorageScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */; };
 		AA0E0C5336DCB904B7DB0407 /* SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */; };
 		ADA14E893FF6611314BDD418 /* LiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9535CAEDF03E94741CBCEA42 /* LiveActivityService.swift */; };
 		B2D82BD205A4192CBC31D698 /* PressableScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF89F017C9B92B9BB62877B6 /* PressableScale.swift */; };
@@ -136,6 +137,7 @@
 		9764A28CB31A7EFF93F92590 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		97C50427D18F4C7E60BCBD8F /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		AB823F613867BB964ED5B752 /* ContributionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionService.swift; sourceTree = "<group>"; };
+		BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailStorageScope.swift; sourceTree = "<group>"; };
 		BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDaylight.swift; sourceTree = "<group>"; };
 		BF89F017C9B92B9BB62877B6 /* PressableScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressableScale.swift; sourceTree = "<group>"; };
 		C028E9C77E24D717A7837279 /* RailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailService.swift; sourceTree = "<group>"; };
@@ -193,6 +195,7 @@
 				4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */,
 				C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */,
 				C028E9C77E24D717A7837279 /* RailService.swift */,
+				BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */,
 				742FF165A9FB065C0F1C37AE /* RoutePacks.swift */,
 				F1543B7756311FD507CCE878 /* Services.swift */,
 				A9A6CB58B1E32F89AD601FA0 /* Resources */,
@@ -574,6 +577,7 @@
 				B2D82BD205A4192CBC31D698 /* PressableScale.swift in Sources */,
 				2552FDEFCBDDB06E71C5B161 /* RailMapView.swift in Sources */,
 				E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */,
+				A5F4E86345EECD41A7ACD1F2 /* RailStorageScope.swift in Sources */,
 				B4C06C5B212FCFD0F216505B /* ResizableSheet.swift in Sources */,
 				199CE718C0CC6E7C52059939 /* RootView.swift in Sources */,
 				32F0354407D667D5931F610F /* RouteGeometry.swift in Sources */,

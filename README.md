@@ -13,12 +13,14 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   test CODE_SIGNING_ALLOWED=NO
 ```
 
-The project has 81 Swift tests covering gateway decoding, route geometry, forecasts, date handling, journey plans, and Passport calculations. A separate UI test navigates Journey, Explore, Passport, and Search and captures each screen. Both suites passed on fresh iPhone 18 Pro simulators.
+The project has 83 Swift tests covering gateway decoding, route geometry, forecasts, date handling, journey plans, and Passport calculations. A separate UI test navigates Journey, Explore, Passport, and Search and captures each screen. Both suites passed on fresh iPhone 18 Pro simulators.
 
 ## Rail data modes
 
 The default build uses clearly labeled historical route packs. They provide real route geometry for interface review, but no live position or ETA. To use a deployed SmartRail rail gateway, set `LOCOMOTE_RAIL_API_URL` to its HTTPS base URL when building. The gateway creates an installation-scoped device session; provider credentials stay on the server. Live, predicted, scheduled, stale, and preview data retain separate labels. A failed production request may show an aged cached run; it does not switch to a preview fixture.
 
 Saved journeys stay on the device. Route previews are excluded from Passport's saved-run distance, and a forecast is not counted as an observed on-time outcome.
+
+Production sessions, cached runs, journey plans, and Passport entries are scoped to the gateway origin. A development gateway's stored data cannot appear when the app points to production.
 
 This repository is still under active implementation. Physical-device background location, push delivery, accessibility review, and performance profiling require further verification.

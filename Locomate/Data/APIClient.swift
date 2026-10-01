@@ -143,6 +143,7 @@ public actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("LocomateNative/1.0", forHTTPHeaderField: "User-Agent")
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         if let idempotencyKey { request.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key") }
         if let body {
@@ -190,6 +191,10 @@ public actor APIClient {
                 if let value = error["code"] as? String { code = value }
                 if let value = error["message"] as? String { message = value }
             }
+        }
+
+        if code.hasPrefix("invalid_provider") || code.hasPrefix("provider_") {
+            message = "The rail feed is temporarily unavailable. Try again shortly."
         }
 
         if http.statusCode == 429,

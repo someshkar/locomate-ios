@@ -11,6 +11,16 @@ import Testing
 import Foundation
 @testable import Locomate
 
+@Suite("Rail storage scopes")
+struct RailStorageScopeTests {
+    @Test("development and production gateway data cannot share a scope")
+    func separatedOrigins() {
+        let production = RailStorageScope.gateway(URL(string: "https://rail.example")!)
+        #expect(production == RailStorageScope.gateway(URL(string: "https://rail.example/")!))
+        #expect(production != RailStorageScope.gateway(URL(string: "http://localhost:8766")!))
+    }
+}
+
 // MARK: - IndiaDate
 
 @Suite("India origin dates")
@@ -548,6 +558,18 @@ struct APIClientTests {
         for status in [400, 401, 403, 404, 422] {
             #expect(!error(for: status).retryable)
         }
+    }
+
+    @Test("keeps provider diagnostics out of the passenger-facing error")
+    func providerFailureMessage() throws {
+        let body = try JSONSerialization.data(withJSONObject: ["error": [
+            "code": "invalid_provider_response", "message": "Upstream schema mismatch at field 13"
+        ]])
+        let response = HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 502,
+                                       httpVersion: nil, headerFields: nil)!
+        let error = APIClient.makeError(http: response, data: body, requestId: "r1")
+        #expect(error.code == "invalid_provider_response")
+        #expect(error.message == "The rail feed is temporarily unavailable. Try again shortly.")
     }
 }
 

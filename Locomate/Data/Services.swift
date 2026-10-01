@@ -41,15 +41,16 @@ public final class LocomoteServices {
             )
         case .production(let baseURL):
             let installationId = InstallationIdentity.current()
+            let scope = RailStorageScope.gateway(baseURL)
             let client = APIClient(
                 baseURL: baseURL,
-                tokenStore: KeychainTokenStore(),
+                tokenStore: KeychainTokenStore(account: "rail-session-\(scope)"),
                 installationId: installationId
             )
             return LocomoteServices(
                 railService: RailService(client: client),
-                cache: JourneyCache(),
-                passport: PassportRepository(),
+                cache: JourneyCache(scope: scope),
+                passport: PassportRepository(scope: scope),
                 mode: mode
             )
         }

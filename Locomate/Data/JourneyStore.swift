@@ -13,9 +13,10 @@ import Observation
 public actor JourneyCache {
     private let directory: URL
 
-    public init(directory: URL? = nil) {
+    public init(directory: URL? = nil, scope: String? = nil) {
         let base = directory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        self.directory = base.appendingPathComponent("locomote", isDirectory: true)
+        let root = base.appendingPathComponent("locomote", isDirectory: true)
+        self.directory = scope.map { root.appendingPathComponent($0, isDirectory: true) } ?? root
         try? FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
     }
 
@@ -55,9 +56,10 @@ public struct CachedJourney: Codable, Sendable {
 public actor PassportRepository {
     private let url: URL
 
-    public init(directory: URL? = nil) {
+    public init(directory: URL? = nil, scope: String? = nil) {
         let base = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let folder = base.appendingPathComponent("locomote", isDirectory: true)
+        let root = base.appendingPathComponent("locomote", isDirectory: true)
+        let folder = scope.map { root.appendingPathComponent($0, isDirectory: true) } ?? root
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         self.url = folder.appendingPathComponent("passport.json")
     }
