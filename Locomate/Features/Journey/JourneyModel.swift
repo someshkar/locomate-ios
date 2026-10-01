@@ -99,13 +99,16 @@ public final class JourneyModel {
                 operations = loadedOperations
                 // Restore only a Live Activity that the traveller started for this run.
                 if liveActivity.isRunning(for: loaded.id) {
-                    await liveActivity.sync(journey: loaded, registerToken: tokenRegistrar(for: loaded.id))
+                    await liveActivity.sync(
+                        journey: loaded, registerToken: tokenRegistrar(for: loaded.id),
+                        unregisterRun: tokenUnregisterer()
+                    )
                 } else {
-                    await liveActivity.end()
+                    await liveActivity.end(unregisterRun: tokenUnregisterer())
                 }
             } catch {
                 guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
-                await liveActivity.end()
+                await liveActivity.end(unregisterRun: tokenUnregisterer())
                 guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
                 // Retain the last good journey rather than falling through to fixtures.
                 if let cached = await cache.loadJourney(trainNumber: requestedTrainNumber, originDate: requestedOriginDate) {
@@ -123,11 +126,11 @@ public final class JourneyModel {
                 }
             }
         } else if let pack {
-            await liveActivity.end()
+            await liveActivity.end(unregisterRun: tokenUnregisterer())
             guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
             presentPreview(pack)
         } else {
-            await liveActivity.end()
+            await liveActivity.end(unregisterRun: tokenUnregisterer())
             guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
             phase = .failed("No route pack is bundled for \(requestedTrainNumber).")
         }
@@ -143,6 +146,14 @@ public final class JourneyModel {
         return { token in
             // Best-effort: a failed registration must not break the journey.
             _ = try? await service.registerLiveActivityToken(runId: runId, token: token)
+        }
+    }
+
+    private func tokenUnregisterer() -> ((String) async -> Void)? {
+        guard let service else { return nil }
+        return { runId in
+            // A stopped card must disappear immediately even if the gateway is offline.
+            _ = try? await service.unregisterLiveActivity(runId: runId)
         }
     }
 
@@ -177,7 +188,7 @@ public final class JourneyModel {
         self.trainNumber = trainNumber
         self.originDate = originDate
         if changedRun {
-            await liveActivity.end()
+            await liveActivity.end(unregisterRun: tokenUnregisterer())
         }
         await load()
     }
@@ -189,12 +200,15 @@ public final class JourneyModel {
     /// Start a Lock Screen journey card only after an explicit tap.
     public func startLiveActivity() async -> Bool {
         guard !isPreview, !isCached, let journey else { return false }
-        return await liveActivity.sync(journey: journey, registerToken: tokenRegistrar(for: journey.id))
+        return await liveActivity.sync(
+            journey: journey, registerToken: tokenRegistrar(for: journey.id),
+            unregisterRun: tokenUnregisterer()
+        )
     }
 
     /// End the Lock Screen journey card.
     public func endLiveActivity() async {
-        await liveActivity.end()
+        await liveActivity.end(unregisterRun: tokenUnregisterer())
     }
 }
 

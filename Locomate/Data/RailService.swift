@@ -35,6 +35,7 @@ private struct JourneyResponse: Decodable {
 
 public protocol RailServiceProtocol: Sendable {
     func registerLiveActivityToken(runId: String, token: String) async throws
+    func unregisterLiveActivity(runId: String) async throws
     func uploadObservations(_ batch: [CompactObservation]) async throws -> [String]
     func searchTrains(_ query: String) async throws -> [TrainSearchResult]
     func journey(trainNumber: String, originDate: String) async throws -> Journey
@@ -57,6 +58,11 @@ public struct RailService: RailServiceProtocol {
             body: ["runId": runId, "pushToken": token],
             idempotencyKey: "live-activity-\(runId)"
         )
+    }
+
+    public func unregisterLiveActivity(runId: String) async throws {
+        guard runId.range(of: "^[A-Za-z0-9:._-]{1,128}$", options: .regularExpression) != nil else { return }
+        try await client.delete("/v1/live-activities/subscriptions/\(runId)")
     }
 
     /// Upload a consented observation batch. Returns the accepted local IDs.

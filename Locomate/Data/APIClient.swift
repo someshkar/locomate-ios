@@ -123,6 +123,11 @@ public actor APIClient {
         )
     }
 
+    public func delete(_ path: String) async throws {
+        let session = try await validSession()
+        _ = try await performRequest(path: path, method: "DELETE", body: nil, token: session.accessToken)
+    }
+
     private func rawRequest<T: Decodable>(
         path: String,
         method: String,
@@ -131,6 +136,26 @@ public actor APIClient {
         token: String?,
         idempotencyKey: String? = nil
     ) async throws -> T {
+        let (data, status, requestId) = try await performRequest(
+            path: path, method: method, query: query, body: body, token: token,
+            idempotencyKey: idempotencyKey
+        )
+        do {
+            return try JSONDecoder.locomote.decode(T.self, from: data)
+        } catch {
+            throw APIError(status: status, code: "decode_error", requestId: requestId, retryable: false,
+                           message: "The rail service returned an unexpected response.")
+        }
+    }
+
+    private func performRequest(
+        path: String,
+        method: String,
+        query: [String: String] = [:],
+        body: [String: Any]?,
+        token: String?,
+        idempotencyKey: String? = nil
+    ) async throws -> (Data, Int, String) {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
         if !query.isEmpty {
             components?.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
@@ -161,13 +186,7 @@ public actor APIClient {
             guard (200..<300).contains(http.statusCode) else {
                 throw Self.makeError(http: http, data: data, requestId: requestId)
             }
-            do {
-                return try JSONDecoder.locomote.decode(T.self, from: data)
-            } catch {
-                throw APIError(status: http.statusCode, code: "decode_error", requestId: requestId,
-                               retryable: false,
-                               message: "The rail service returned an unexpected response.")
-            }
+            return (data, http.statusCode, requestId)
         } catch let error as APIError {
             throw error
         } catch {

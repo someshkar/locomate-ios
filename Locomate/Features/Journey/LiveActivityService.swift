@@ -29,7 +29,11 @@ public final class LiveActivityService {
     /// Sync the Live Activity to the current journey state.
     /// Returns false when no activity should be running.
     @discardableResult
-    public func sync(journey: Journey, registerToken: ((String) async -> Void)? = nil) async -> Bool {
+    public func sync(
+        journey: Journey,
+        registerToken: ((String) async -> Void)? = nil,
+        unregisterRun: ((String) async -> Void)? = nil
+    ) async -> Bool {
         revision += 1
         let syncRevision = revision
         // The product rule: a Live Activity requires a known, non-stale delay.
@@ -38,7 +42,7 @@ public final class LiveActivityService {
               delayStatus != .unavailable,
               delayStatus != .stale,
               delayStatus != .estimated else {
-            await end()
+            await end(unregisterRun: unregisterRun)
             return false
         }
 
@@ -63,8 +67,14 @@ public final class LiveActivityService {
             tokenTask = nil
             tokenActivityId = nil
         }
+        var endedRunIds = Set<String>()
         for existing in active where existing.attributes.runId != journey.id {
             await existing.end(nil, dismissalPolicy: .immediate)
+            if let runId = existing.attributes.runId,
+               !isRunning(for: runId),
+               endedRunIds.insert(runId).inserted {
+                await unregisterRun?(runId)
+            }
             guard revision == syncRevision else { return false }
         }
         for duplicate in active where duplicate.attributes.runId == journey.id && duplicate.id != matching?.id {
@@ -102,13 +112,18 @@ public final class LiveActivityService {
         }
     }
 
-    public func end() async {
+    public func end(unregisterRun: ((String) async -> Void)? = nil) async {
         revision += 1
         tokenTask?.cancel()
         tokenTask = nil
         tokenActivityId = nil
-        for existing in Activity<JourneyActivityAttributes>.activities {
+        let active = Activity<JourneyActivityAttributes>.activities
+        let runIds = Set(active.compactMap { $0.attributes.runId })
+        for existing in active {
             await existing.end(nil, dismissalPolicy: .immediate)
+        }
+        if let unregisterRun {
+            for runId in runIds where !isRunning(for: runId) { await unregisterRun(runId) }
         }
     }
 
