@@ -15,6 +15,7 @@ import SwiftUI
 struct ContributionSettings: View {
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(Preferences.self) private var preferences
     @Environment(\.locomoteServices) private var services
 
@@ -25,9 +26,13 @@ struct ContributionSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
-            HStack {
-                Text("Community contribution").eyebrow(colors.textTertiary)
-                Spacer()
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+                : AnyLayout(HStackLayout())) {
+                Text("Community contribution")
+                    .eyebrow(colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                 Text("v\(Consent.version)")
                     .font(LocomateFont.data)
                     .foregroundStyle(colors.textTertiary)
@@ -154,7 +159,7 @@ struct ContributionSettings: View {
 
 private struct ContributionToggle: View {
     @Environment(\.locomoteColors) private var colors
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let icon: String
     let title: String
@@ -164,19 +169,26 @@ private struct ContributionToggle: View {
     let onChange: (Bool) -> Void
 
     var body: some View {
-        HStack(spacing: Spacing.units(3)) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(disabled ? colors.textTertiary : colors.accentBase)
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(LocomateFont.bodyStrong)
-                    .foregroundStyle(disabled ? colors.textTertiary : colors.textPrimary)
-                Text(meta).font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
+                    HStack {
+                        iconView
+                        Spacer()
+                        AnimatedSwitch(isOn: isOn)
+                    }
+                    textContent
+                }
+            } else {
+                HStack(spacing: Spacing.units(3)) {
+                    iconView
+                    textContent
+                    Spacer(minLength: Spacing.units(2))
+                    AnimatedSwitch(isOn: isOn)
+                }
             }
-            Spacer(minLength: Spacing.units(2))
-            AnimatedSwitch(isOn: isOn)
         }
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
         .onTapGesture {
             guard !disabled else { return }
@@ -188,5 +200,22 @@ private struct ContributionToggle: View {
         .accessibilityAddTraits(.isButton)
         .disabled(disabled)
         .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
+    private var iconView: some View {
+        Image(systemName: icon)
+            .font(.system(size: 18))
+            .foregroundStyle(disabled ? colors.textTertiary : colors.accentBase)
+            .frame(width: 24)
+    }
+
+    private var textContent: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(LocomateFont.bodyStrong)
+                .foregroundStyle(disabled ? colors.textTertiary : colors.textPrimary)
+            Text(meta).font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

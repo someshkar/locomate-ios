@@ -187,6 +187,39 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testContributionControlsRespectTextSizeAndHitRegions() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Passport"].waitForExistence(timeout: 10))
+        app.buttons["Passport"].tap()
+        app.buttons["Open settings"].tap()
+        for title in ["Contribute while using the app", "Continue in the background"] {
+            let control = app.buttons[title]
+            let readingRegion = revealForReading(control, in: app, screen: title)
+            XCTAssertLessThanOrEqual(control.frame.height, readingRegion.height,
+                                      "Each contribution choice and explanation must fit together at the largest size.")
+            XCTAssertGreaterThanOrEqual(control.frame.minY, readingRegion.minY)
+            XCTAssertLessThanOrEqual(control.frame.maxY, readingRegion.maxY)
+            XCTAssertFalse(control.isEnabled, "Historical previews must keep location collection unavailable.")
+            XCTAssertTrue((control.value as? String)?.hasPrefix("Unavailable.") == true)
+            capture(app, title + " largest text")
+        }
+        app.terminate()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
+        app.launch()
+        app.buttons["Passport"].tap()
+        app.buttons["Open settings"].tap()
+        for title in ["Contribute while using the app", "Continue in the background"] {
+            let control = app.buttons[title]
+            revealForReading(control, in: app, screen: title + " regular text")
+            XCTAssertGreaterThanOrEqual(control.frame.height, 44 - 0.001,
+                                        "The complete row is the tap target, including the shorter background choice.")
+        }
+        capture(app, "Contribution controls regular text")
+    }
+
+    @MainActor
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
@@ -277,6 +310,39 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     @MainActor
+    func testLargestTextPassagesWhenScrolledIntoView() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Passport"].waitForExistence(timeout: 10))
+        app.buttons["Passport"].tap()
+        let heading = app.staticTexts["A thousand places.\nYour first page."]
+        try revealAndAudit(heading, in: app, screen: "Passport empty heading fully scrolled")
+
+        app.buttons["Find a train"].tap()
+        XCTAssertTrue(app.textFields["Search trains"].waitForExistence(timeout: 5))
+        try revealAndAudit(app.buttons["Today"], in: app, screen: "Search origin dates fully scrolled", modal: true)
+        try revealAndAudit(app.staticTexts["The origin date is the day the train starts in India — overnight runs may reach your station the next day."],
+                           in: app, screen: "Search origin help fully scrolled", modal: true)
+        try revealAndAudit(app.staticTexts["Search uses a historical Indian Railways snapshot. Results are real records, not current schedules."],
+                           in: app, screen: "Search snapshot notice fully scrolled", modal: true)
+        app.terminate()
+        app.launch()
+        app.buttons["Passport"].tap()
+        app.buttons["Open settings"].tap()
+        try revealAndAudit(app.staticTexts["COMMUNITY CONTRIBUTION"], in: app, screen: "Contribution heading fully scrolled")
+        try revealAndAudit(app.buttons["Contribute while using the app"], in: app, screen: "Contribution foreground fully scrolled")
+        try revealAndAudit(app.buttons["Continue in the background"], in: app, screen: "Contribution background fully scrolled")
+    }
+
+    @MainActor
+    private func revealAndAudit(_ element: XCUIElement, in app: XCUIApplication, screen: String,
+                                modal: Bool = false) throws {
+        revealForReading(element, in: app, screen: screen, modal: modal)
+        try audit(app, screen: screen)
+    }
+
+    @MainActor
     private func previewApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launch()
@@ -300,5 +366,37 @@ final class AccessibilityUITests: XCTestCase {
                 return false
             }
         }
+    }
+}
+
+private extension XCTestCase {
+    /// Scroll without momentum so the screenshot records the complete passage,
+    /// rather than relying on isHittable (which also accepts partly visible text).
+    @MainActor @discardableResult
+    func revealForReading(_ element: XCUIElement, in app: XCUIApplication, screen: String,
+                          modal: Bool = false) -> CGRect {
+        XCTAssertTrue(element.waitForExistence(timeout: 5), screen)
+        let scroll = app.scrollViews.firstMatch
+        let screenFrame = app.frame
+        let top = max(scroll.frame.minY + 12, screenFrame.minY + 70)
+        let bottom = modal ? min(scroll.frame.maxY - 16, screenFrame.maxY - 30)
+            : min(scroll.frame.maxY - 12, app.buttons["Passport"].frame.minY - 18)
+        let middle = (top + bottom) / 2
+        for _ in 0..<30 {
+            let frame = element.frame
+            if frame.minY >= top && frame.maxY <= bottom { break }
+            let desired = frame.height <= bottom - top ? frame.midY : frame.minY + (bottom - top) / 2
+            let offset = max(-240, min(240, desired - middle))
+            if abs(offset) < 10 { break }
+            let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: screenFrame.midX, dy: middle))
+            let end = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: screenFrame.midX, dy: middle - offset))
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.3)
+        }
+        let diagnostic = XCTAttachment(string: "Target \(element.label) frame \(element.frame). Visible reading region y=\(top)...\(bottom).\n\(element.debugDescription)")
+        diagnostic.name = screen + " bounds"
+        diagnostic.lifetime = .keepAlways
+        add(diagnostic)
+        XCTAssertTrue(element.isHittable, screen)
+        return CGRect(x: screenFrame.minX, y: top, width: screenFrame.width, height: bottom - top)
     }
 }

@@ -35,7 +35,7 @@ The native app icon uses the same route-shaped L as Android. Its 1024px asset ca
 
 ## Accessibility release gate
 
-Routine UI tests verify actual Dynamic Type growth from the standard size to the largest accessibility size, reachable tab/search controls, 44-point tap regions (with a 0.001-point floating-point tolerance), and spoken station names plus timetable times. The dock uses native large-content previews when accessibility text sizes require compact icon controls. The magnified Journey label and default/largest layouts were visually checked on the iPhone 18 Pro simulator with iOS 27 and Xcode 27.
+Routine UI tests verify actual Dynamic Type growth from the standard size to the largest accessibility size, reachable tab/search controls, 44-point tap regions (with a 0.001-point floating-point tolerance), spoken station names plus timetable times, and complete Contribution choices at the largest text size. The dock uses native large-content previews when accessibility text sizes require compact icon controls. The magnified Journey label and default/largest layouts were visually checked on the iPhone 18 Pro simulator with iOS 27 and Xcode 27.
 
 The full per-screen XCTest audit is explicitly opt-in and reports every category and every issue without exclusions:
 
@@ -52,8 +52,19 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
 
 - MapKit's 29-by-11-point Legal attribution link and geographic image text with no identified accessibility element. The native map and its accessibility tree are preserved; these are not filtered from the audit.
 - A partial Dynamic Type warning for the native navigation-bar Done action.
-- Text-clipping warnings for the Passport empty heading, Search explanatory copy/date labels, and contribution headings. Some concern scroll content outside the visible viewport; those findings have **not** all been established as false positives.
-- Contrast warnings for the route-status pill, journey stats, and contribution text. Off-viewport content is represented among the findings, and further inspection is required before closing this gate.
+- Text-clipping warnings in the original per-screen runs for the Passport empty heading, Search explanatory copy/date labels, and contribution headings. A separate largest-size test now scrolls each passage into the reading region before capturing its bounds and screenshot, then runs the same unsuppressed full audit.
+- Contrast warnings for the route-status pill, journey stats, and contribution text. These remain recorded; the full gate is not passed by the narrower visual checks below.
+
+Follow-up inspection at the largest accessibility text size (`UICTContentSizeCategoryAccessibilityXXXL`) established the following:
+
+- The Passport empty heading is fully visible and untruncated at y259–541 in the 874-point viewport. During the audit's Dynamic Type probe the same heading is moved to y571–853, partly below the dock. The recorded clipping warning for that probe is an off-viewport artifact; the screenshot and accessibility label both preserve the whole heading.
+- Search's Today chip, origin-date explanation, and historical-snapshot notice are fully readable when scrolled into view. No clipping warnings appeared in the three focused audits of those passages. Other contrast warnings are still reported.
+- The contribution card had a real large-text layout problem: its icon and switch narrowed the text enough to split “Contribute” and “background” across lines. Accessibility sizes now put those controls above full-width text and put the consent version below the section heading. The actual row content has a 44-point minimum hit region at ordinary text sizes.
+- The visible Route Replay crop contains solid glyph pixels RGB(156,139,255) on RGB(23,26,31), approximately 6.27:1 contrast. This supports readable settled text in that capture; it does not dismiss every status-pill audit warning or establish behavior over all map/appearance transitions.
+
+The initial follow-up screenshots, accessibility bounds, and unsuppressed issues are exported locally under `/tmp/locomate-ios-a11y-visible-passages`; its log is `/tmp/locomate-ios-a11y-visible-passages.log`. After the Contribution fix, `/tmp/locomate-ios-a11y-visible-fixed` shows the foreground row reduced from 782 to 538 points and the background row at 382 points, each fully readable within the 670-point reading region. That focused unsuppressed audit still reports eight findings (seven contrast findings and the Passport clipping probe). No issue handler filters or waives any finding. Remaining framework findings and unproven contrast reports keep the full release gate open.
+
+The follow-up regression run passed `testContributionControlsRespectTextSizeAndHitRegions` and `testPrimarySurfacesOpenOnSimulator` (two tests, zero failures). It verified complete largest-size Contribution rows, disabled preview semantics, ordinary-size 44-point targets, and existing primary navigation. Log: `/tmp/locomate-ios-contribution-regressions.log`; screenshots and bounds: `/tmp/locomate-ios-contribution-regressions`.
 
 Light appearance also has an opt-in Settings audit. Its text/link/status tokens were darkened after measured contrast failures; the full audit result remains a separate gate from those token calculations. The test preserves the original dark appearance after checking light mode.
 
