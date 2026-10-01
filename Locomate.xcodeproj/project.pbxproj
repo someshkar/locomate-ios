@@ -56,6 +56,7 @@
 		954123DAFDCFEB1BA8AE57DF /* StatusKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */; };
 		9711B90409F7FB8BBEC4180E /* RoutePacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742FF165A9FB065C0F1C37AE /* RoutePacks.swift */; };
 		9845D924330E1EA99C9EB7BB /* ContributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB823F613867BB964ED5B752 /* ContributionService.swift */; };
+		992B443F2829784AF65EA651 /* JourneyMapCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16D7B1D0037EA920C357E74 /* JourneyMapCameraTests.swift */; };
 		9ABFC199FAB05D62D2477CBE /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F49C02507D73869F00FBB7 /* APIClient.swift */; };
 		9D87DC2D6499A2AAF7ECCC9B /* RailNaturalLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A6648F9636F67548562B888 /* RailNaturalLanguage.swift */; };
 		A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1543B7756311FD507CCE878 /* Services.swift */; };
@@ -197,6 +198,7 @@
 		AD24EEC53E962310683CC4F0 /* TimetablePassportUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetablePassportUITests.swift; sourceTree = "<group>"; };
 		AEBA6C10BB98B18C8F24535C /* JourneyAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlerts.swift; sourceTree = "<group>"; };
 		AFC02771E41222AD2DF54EAA /* NaturalLanguagePassportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaturalLanguagePassportTests.swift; sourceTree = "<group>"; };
+		B16D7B1D0037EA920C357E74 /* JourneyMapCameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyMapCameraTests.swift; sourceTree = "<group>"; };
 		BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailStorageScope.swift; sourceTree = "<group>"; };
 		BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDaylight.swift; sourceTree = "<group>"; };
 		BF89F017C9B92B9BB62877B6 /* PressableScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressableScale.swift; sourceTree = "<group>"; };
@@ -394,6 +396,7 @@
 			children = (
 				EE97A4E1410E4133B6E288E0 /* DomainTests.swift */,
 				4FD965AE762908BAC26F73B0 /* JourneyAlertTests.swift */,
+				B16D7B1D0037EA920C357E74 /* JourneyMapCameraTests.swift */,
 				C0D5D9EDBC91B047D8AE2910 /* JourneyRefreshTests.swift */,
 				2DF32D12838C63D9FD0EB11B /* JourneyRestorationTests.swift */,
 				A62A5EB1CC4A741BED5DA26D /* JourneyStopProjectionTests.swift */,
@@ -727,6 +730,7 @@
 			files = (
 				56734436EA551F5755619328 /* DomainTests.swift in Sources */,
 				8BBE6CD6F52F6F162EA68E54 /* JourneyAlertTests.swift in Sources */,
+				992B443F2829784AF65EA651 /* JourneyMapCameraTests.swift in Sources */,
 				A7D18AF3BD601A22F1179FD5 /* JourneyRefreshTests.swift in Sources */,
 				84FFE2F569547766C3884C9B /* JourneyRestorationTests.swift in Sources */,
 				0ACA9DADBC2EF9298F7A5955 /* JourneyStopProjectionTests.swift in Sources */,

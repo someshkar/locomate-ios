@@ -28,6 +28,12 @@ Each summary clock comes from the selected station's actual event, available mat
 
 On 2026-10-01, 19 focused Swift cases and three navigation/timeline cases passed before the final map-control cleanup. After that cleanup, three simulator cases passed in **152.429 seconds**, covering normal/largest navigation and the real HTTP future-countdown, Save, and Passport year-filter flow at both text sizes. Four Journey/countdown captures were inspected. The current Release interaction dry run passed (one case, **17.137 seconds**), validating expansion, scrolling, collapse and Search return without recording physical performance. Logs: `/tmp/locomate-ios-journey-card-final.log`, `/tmp/locomate-ios-journey-card-verified.log`, `/tmp/locomate-ios-journey-card-release-dryrun.log`; captures: `/tmp/locomate-ios-journey-card-verified-captures`. Full visual parity, the full accessibility audit, and physical-device checks remain open.
 
+## Journey map controls
+
+The two quiet map actions fit the current dated route or focus its displayed train position. Position labels distinguish historical samples, observations and last-known evidence; hidden evidence disables focus. Each tap is a new command, unchanged commands preserve subsequent manual panning, and commands from a replaced journey cannot focus the new run. Camera padding uses the sheet's screen position. Journey uses flat hybrid imagery to keep long routes out of the globe view. Refreshed station names and coordinates also update native callouts. The source disclosure now appears as “About this data” inside expanded details; spoken summary clocks retain full station names, timing evidence and times.
+
+On 2026-10-01, three native MapKit camera/callout tests passed, including every route coordinate above the sheet, repeated actions, hidden evidence and replaced-journey commands. The normal/largest-text map-action and source-disclosure UI case passed in **37.717 seconds**; all four fit/focus captures were inspected. The spoken-clock/alert regression also passed in the preceding two-case UI run. The optimized Release interaction dry run passed in **18.301 seconds** with no skips or performance metrics. Logs: `/tmp/locomate-ios-map-viewport-final.log`, `/tmp/locomate-ios-map-controls-flow.log`, `/tmp/locomate-ios-map-viewport-release-dryrun.log`; final captures: `/tmp/locomate-ios-map-viewport-final-captures`. These checks do not close the full accessibility, physical performance or visual-parity gates.
+
 ## Build and test
 
 Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.

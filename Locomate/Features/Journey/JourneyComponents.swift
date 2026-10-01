@@ -126,9 +126,9 @@ struct PersonalizedTripCard: View {
             (dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
                 : AnyLayout(HStackLayout(alignment: .top, spacing: 14))) {
-                stationClock(code: plan.boarding.code, clock: boardingClock, name: plan.boarding.name)
+                stationClock(code: plan.boarding.code, clock: boardingClock, name: plan.boarding.name, role: "boarding")
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
-                stationClock(code: plan.alighting.code, clock: alightingClock, name: plan.alighting.name,
+                stationClock(code: plan.alighting.code, clock: alightingClock, name: plan.alighting.name, role: "alighting",
                              daySuffix: arrivalDaySuffix)
             }
             if expanded {
@@ -136,6 +136,8 @@ struct PersonalizedTripCard: View {
                     ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
                     : AnyLayout(HStackLayout())) {
                     Text("\(segment.count) stops · \(Int(totalDistance)) km on your segment")
+                        .accessibilityLabel("\(segment.count) stops. \(Int(totalDistance)) kilometres on your segment.")
+                        .accessibilityIdentifier("journey.segmentDistance")
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -153,7 +155,7 @@ struct PersonalizedTripCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    private func stationClock(code: String, clock: JourneySummaryClock?, name: String, daySuffix: String = "") -> some View {
+    private func stationClock(code: String, clock: JourneySummaryClock?, name: String, role: String, daySuffix: String = "") -> some View {
         VStack(alignment: .leading, spacing: 5) {
             (dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
@@ -173,6 +175,7 @@ struct PersonalizedTripCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(name), \(clock?.label ?? "Timing unavailable"), \(clock?.time ?? "unavailable")\(daySuffix)")
+        .accessibilityIdentifier("journey.\(role)Clock")
     }
 
     private var totalDistance: Double {

@@ -244,6 +244,37 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testJourneyMapActionsAndQuietSourceDetailsAtBothTextSizes() {
+        for category in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-UIPreferredContentSizeCategoryName", category]
+            app.launch()
+            let fit = app.buttons["Fit journey route"]
+            XCTAssertTrue(fit.waitForExistence(timeout: 10))
+            XCTAssertTrue(fit.isEnabled)
+            XCTAssertGreaterThanOrEqual(fit.frame.height, 44 - 0.001)
+            fit.tap()
+            let focus = app.buttons["Show historical sample position"]
+            XCTAssertTrue(focus.waitForExistence(timeout: 5))
+            XCTAssertTrue(focus.isEnabled)
+            XCTAssertGreaterThanOrEqual(focus.frame.height, 44 - 0.001)
+            focus.tap()
+            capture(app, "Historical map focus \(category)")
+            fit.tap()
+            capture(app, "Journey route fit \(category)")
+            app.buttons["Expand journey details"].tap()
+            let source = app.buttons["Data source details"]
+            let region = revealForReading(source, in: app, screen: "Quiet source disclosure")
+            XCTAssertTrue(region.contains(source.frame))
+            source.tap()
+            XCTAssertTrue(app.navigationBars["About this data"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Position source"].exists)
+            app.buttons["Done"].tap()
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testAccessibleJourneyControlsAndTimetableSummary() {
         let app = XCUIApplication()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
@@ -258,10 +289,16 @@ final class NavigationUITests: XCTestCase {
             XCTAssertGreaterThanOrEqual(button.frame.height, 44 - 0.001)
             XCTAssertGreaterThanOrEqual(button.frame.width, 44 - 0.001)
         }
-        let summary = app.descendants(matching: .any).matching(NSPredicate(
-            format: "label CONTAINS %@ AND label CONTAINS %@ AND label CONTAINS %@",
-            "MUMBAI CST, 19:40", "FIROZPUR CANT, 05:40", "kilometres")).firstMatch
-        XCTAssertTrue(summary.exists, "VoiceOver must include both station names and their timetable times.")
+        for (role, name, time) in [("boarding", "MUMBAI CST", "19:40"), ("alighting", "FIROZPUR CANT", "05:40")] {
+            let clock = app.descendants(matching: .any)["journey.\(role)Clock"]
+            XCTAssertTrue(clock.exists)
+            XCTAssertTrue(clock.label.contains(name) && clock.label.contains(time) && clock.label.contains("Scheduled"),
+                          "Each spoken clock must include its full station name, timetable time and evidence.")
+            let reading = revealForReading(clock, in: app, screen: "\(role) timetable clock")
+            XCTAssertTrue(reading.contains(clock.frame))
+        }
+        let distance = app.staticTexts["journey.segmentDistance"]
+        XCTAssertTrue(distance.label.contains("kilometres"))
         let alerts = app.buttons["journeyAlerts.open"]
         for _ in 0..<6 where !alerts.isHittable { app.scrollViews.firstMatch.swipeUp() }
         XCTAssertTrue(alerts.isHittable)

@@ -29,8 +29,16 @@ struct MapStationMarker: Identifiable, Equatable {
     let state: StopState
 }
 
+struct RailMapCommand: Equatable {
+    enum Target { case route, position }
+    let id = UUID()
+    let journeyID: String
+    let target: Target
+}
+
 /// Apple Maps route surface with a glowing rail line and sheet-aware camera.
 struct RailMapView: UIViewRepresentable {
+    let journeyID: String
     let route: [RailCoordinate]
     let progress: Double
     let positionDisplay: JourneyPositionDisplay
@@ -38,13 +46,15 @@ struct RailMapView: UIViewRepresentable {
     let daylight: MapDaylight
     let lightingMode: Preferences.MapLighting
     let sheetVisibleHeight: Double
+    let cameraCommand: RailMapCommand?
+    var sheetTopOnScreen: Double? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView(frame: .zero)
         mapView.delegate = context.coordinator
-        mapView.mapType = .hybridFlyover
+        mapView.mapType = .hybrid
         mapView.overrideUserInterfaceStyle = lightingMode == .day ? .light : .dark
         mapView.showsCompass = false
         mapView.showsScale = false
@@ -56,9 +66,10 @@ struct RailMapView: UIViewRepresentable {
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
         mapView.overrideUserInterfaceStyle = lightingMode == .day ? .light : .dark
-        context.coordinator.update(mapView: mapView, route: route, progress: progress,
+        context.coordinator.update(mapView: mapView, journeyID: journeyID, route: route, progress: progress,
                                    positionDisplay: positionDisplay, markers: markers,
-                                   sheetVisibleHeight: sheetVisibleHeight)
+                                   sheetVisibleHeight: sheetVisibleHeight, cameraCommand: cameraCommand,
+                                   sheetTopOnScreen: sheetTopOnScreen)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
@@ -72,11 +83,32 @@ struct RailMapView: UIViewRepresentable {
         private var previousPositionDisplay: JourneyPositionDisplay?
         private var previousSheetHeight = -1.0
         private var fitted = false
+        private var previousJourneyID = ""
+        private var previousCommandID: UUID?
+        private var cameraTarget: RailMapCommand.Target = .route
+        private var cameraRevision = 0
+        private var previousSheetTop: Double?
 
-        func update(mapView: MKMapView, route: [RailCoordinate], progress: Double,
+        func update(mapView: MKMapView, journeyID: String, route: [RailCoordinate], progress: Double,
                     positionDisplay: JourneyPositionDisplay,
-                    markers: [MapStationMarker], sheetVisibleHeight: Double) {
+                    markers: [MapStationMarker], sheetVisibleHeight: Double,
+                    cameraCommand: RailMapCommand?, sheetTopOnScreen: Double? = nil) {
             guard route.count >= 2 else { return }
+            if journeyID != previousJourneyID {
+                previousJourneyID = journeyID
+                cameraTarget = .route
+                fitted = false
+            }
+            if let cameraCommand, cameraCommand.journeyID == journeyID,
+               cameraCommand.id != previousCommandID {
+                previousCommandID = cameraCommand.id
+                cameraTarget = cameraCommand.target
+                fitted = false
+            }
+            if cameraTarget == .position && positionDisplay == .hidden {
+                cameraTarget = .route
+                fitted = false
+            }
             if route != previousRoute {
                 previousRoute = route
                 if let glow { mapView.removeOverlay(glow) }
@@ -94,7 +126,9 @@ struct RailMapView: UIViewRepresentable {
             let visibleMarkers = markers.enumerated().filter { index, marker in
                 index == 0 || index == markers.count - 1 || marker.state == .current
             }.map(\.element)
-            let markerKey = visibleMarkers.map { "\($0.id):\($0.state.rawValue)" }.joined(separator: ",")
+            let markerKey = visibleMarkers.map {
+                "\($0.id):\($0.state.rawValue):\($0.coordinate.latitude):\($0.coordinate.longitude):\($0.name ?? "")"
+            }.joined(separator: ",")
             if markerKey != previousMarkers {
                 previousMarkers = markerKey
                 mapView.removeAnnotations(stationAnnotations)
@@ -137,25 +171,50 @@ struct RailMapView: UIViewRepresentable {
                 }
             }
 
-            if !fitted || abs(previousSheetHeight - sheetVisibleHeight) > 48 {
+            if !fitted || abs(previousSheetHeight - sheetVisibleHeight) > 48 || previousSheetTop != sheetTopOnScreen {
                 previousSheetHeight = sheetVisibleHeight
+                previousSheetTop = sheetTopOnScreen
                 fitted = true
-                DispatchQueue.main.async { [weak mapView] in
-                    guard let mapView, mapView.bounds.height > 100 else { return }
-                    Self.fit(route, on: mapView, sheetVisibleHeight: sheetVisibleHeight)
+                cameraRevision += 1
+                let revision = cameraRevision
+                let target = cameraTarget
+                DispatchQueue.main.async { [weak self, weak mapView] in
+                    guard let self, revision == self.cameraRevision,
+                          let mapView, mapView.bounds.height > 100 else { return }
+                    if target == .position, positionDisplay != .hidden, progress.isFinite,
+                       let point = try? RouteGeometry.coordinate(along: route, progress: progress) {
+                        Self.focus(point, on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen)
+                    } else {
+                        Self.fit(route, on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen)
+                    }
                 }
             }
         }
 
-        private static func fit(_ route: [RailCoordinate], on mapView: MKMapView, sheetVisibleHeight: Double) {
+        private static func padding(on mapView: MKMapView, sheetVisibleHeight: Double, sheetTopOnScreen: Double?) -> UIEdgeInsets {
+            let obscured = sheetTopOnScreen.map { mapView.convert(mapView.bounds, to: nil).maxY - CGFloat($0) }
+                ?? CGFloat(sheetVisibleHeight)
+            return UIEdgeInsets(top: 112, left: 32,
+                bottom: min(max(0, obscured) + 32, max(0, mapView.bounds.height - 212)), right: 72)
+        }
+
+        private static func fit(_ route: [RailCoordinate], on mapView: MKMapView, sheetVisibleHeight: Double, sheetTopOnScreen: Double?) {
             let points = route.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }
             guard let first = points.first else { return }
             let rect = points.dropFirst().reduce(MKMapRect(x: first.x, y: first.y, width: 0, height: 0)) {
                 $0.union(MKMapRect(x: $1.x, y: $1.y, width: 0, height: 0))
             }
-            let padding = UIEdgeInsets(top: 95, left: 42,
-                bottom: min(CGFloat(sheetVisibleHeight) + 45, mapView.bounds.height * 0.58), right: 42)
-            mapView.setVisibleMapRect(rect, edgePadding: padding, animated: false)
+            mapView.setVisibleMapRect(rect, edgePadding: padding(on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen), animated: false)
+        }
+
+        private static func focus(_ point: RailCoordinate, on mapView: MKMapView, sheetVisibleHeight: Double, sheetTopOnScreen: Double?) {
+            let coordinate = CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
+            let center = MKMapPoint(coordinate)
+            let side = MKMapPointsPerMeterAtLatitude(point.latitude) * 90_000
+            guard side.isFinite, side > 0 else { return }
+            mapView.setVisibleMapRect(MKMapRect(x: center.x - side / 2, y: center.y - side / 2,
+                                              width: side, height: side),
+                edgePadding: padding(on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen), animated: false)
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {

@@ -35,13 +35,14 @@ struct JourneyScreen: View {
     @State private var showJourneyAlerts = false
     @State private var journeySaved = false
     @State private var showDataSource = false
+    @State private var mapCommand: RailMapCommand?
 
     var body: some View {
         GeometryReader { geometry in
             let detents = detents(for: geometry.size.height)
             ZStack(alignment: .top) {
                 colors.canvas.ignoresSafeArea(edges: .top)
-                map
+                map(sheetTopOnScreen: geometry.frame(in: .global).minY + sheetPosition.topEdge)
                 mapChrome
                 if let model {
                     ResizableSheet(
@@ -179,16 +180,19 @@ struct JourneyScreen: View {
 
     // MARK: Map
 
-    @ViewBuilder private var map: some View {
+    @ViewBuilder private func map(sheetTopOnScreen: Double) -> some View {
         if let journey = model?.journey, let route = journey.routeCoordinates, route.count >= 2 {
             RailMapView(
+                journeyID: mapJourneyID,
                 route: route,
                 progress: journey.position.progress,
                 positionDisplay: model?.positionDisplay ?? .hidden,
                 markers: markers(for: journey),
                 daylight: daylight,
                 lightingMode: preferences.mapLighting,
-                sheetVisibleHeight: sheetPosition.visibleHeight
+                sheetVisibleHeight: sheetPosition.visibleHeight,
+                cameraCommand: mapCommand,
+                sheetTopOnScreen: sheetTopOnScreen
             )
             .id(preferences.mapLighting)
             .overlay {
@@ -231,11 +235,32 @@ struct JourneyScreen: View {
     private var mapChrome: some View {
         HStack {
             Spacer()
-            iconButton("info.circle", label: "Data source details", action: { showDataSource = true })
+            VStack(spacing: 12) {
+                iconButton("scope", label: "Fit journey route", action: {
+                    mapCommand = RailMapCommand(journeyID: mapJourneyID, target: .route)
+                }).disabled(model?.journey?.routeCoordinates?.count ?? 0 < 2)
+                iconButton("mappin", label: positionFocusLabel, action: {
+                    mapCommand = RailMapCommand(journeyID: mapJourneyID, target: .position)
+                }).disabled(model?.positionDisplay == nil || model?.positionDisplay == .hidden
+                    || (model?.journey?.routeCoordinates?.count ?? 0) < 2)
+            }
         }
         .padding(.horizontal, Spacing.units(4))
         .padding(.top, 56)
         .safeAreaPadding(.top)
+    }
+
+    private var mapJourneyID: String {
+        "\(model?.journey?.trainNumber ?? "")|\(model?.originDate ?? "")|\(model?.isPreview ?? false)"
+    }
+
+    private var positionFocusLabel: String {
+        switch model?.positionDisplay ?? .hidden {
+        case .preview: "Show historical sample position"
+        case .observed: "Show observed train position"
+        case .stale: "Show last known train position"
+        case .hidden: "Train position unavailable"
+        }
     }
 
     private func iconButton(_ system: String, label: String) -> some View {
@@ -334,6 +359,10 @@ struct JourneyScreen: View {
                         error: model.refreshError,
                         observedAt: journey.provenance?.observedAt
                     )))
+                    ScaleButton(accessibilityLabel: "Data source details", action: { showDataSource = true }) {
+                        Label("About this data", systemImage: "info.circle")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    }
                     switch panel {
                     case .trip: tripPanel(model: model, journey: journey)
                     case .stops: JourneyTimeline(journey: journey, plan: model.plan, cached: model.isCached, preview: model.isPreview)
