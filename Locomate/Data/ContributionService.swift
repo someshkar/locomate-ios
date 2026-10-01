@@ -101,6 +101,7 @@ public final class ContributionService: NSObject {
     private let consentEvidence: ConsentEvidenceQueue
     private var observationSync: ObservationSync?
     private var flushTask: Task<Void, Never>?
+    private var retryTask: Task<Void, Never>?
     private var expiryTask: Task<Void, Never>?
     private var stopAt: Date?
     private var syncRevision = 0
@@ -164,6 +165,7 @@ public final class ContributionService: NSObject {
         updateBackground(background)
         manager.startUpdatingLocation()
         state = .collecting
+        scheduleRetry()
     }
 
     public func updateBackground(_ enabled: Bool) {
@@ -184,6 +186,8 @@ public final class ContributionService: NSObject {
         expiryTask = nil
         flushTask?.cancel()
         flushTask = nil
+        retryTask?.cancel()
+        retryTask = nil
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
         manager.showsBackgroundLocationIndicator = false
@@ -248,11 +252,26 @@ public final class ContributionService: NSObject {
     }
 
     private func flushPendingObservations() {
-        guard flushTask == nil, let observationSync else { return }
+        guard context != nil, flushTask == nil, let observationSync else { return }
+        if let stopAt, Date() >= stopAt { stop(); return }
         let revision = syncRevision
         flushTask = Task { [weak self] in
-            _ = await observationSync.flush(consentGranted: self?.context != nil)
-            if self?.syncRevision == revision { self?.flushTask = nil }
+            let outcome = await observationSync.flush(consentGranted: self?.context != nil)
+            if self?.syncRevision == revision {
+                self?.queuedCount = outcome.remaining
+                self?.flushTask = nil
+            }
+        }
+    }
+
+    private func scheduleRetry() {
+        guard retryTask == nil else { return }
+        retryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                guard !Task.isCancelled, let self, self.state == .collecting else { return }
+                self.flushPendingObservations()
+            }
         }
     }
 }
@@ -283,6 +302,7 @@ extension ContributionService: CLLocationManagerDelegate {
                     self.updateBackground(self.backgroundEnabled)
                     self.manager.startUpdatingLocation()
                     self.state = .collecting
+                    self.scheduleRetry()
                 }
             default:
                 break
