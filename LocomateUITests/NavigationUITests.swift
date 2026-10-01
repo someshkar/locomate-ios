@@ -187,6 +187,51 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testTimelinePreservesLongStationNamesAtLargestText() {
+        let app = XCUIApplication()
+        var regularNameHeight: CGFloat = 0
+        for category in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+            let largest = category == "UICTContentSizeCategoryAccessibilityXXXL"
+            app.launchArguments = ["-UIPreferredContentSizeCategoryName", category]
+            app.launch()
+            let expand = app.buttons["Expand journey details"]
+            XCTAssertTrue(expand.waitForExistence(timeout: 10))
+            expand.tap()
+            let stops = app.buttons["Stops"]
+            revealForReading(stops, in: app, screen: "Stops selector")
+            stops.tap()
+
+            let source = app.descendants(matching: .any).matching(NSPredicate(
+                format: "label == %@", "DEMO DATA. Explore the app with sample information. Nothing here is live.")).firstMatch
+            let sourceRegion = revealForReading(source, in: app, screen: "Timeline source")
+            XCTAssertGreaterThanOrEqual(source.frame.minY, sourceRegion.minY)
+            XCTAssertLessThanOrEqual(source.frame.maxY, sourceRegion.maxY)
+            capture(app, largest ? "Timeline source largest text" : "Timeline source regular text")
+
+            let station = app.staticTexts["journeyTimeline.DR.name"]
+            let time = app.staticTexts["journeyTimeline.DR.arrival"]
+            XCTAssertEqual(station.label, "MUMBAI DADAR CENTRAL")
+            XCTAssertEqual(time.label, "Scheduled time, 19:53")
+            revealForReading(station, in: app, screen: "Dadar station name")
+            let readingRegion = revealForReading(time, in: app, screen: "Dadar scheduled arrival")
+            XCTAssertGreaterThanOrEqual(station.frame.minY, readingRegion.minY)
+            XCTAssertLessThanOrEqual(time.frame.maxY, readingRegion.maxY)
+            XCTAssertGreaterThanOrEqual(station.frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(station.frame.maxX, app.frame.maxX)
+            if largest {
+                XCTAssertGreaterThan(station.frame.height, regularNameHeight * 1.5,
+                                     "The full station name must wrap as its font grows.")
+                XCTAssertGreaterThanOrEqual(time.frame.minY, station.frame.maxY,
+                                            "The scheduled time must sit below the full name at accessibility sizes.")
+            } else {
+                regularNameHeight = station.frame.height
+            }
+            capture(app, largest ? "Dadar timeline largest text" : "Dadar timeline regular text")
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testContributionControlsRespectTextSizeAndHitRegions() {
         let app = XCUIApplication()
         app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]

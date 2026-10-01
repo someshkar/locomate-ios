@@ -16,6 +16,10 @@ settings:
     "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
     LOCOMOTE_LOCAL_GATEWAY_URL: ""
     LOCOMATE_RUN_ACCESSIBILITY_AUDITS: "0"
+    LOCOMATE_PERFORMANCE_MODE: ""
+    LOCOMATE_PERFORMANCE_GATEWAY_URL: ""
+    LOCOMATE_PERFORMANCE_TRAIN_NUMBER: ""
+    LOCOMATE_PERFORMANCE_SERVICE_DATE: ""
     ENABLE_USER_SCRIPT_SANDBOXING: "NO"
   configs:
     Debug:
@@ -133,3 +137,28 @@ schemes:
       targets:
         - LocomateTests
         - LocomateUITests
+
+  LocomatePerformance:
+    build:
+      targets:
+        Locomate: all
+    run:
+      config: Release
+      debugEnabled: false
+    test:
+      config: Release
+      debugEnabled: false
+      gatherCoverageData: false
+      enableGPUFrameCaptureMode: disabled
+      enableGPUValidationMode: false
+      disableMainThreadChecker: true
+      environmentVariables:
+        LOCOMATE_PERFORMANCE_MODE: "$(LOCOMATE_PERFORMANCE_MODE)"
+        LOCOMATE_PERFORMANCE_GATEWAY_URL: "$(LOCOMATE_PERFORMANCE_GATEWAY_URL)"
+        LOCOMATE_PERFORMANCE_TRAIN_NUMBER: "$(LOCOMATE_PERFORMANCE_TRAIN_NUMBER)"
+        LOCOMATE_PERFORMANCE_SERVICE_DATE: "$(LOCOMATE_PERFORMANCE_SERVICE_DATE)"
+      targets:
+        - name: LocomateUITests
+          parallelizable: false
+          selectedTests:
+            - PerformanceUITests

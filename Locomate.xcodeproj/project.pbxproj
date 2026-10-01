@@ -28,6 +28,7 @@
 		56734436EA551F5755619328 /* DomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE97A4E1410E4133B6E288E0 /* DomainTests.swift */; };
 		6043C73EF8C9062F1D014D34 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B4810BE4039C50CEC22F72 /* Theme.swift */; };
 		61E2B2A8CAFCDF923AF1AB88 /* MapDaylight.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */; };
+		62CD4E9817A606A8124AFA43 /* NetworkSnapshotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 332A67D79F4829342AFF6367 /* NetworkSnapshotModel.swift */; };
 		63D33AD2E761023ED89F95B6 /* JourneySetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C3F1013E3EB42C6E8D563F /* JourneySetupSheet.swift */; };
 		67ED51638DF6EE5626EDA37E /* Motion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B203974EC00159BD3B5137B /* Motion.swift */; };
 		7331AD302026897A04D4DA9B /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9764A28CB31A7EFF93F92590 /* Haptics.swift */; };
@@ -35,6 +36,7 @@
 		77BAE3C7CCF47143B92EFBDC /* run-12137-2026-09-18.json in Resources */ = {isa = PBXBuildFile; fileRef = 3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */; };
 		7BE77F36FC438C8DF0A191B7 /* JourneyActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */; };
 		7C0B646A3C56CA1C98AB0E5A /* LocomateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73CC887AF73601484C4C90D2 /* LocomateApp.swift */; };
+		80B1A74AEC23527E1260DA71 /* NetworkSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E1DB4EC560163257AA19C3E /* NetworkSnapshotTests.swift */; };
 		80F0EC525A2871B620DC7342 /* LocomateWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB694339FD14795C7B65C3DB /* LocomateWidgets.swift */; };
 		81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D753E598289063F4C2E948 /* SettingsScreen.swift */; };
 		8229E764776C63DF94ABC90B /* ObservationSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */; };
@@ -69,6 +71,7 @@
 		E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C028E9C77E24D717A7837279 /* RailService.swift */; };
 		EA5A844900F4D07715CE95BA /* JourneyAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBA6C10BB98B18C8F24535C /* JourneyAlerts.swift */; };
 		F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */; };
+		F676C2CE6B00D543582D6533 /* PerformanceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */; };
 		FB196DB12892DEA724331CCE /* BottomDock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE583CF262143B60198CA75E /* BottomDock.swift */; };
 /* End PBXBuildFile section */
 
@@ -126,11 +129,14 @@
 		2B2187F43800723D7D343099 /* ContributionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionSettings.swift; sourceTree = "<group>"; };
 		2E2E0C7DEF27E3A528E5924B /* RailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapView.swift; sourceTree = "<group>"; };
 		302118BD502B778928B2D4A0 /* DataSourceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourceSheet.swift; sourceTree = "<group>"; };
+		332A67D79F4829342AFF6367 /* NetworkSnapshotModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSnapshotModel.swift; sourceTree = "<group>"; };
 		3631B6854F32B3965C32036B /* JourneyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyPlan.swift; sourceTree = "<group>"; };
 		3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "run-12137-2026-09-18.json"; sourceTree = "<group>"; };
+		41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceUITests.swift; sourceTree = "<group>"; };
 		4801EB460D37DD9BAD96EA14 /* JourneyAlertsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlertsSheet.swift; sourceTree = "<group>"; };
 		4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchScreen.swift; sourceTree = "<group>"; };
 		4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
+		4E1DB4EC560163257AA19C3E /* NetworkSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSnapshotTests.swift; sourceTree = "<group>"; };
 		4FD965AE762908BAC26F73B0 /* JourneyAlertTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlertTests.swift; sourceTree = "<group>"; };
 		520654B8BAB3C176F3FBEA4D /* UIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKit.swift; sourceTree = "<group>"; };
 		52A2F5844BCB5E51E2908E56 /* JourneyAlertDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlertDelegate.swift; sourceTree = "<group>"; };
@@ -306,6 +312,7 @@
 			isa = PBXGroup;
 			children = (
 				0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */,
+				41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */,
 			);
 			path = LocomateUITests;
 			sourceTree = "<group>";
@@ -314,6 +321,7 @@
 			isa = PBXGroup;
 			children = (
 				FBB78A3D8DA7E27791F98C16 /* ExploreScreen.swift */,
+				332A67D79F4829342AFF6367 /* NetworkSnapshotModel.swift */,
 			);
 			path = Explore;
 			sourceTree = "<group>";
@@ -335,6 +343,7 @@
 				EE97A4E1410E4133B6E288E0 /* DomainTests.swift */,
 				4FD965AE762908BAC26F73B0 /* JourneyAlertTests.swift */,
 				5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */,
+				4E1DB4EC560163257AA19C3E /* NetworkSnapshotTests.swift */,
 				7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */,
 				D457528F22290ED0F75A20DE /* Fixtures */,
 			);
@@ -566,6 +575,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D97719A0CB4808694014C829 /* NavigationUITests.swift in Sources */,
+				F676C2CE6B00D543582D6533 /* PerformanceUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -603,6 +613,7 @@
 				91E5898D427B239E94D77784 /* MapMatcher.swift in Sources */,
 				862F49FD3CACCE368CBDA990 /* Models.swift in Sources */,
 				67ED51638DF6EE5626EDA37E /* Motion.swift in Sources */,
+				62CD4E9817A606A8124AFA43 /* NetworkSnapshotModel.swift in Sources */,
 				8229E764776C63DF94ABC90B /* ObservationSync.swift in Sources */,
 				93D381D1788D0F3A7667A8C6 /* Palette.swift in Sources */,
 				D5BAD8044F7E3398D0A5B501 /* PassportScreen.swift in Sources */,
@@ -635,6 +646,7 @@
 				56734436EA551F5755619328 /* DomainTests.swift in Sources */,
 				8BBE6CD6F52F6F162EA68E54 /* JourneyAlertTests.swift in Sources */,
 				49DF9587385C9F47580F3BF2 /* LocalGatewayIntegrationTests.swift in Sources */,
+				80B1A74AEC23527E1260DA71 /* NetworkSnapshotTests.swift in Sources */,
 				F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -713,6 +725,10 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCOMATE_APNS_ENTITLEMENT = production;
 				LOCOMATE_APNS_ENVIRONMENT = production;
+				LOCOMATE_PERFORMANCE_GATEWAY_URL = "";
+				LOCOMATE_PERFORMANCE_MODE = "";
+				LOCOMATE_PERFORMANCE_SERVICE_DATE = "";
+				LOCOMATE_PERFORMANCE_TRAIN_NUMBER = "";
 				LOCOMATE_RUN_ACCESSIBILITY_AUDITS = 0;
 				LOCOMOTE_LOCAL_GATEWAY_URL = "";
 				LOCOMOTE_RAIL_API_URL = "https://rail-intelligence-gateway.rail-intelligence-gateway.workers.dev";
@@ -785,6 +801,10 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCOMATE_APNS_ENTITLEMENT = development;
 				LOCOMATE_APNS_ENVIRONMENT = sandbox;
+				LOCOMATE_PERFORMANCE_GATEWAY_URL = "";
+				LOCOMATE_PERFORMANCE_MODE = "";
+				LOCOMATE_PERFORMANCE_SERVICE_DATE = "";
+				LOCOMATE_PERFORMANCE_TRAIN_NUMBER = "";
 				LOCOMATE_RUN_ACCESSIBILITY_AUDITS = 0;
 				LOCOMOTE_LOCAL_GATEWAY_URL = "";
 				LOCOMOTE_RAIL_API_URL = "";

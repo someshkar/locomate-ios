@@ -33,6 +33,38 @@ These two integration tests are skipped in normal CI. They check search, a dated
 
 The native app icon uses the same route-shaped L as Android. Its 1024px asset can be regenerated with `swift scripts/render-app-icon.swift`. GitHub Actions runs the simulator tests on the Xcode 27 runner for each pull request.
 
+## Device performance measurement
+
+`LocomatePerformance` is an opt-in Release scheme with the debugger, coverage, GPU validation, and Main Thread Checker disabled. The normal test scheme skips its three tests. It records ten process launches to the first responsive frame using `XCTApplicationLaunchMetric`; the app is terminated between launches, but filesystem and map-tile caches are not purged. A second workload expands and scrolls the journey sheet over the map, collapses it, and opens/closes Search. On iOS 26+, it records app-process hitch and physical-memory metrics. Network loading is completed before measuring that workload.
+
+On a provisioned physical iPhone, use an authorized HTTPS gateway and a dated run it can supply:
+
+```sh
+xcodebuild -project Locomate.xcodeproj -scheme LocomatePerformance \
+  -destination "platform=iOS,id=$DEVICE_UDID" \
+  -parallel-testing-enabled NO \
+  LOCOMATE_PERFORMANCE_MODE=measure \
+  LOCOMATE_PERFORMANCE_GATEWAY_URL=https://your-gateway.example \
+  LOCOMATE_PERFORMANCE_TRAIN_NUMBER=12137 \
+  LOCOMATE_PERFORMANCE_SERVICE_DATE=2026-10-01 \
+  LOCOMATE_APNS_ENVIRONMENT=sandbox LOCOMATE_APNS_ENTITLEMENT=development \
+  CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+  -resultBundlePath build/LocomatePerformance.xcresult test
+```
+
+Replace the run/date, device, team, and gateway with the intended test conditions. The example uses development signing and sandbox APNs while keeping Release optimization; use matching production values with a distribution profile. Provisioning must retain the app's Push Notifications entitlement; the currently configured Personal Team cannot sign it. Each physical result attaches OS/device, supported maximum refresh rate, Low Power Mode, thermal state, and workload context. Establish device-specific baselines only after reviewing the `.xcresult` and Instruments traces on a cool device. Repeated process launches are not a first-install cold-cache measurement. Hitch and memory values alone do not establish 120Hz rendering or 60fps map performance; check actual refresh rate and frame deadlines with Instruments as well. The 400ms launch, zero-jank, memory, and map-frame targets remain unverified.
+
+This simulator dry run validates the same UI interaction path in the optimized build using a labeled historical route pack. It records **no performance metrics or performance pass**:
+
+```sh
+xcodebuild -project Locomate.xcodeproj -scheme LocomatePerformance \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
+  -parallel-testing-enabled NO LOCOMATE_PERFORMANCE_MODE=dry-run \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
+```
+
+On 2026-10-01 the Release simulator workload completed successfully (one dry-run test passed; both device measurement tests skipped). This verified sheet expansion, scrolling, collapse, Search presentation, and native grabber dismissal. Log: `/tmp/locomate-ios-performance-dry-run-fixed.log`. It produced no device performance result.
+
 ## Accessibility release gate
 
 Routine UI tests verify actual Dynamic Type growth from the standard size to the largest accessibility size, reachable tab/search controls, 44-point tap regions (with a 0.001-point floating-point tolerance), spoken station names plus timetable times, and complete Contribution choices at the largest text size. The dock uses native large-content previews when accessibility text sizes require compact icon controls. The magnified Journey label and default/largest layouts were visually checked on the iPhone 18 Pro simulator with iOS 27 and Xcode 27.
@@ -66,6 +98,8 @@ The initial follow-up screenshots, accessibility bounds, and unsuppressed issues
 
 The follow-up regression run passed `testContributionControlsRespectTextSizeAndHitRegions` and `testPrimarySurfacesOpenOnSimulator` (two tests, zero failures). It verified complete largest-size Contribution rows, disabled preview semantics, ordinary-size 44-point targets, and existing primary navigation. Log: `/tmp/locomate-ios-contribution-regressions.log`; screenshots and bounds: `/tmp/locomate-ios-contribution-regressions`.
 
+The station timeline also wraps long names and stacks scheduled times/metadata at accessibility sizes. Its focused normal/largest-size regression passed and screenshots confirmed the full “MUMBAI DADAR CENTRAL” name and 19:53 time. The spoken label uses “Scheduled time” because the origin row may contain departure time. This is a local layout verification, not a pass of the full audit.
+
 Light appearance also has an opt-in Settings audit. Its text/link/status tokens were darkened after measured contrast failures; the full audit result remains a separate gate from those token calculations. The test preserves the original dark appearance after checking light mode.
 
 Simulator auditing does not establish physical VoiceOver focus order, rotor navigation, live notification announcements, or accessibility of the production-only channel/quiet-hours form. Verify those with a current production journey on a physical iPhone before release.
@@ -83,6 +117,10 @@ Production sessions, cached runs, journey plans, and Passport entries are scoped
 Community location contribution is opt-in for a current production run. Settings records versioned consent with the gateway before enabling collection, stores failed withdrawal requests for retry, and immediately stops collection and clears queued observations when consent is revoked. Pending observations and withdrawals are scoped to the gateway origin. The collector rejects simulated, stale, inaccurate, and off-route fixes, and uploads fresh batches using the gateway's delta-encoded contract. While collecting, it retries the queue every 30 seconds so restored connectivity does not require another location fix. Foreground collection stops when the app backgrounds unless the separate background option is enabled. Background operation and revocation still need physical-device verification.
 
 A live train position marker requires recent observed evidence from an official, community, or device source. Scheduled or predicted route progress does not create a live marker; historical previews use a separately labeled violet sample marker.
+
+Explore refreshes once a minute while active and debounces changes to the visible map area. The server's `freshUntil` is enforced independently of request completion: expired positions disappear, including when the device is offline or a fetch is still pending. Invalid/future timestamps, old marker evidence, invalid coordinates, and inconsistent observed-source claims are excluded. Failed refreshes do not extend the prior snapshot's lifetime. Request generations prevent late replies for an older view from replacing current data; source, position kind, name, and timestamp changes update native map annotations even when coordinates stay the same.
+
+Six focused freshness tests passed on 2026-10-01, covering expiry, refresh failure, changed marker metadata, malformed evidence, late replies, and cancellation. The largest-text production overlay check also passed: its header retains its own space while the statistics/source card scrolls through a bounded reading region. Settled screenshots and scroll bounds were inspected; the isolated hosting fixture emits an appearance-transition warning at teardown. This component check does not establish full-screen physical accessibility. Logs: `/tmp/locomate-ios-network-timeline-regressions.log` and `/tmp/locomate-ios-network-overlay-layout-final.log`.
 
 The **Live card** action starts a Lock Screen Live Activity after an explicit tap when the current production run has a known delay. It updates when the app loads fresh run data and marks its ETA stale after ten minutes without a refresh. Server-sent ActivityKit updates still require gateway APNs delivery.
 

@@ -12,45 +12,125 @@ import CoreLocation
 import MapKit
 
 struct ExploreScreen: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.locomoteColors) private var colors
     @Environment(\.locomoteServices) private var services
 
-    @State private var bounds = NetworkBounds(west: 68, south: 6, east: 98, north: 37)
-    @State private var trains: [NetworkTrain] = []
-    @State private var loading = false
-    @State private var error: String?
-    @State private var updatedAt: Date?
+    @State private var network = NetworkSnapshotModel()
     @State private var refreshTask: Task<Void, Never>?
 
     private var production: Bool { services.mode.isProduction }
+    private var markers: [NetworkMarker] { network.markers }
 
     var body: some View {
         ZStack(alignment: .top) {
             colors.canvas.ignoresSafeArea(edges: .top)
             NetworkMapView(
-                trains: trains,
+                markers: markers,
                 onBoundsChange: { newBounds in
-                    bounds = newBounds
+                    network.setBounds(newBounds)
                     scheduleRefresh()
                 }
             )
             .overlay { Color.black.opacity(0.30).allowsHitTesting(false) }
             .ignoresSafeArea(edges: .top)
 
-            header
-                .padding(.horizontal, Spacing.units(4))
-                .safeAreaPadding(.top)
-
-            VStack {
-                Spacer()
-                statsCard
-                    .padding(.horizontal, Spacing.units(4))
-                    .padding(.bottom, 54)
+            ExploreNetworkOverlay(production: production, markers: markers,
+                                  loading: network.loading, error: network.error,
+                                  expired: network.expired, generatedAt: network.snapshot?.generatedAt)
+        }
+        .task(id: scenePhase) {
+            guard production, scenePhase == .active else { return }
+            while !Task.isCancelled {
+                let started = Date()
+                await refresh()
+                let remaining = max(0, 60 - Date().timeIntervalSince(started))
+                do { try await Task.sleep(for: .seconds(remaining)) }
+                catch { return }
             }
         }
-        .task { await refresh() }
-        .onDisappear { refreshTask?.cancel() }
+        .task(id: scenePhase) {
+            guard production, scenePhase == .active else { return }
+            while !Task.isCancelled {
+                network.tick()
+                do { try await Task.sleep(for: .seconds(1)) }
+                catch { return }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { stopRefresh() }
+        }
+        .onDisappear { stopRefresh() }
+    }
+
+    // MARK: Data
+
+    private func scheduleRefresh() {
+        refreshTask?.cancel()
+        guard production, scenePhase == .active else { return }
+        refreshTask = Task {
+            do { try await Task.sleep(for: .milliseconds(600)) }
+            catch { return }
+            guard !Task.isCancelled else { return }
+            await refresh()
+        }
+    }
+
+    private func refresh() async {
+        guard let service = services.railService else { return }
+        await network.refresh { requestedBounds in
+            try await service.networkTrains(bounds: requestedBounds)
+        }
+    }
+
+    private func stopRefresh() {
+        refreshTask?.cancel()
+        network.invalidateRequest()
+    }
+
+}
+
+// The production overlay is separately hostable for deterministic layout checks.
+// At accessibility sizes its header reserves space above the scrollable stats;
+// the enclosing RootView reserves the bottom navigation dock.
+struct ExploreNetworkOverlay: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locomoteColors) private var colors
+    let production: Bool
+    let markers: [NetworkMarker]
+    let loading: Bool
+    let error: String?
+    let expired: Bool
+    let generatedAt: Date?
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: Spacing.units(4)) {
+                    header
+                        .padding(.horizontal, Spacing.units(4))
+                        .safeAreaPadding(.top)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
+                    statsCard
+                        .padding(.horizontal, Spacing.units(4))
+                        .padding(.bottom, 54)
+                }
+            } else {
+                ZStack(alignment: .top) {
+                    header
+                        .padding(.horizontal, Spacing.units(4))
+                        .safeAreaPadding(.top)
+                    VStack {
+                        Spacer()
+                        statsCard
+                            .padding(.horizontal, Spacing.units(4))
+                            .padding(.bottom, 54)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     // MARK: Header
@@ -71,7 +151,7 @@ struct ExploreScreen: View {
                 Text("PREVIEW").eyebrow(colors.pair(for: .preview).fg)
             } else {
                 VStack(alignment: .trailing, spacing: 0) {
-                    Text("\(trains.count)")
+                    Text("\(markers.count)")
                         .font(LocomateFont.timeLarge)
                         .monospacedDigit()
                         .foregroundStyle(colors.textPrimary)
@@ -91,12 +171,32 @@ struct ExploreScreen: View {
     // MARK: Stats card
 
     private var statsCard: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    statsContent.padding(Spacing.units(3.5))
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .accessibilityIdentifier("explore.networkStats")
+            } else {
+                statsContent.padding(Spacing.units(3.5))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            GlassSurface(shape: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous), heavy: true)
+        }
+    }
+
+    private var statsContent: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
-            if production, !trains.isEmpty {
-                HStack(spacing: Spacing.units(2)) {
-                    networkStat("IN VIEW", value: trains.count)
-                    networkStat("OBSERVED", value: trains.filter { $0.positionKind == .observed }.count)
-                    networkStat("PREDICTED", value: trains.filter { $0.positionKind == .predicted }.count)
+            if production, !markers.isEmpty {
+                (dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
+                    : AnyLayout(HStackLayout(spacing: Spacing.units(2)))) {
+                    networkStat("IN VIEW", value: markers.count)
+                    networkStat("OBSERVED", value: markers.filter { $0.observed }.count)
+                    networkStat("PREDICTED", value: markers.filter { $0.kind == .predicted }.count)
                 }
             }
             Text(statsBody)
@@ -107,11 +207,6 @@ struct ExploreScreen: View {
                 .font(LocomateFont.micro)
                 .monospacedDigit()
                 .foregroundStyle(colors.accentBase)
-        }
-        .padding(Spacing.units(3.5))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            GlassSurface(shape: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous), heavy: true)
         }
     }
 
@@ -126,7 +221,7 @@ struct ExploreScreen: View {
             Text(label)
                 .font(LocomateFont.micro)
                 .foregroundStyle(colors.textTertiary)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.units(2.5))
@@ -137,14 +232,20 @@ struct ExploreScreen: View {
         if !production {
             return "Connect the licensed gateway to render current trains. Preview mode never manufactures a nationwide live layer."
         }
-        if let error { return "Last valid map retained. \(error)" }
-        return "The visible map refreshes every minute with observed, map-matched, or explicitly estimated positions."
+        if let error = error {
+            if expired { return "Previous positions expired and are hidden. \(error)" }
+            if generatedAt == nil { return "Network positions unavailable. \(error)" }
+            return "Showing the last unexpired snapshot. \(error)"
+        }
+        if expired { return "Positions expired and are hidden until a fresh network update arrives." }
+        return "The visible map refreshes every minute while this screen is active. Positions are observed, map-matched, or explicitly estimated."
     }
 
     private var updatedLabel: String {
         guard production else { return "WAITING FOR NETWORK UPDATE" }
+        if expired { return loading ? "POSITIONS EXPIRED · REFRESHING" : "POSITIONS EXPIRED" }
         if loading { return "REFRESHING NETWORK" }
-        guard let updatedAt else { return "WAITING FOR NETWORK UPDATE" }
+        guard let updatedAt = generatedAt else { return "WAITING FOR NETWORK UPDATE" }
         let formatter = DateFormatter()
         formatter.timeZone = IndiaDate.timeZone
         formatter.locale = Locale(identifier: "en_IN")
@@ -152,37 +253,12 @@ struct ExploreScreen: View {
         return "UPDATED \(formatter.string(from: updatedAt)) IST"
     }
 
-    // MARK: Data
-
-    private func scheduleRefresh() {
-        refreshTask?.cancel()
-        refreshTask = Task {
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            guard !Task.isCancelled else { return }
-            await refresh()
-        }
-    }
-
-    private func refresh() async {
-        guard let service = services.railService else { return }
-        loading = true
-        do {
-            let response = try await service.networkTrains(bounds: bounds)
-            trains = response.trains
-            updatedAt = Date()
-            error = nil
-        } catch {
-            // Keep the last valid map rather than clearing it.
-            self.error = error.localizedDescription
-        }
-        loading = false
-    }
 }
 
 // MARK: - Network map (Apple MapKit)
 
 struct NetworkMapView: UIViewRepresentable {
-    let trains: [NetworkTrain]
+    let markers: [NetworkMarker]
     let onBoundsChange: (NetworkBounds) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(onBoundsChange: onBoundsChange) }
@@ -203,31 +279,27 @@ struct NetworkMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
-        context.coordinator.update(mapView: mapView, trains: trains)
+        context.coordinator.update(mapView: mapView, markers: markers)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         private let onBoundsChange: (NetworkBounds) -> Void
         private var annotations: [NetworkAnnotation] = []
-        private var lastKey = ""
+        private var lastMarkers: [NetworkMarker] = []
         private var lastBounds = ""
 
         init(onBoundsChange: @escaping (NetworkBounds) -> Void) {
             self.onBoundsChange = onBoundsChange
         }
 
-        func update(mapView: MKMapView, trains: [NetworkTrain]) {
-            let key = trains.map { "\($0.runId):\($0.coordinate.latitude),\($0.coordinate.longitude)" }.joined(separator: "|")
-            guard key != lastKey else { return }
-            lastKey = key
+        func update(mapView: MKMapView, markers: [NetworkMarker]) {
+            guard markers != lastMarkers else { return }
+            lastMarkers = markers
             mapView.removeAnnotations(annotations)
-            annotations = trains.map { train in
+            annotations = markers.map { marker in
                 NetworkAnnotation(
-                    coordinate: CLLocationCoordinate2D(latitude: train.coordinate.latitude,
-                                                       longitude: train.coordinate.longitude),
-                    title: "\(train.trainNumber) · \(train.name)",
-                    subtitle: "\(train.positionKind.rawValue) · \(train.source.rawValue) · \(train.observedAt)",
-                    observed: train.positionKind == .observed
+                    coordinate: CLLocationCoordinate2D(latitude: marker.latitude, longitude: marker.longitude),
+                    title: marker.title, subtitle: marker.subtitle, observed: marker.observed
                 )
             }
             mapView.addAnnotations(annotations)

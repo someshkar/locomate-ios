@@ -250,6 +250,7 @@ struct DelayStat: View {
 
 struct JourneyTimeline: View {
     @Environment(\.locomoteColors) private var colors
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let journey: Journey
     let plan: JourneyPlan?
@@ -280,20 +281,29 @@ struct JourneyTimeline: View {
                         }
                     }
                     .frame(width: 14)
+                    .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack {
+                        (dynamicTypeSize.isAccessibilitySize
+                            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 3))
+                            : AnyLayout(HStackLayout(spacing: Spacing.units(2)))) {
                             Text(stop.name)
                                 .font(LocomateFont.bodyStrong)
                                 .foregroundStyle(stop.state == .upcoming ? colors.textSecondary : colors.textPrimary)
-                                .lineLimit(1)
-                            Spacer(minLength: Spacing.units(2))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityIdentifier("journeyTimeline.\(stop.code).name")
                             Text(RailTime.format(stop.scheduledArrival))
                                 .font(LocomateFont.data)
                                 .monospacedDigit()
                                 .foregroundStyle(colors.textTertiary)
+                                .fixedSize()
+                                .accessibilityLabel("Scheduled time, \(RailTime.format(stop.scheduledArrival))")
+                                .accessibilityIdentifier("journeyTimeline.\(stop.code).arrival")
                         }
-                        HStack(spacing: Spacing.units(2)) {
+                        (dynamicTypeSize.isAccessibilitySize
+                            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 3))
+                            : AnyLayout(HStackLayout(spacing: Spacing.units(2)))) {
                             Text(stop.code).eyebrow(colors.textTertiary)
                             if let platform = stop.knownPlatform {
                                 Text("PF \(platform)").eyebrow(colors.textTertiary)
