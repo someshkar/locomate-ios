@@ -20,6 +20,8 @@ public enum Palette {
     public static let ink700 = Color(hex: 0x22262F)
     public static let ink600 = Color(hex: 0x2C313C)
     public static let ink500 = Color(hex: 0x3E4553)
+    public static let dockInk = Color(hex: 0x12131B)
+    public static let dockText = Color(hex: 0xC9CED9)
 
     // MARK: Paper — warm-neutral light surfaces
     public static let paper50 = Color(hex: 0xF5F6F8)

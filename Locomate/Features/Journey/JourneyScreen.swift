@@ -359,6 +359,7 @@ struct JourneyScreen: View {
             }
             .padding(.horizontal, Spacing.units(4))
             .padding(.bottom, 190)
+            .contentShape(Rectangle())
         }
         .scrollBounceBehavior(.basedOnSize)
         .sheet(isPresented: $setupVisible) {

@@ -24,6 +24,8 @@ public struct LocomateColors: Sendable {
     public let raised: Color
     public let glass: Color
     public let overlay: Color
+    public let navigationGlass: Color
+    public let navigationSecondary: Color
 
     // Text
     public let textPrimary: Color
@@ -76,6 +78,8 @@ public enum LocomateTheme {
         raised: Palette.ink800,
         glass: Color(rgba: 16, 17, 22, 0.92),
         overlay: Color(rgba: 0, 0, 0, 0.60),
+        navigationGlass: Palette.dockInk,
+        navigationSecondary: Palette.dockText,
         textPrimary: Palette.grey200,
         textSecondary: Palette.grey300,
         textTertiary: Palette.grey400,
@@ -105,6 +109,8 @@ public enum LocomateTheme {
         raised: Palette.paper50,
         glass: Color(rgba: 248, 248, 250, 0.94),
         overlay: Color(rgba: 10, 12, 18, 0.42),
+        navigationGlass: Palette.white,
+        navigationSecondary: Palette.grey600,
         textPrimary: Palette.ink900,
         textSecondary: Palette.grey600,
         textTertiary: Palette.grey600,

@@ -71,9 +71,11 @@ public struct RootView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomDock(active: tab, onChange: switchTab)
+                .frame(maxWidth: 330)
                 .environment(\.locomoteColors, colors)
-                .padding(.horizontal, Spacing.units(3))
+                .padding(.horizontal, Spacing.units(5))
                 .padding(.vertical, Spacing.units(2))
+                .frame(maxWidth: .infinity)
                 .background(colors.canvas)
         }
         .environment(\.locomoteColors, colors)

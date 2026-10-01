@@ -28,9 +28,9 @@ public enum LocomateTab: String, CaseIterable, Identifiable, Sendable {
 
     var systemImage: String {
         switch self {
-        case .journey: return "tram.fill"
-        case .explore: return "globe.asia.australia.fill"
-        case .passport: return "person.crop.circle"
+        case .journey: return "tram"
+        case .explore: return "globe"
+        case .passport: return "person.text.rectangle"
         case .search: return "magnifyingglass"
         }
     }
@@ -51,7 +51,15 @@ struct BottomDock: View {
     private var items: [LocomateTab] { [.journey, .explore, .passport] }
 
     var body: some View {
-        HStack(spacing: Spacing.units(2.5)) {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 8) { dockContent }
+        } else {
+            dockContent
+        }
+    }
+
+    private var dockContent: some View {
+        HStack(spacing: 14) {
             dockBar
             searchButton
         }
@@ -69,7 +77,7 @@ struct BottomDock: View {
             ZStack(alignment: .leading) {
                 // Sliding indicator
                 RoundedRectangle(cornerRadius: Radius.pill, style: .continuous)
-                    .fill(colors.dark ? Color(rgba: 255, 255, 255, 0.14) : Color(rgba: 255, 255, 255, 0.52))
+                    .fill(colors.dark ? Color.white.opacity(0.07) : Color.white.opacity(0.52))
                     .overlay(
                         RoundedRectangle(cornerRadius: Radius.pill, style: .continuous)
                             .strokeBorder(colors.dark
@@ -95,13 +103,7 @@ struct BottomDock: View {
             .frame(maxHeight: .infinity)
         }
         .frame(height: dockHeight)
-        .background {
-            ZStack {
-                GlassSurface(cornerRadius: 34)
-                RoundedRectangle(cornerRadius: 34, style: .continuous)
-                    .strokeBorder(colors.dark ? colors.borderStrong : Color(rgba: 255, 255, 255, 0.8), lineWidth: 0.75)
-            }
-        }
+        .modifier(DockLens(cornerRadius: 34))
         .shadow(color: .black.opacity(colors.dark ? 0.26 : 0.12), radius: 22, y: 8)
         .accessibilityElement(children: .contain)
     }
@@ -109,14 +111,12 @@ struct BottomDock: View {
     private var searchButton: some View {
         ScaleButton(accessibilityLabel: "Find a train", haptic: false, action: { select(.search) }) {
             ZStack {
-                GlassSurface(shape: RoundedRectangle(cornerRadius: 32, style: .continuous))
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .strokeBorder(colors.dark ? colors.borderStrong : Color(rgba: 255, 255, 255, 0.8), lineWidth: 0.75)
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(active == .search ? colors.accentBase : colors.textPrimary)
+                    .font(.system(size: 23, weight: .semibold))
+                    .foregroundStyle(colors.textPrimary)
             }
-            .frame(width: 64, height: 64)
+            .frame(width: 60, height: 60)
+            .modifier(DockLens(cornerRadius: 30))
         }
         .shadow(color: .black.opacity(colors.dark ? 0.24 : 0.12), radius: 22, y: 8)
         .accessibilityAddTraits(active == .search ? [.isButton, .isSelected] : .isButton)
@@ -144,14 +144,14 @@ private struct DockItem: View {
         ScaleButton(accessibilityLabel: tab.label, haptic: false, action: onSelect) {
             VStack(spacing: 4) {
                 Image(systemName: tab.systemImage)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(active ? (colors.dark ? colors.accentSoft : colors.accentBase) : colors.textPrimary)
+                    .font(.system(size: 21, weight: .medium))
+                    .foregroundStyle(active ? colors.textPrimary : colors.navigationSecondary)
                     .offset(y: active && !reduceMotion ? -1 : 0)
                     .scaleEffect(active && !reduceMotion ? 1.045 : 1)
                 if !dynamicTypeSize.isAccessibilitySize {
-                Text(tab.label)
-                    .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(active ? (colors.dark ? colors.accentSoft : colors.accentBase) : colors.textPrimary)
+                Text(tab == .journey ? "Journeys" : tab.label)
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(active ? colors.textPrimary : colors.navigationSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                 }
@@ -162,6 +162,42 @@ private struct DockItem: View {
         .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
         .accessibilityShowsLargeContentViewer {
             Label(tab.label, systemImage: tab.systemImage)
+        }
+    }
+
+}
+
+/// The reference dock is a lightly tinted lens, distinct from the data sheets.
+private struct DockLens: ViewModifier {
+    @Environment(\.locomoteColors) private var colors
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let tint = LinearGradient(colors: [
+            colors.navigationGlass.opacity(colors.dark ? 0.42 : 0.72),
+            colors.navigationGlass.opacity(colors.dark ? 0.26 : 0.52)
+        ], startPoint: .top, endPoint: .bottom)
+        if reduceTransparency {
+            content.background(shape.fill(colors.dark ? colors.navigationGlass : colors.elevated))
+                .overlay(shape.strokeBorder(colors.borderSubtle, lineWidth: 0.75).allowsHitTesting(false))
+        } else if #available(iOS 26.0, *) {
+            // Apply to the complete control so its foreground remains above
+            // the native lens, rather than becoming part of its backdrop.
+            content.glassEffect(.clear, in: shape)
+                .background(shape.fill(tint))
+        } else {
+            content.background {
+                ZStack {
+                    shape.fill(.ultraThinMaterial)
+                    shape.fill(tint)
+                    shape.strokeBorder(LinearGradient(colors: [
+                        Color.white.opacity(colors.dark ? 0.30 : 0.8),
+                        Color.white.opacity(colors.dark ? 0.06 : 0.4)
+                    ], startPoint: .top, endPoint: .bottom), lineWidth: 0.75)
+                }
+            }
         }
     }
 }

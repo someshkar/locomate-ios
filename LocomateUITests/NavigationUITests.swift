@@ -303,6 +303,10 @@ final class NavigationUITests: XCTestCase {
             let largest = category == "UICTContentSizeCategoryAccessibilityXXXL"
             app.launchArguments = ["-UIPreferredContentSizeCategoryName", category]
             app.launch()
+            // The preceding Search flow intentionally persists another train.
+            // Select the route whose actual timetable contains Dadar explicitly.
+            app.open(URL(string: "locomate://journeys/12137?date=2026-09-18")!)
+            XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 10))
             let expand = app.buttons["Expand journey details"]
             XCTAssertTrue(expand.waitForExistence(timeout: 10))
             expand.tap()

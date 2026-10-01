@@ -102,18 +102,23 @@ final class TimetablePassportUITests: XCTestCase {
             XCTAssertTrue(readingRegion().contains(element.frame))
             return
         }
-        for _ in 0..<18 {
+        for _ in 0..<36 {
             // Re-read after each gesture: the native sheet can settle at a new height.
             let reading = readingRegion()
-            if element.exists, element.isHittable, reading.contains(element.frame) { return }
-            let frame = element.frame
-            let downward = element.exists && frame.minY < reading.minY
-            let overflow = downward ? reading.minY - frame.minY : frame.maxY - reading.maxY
+            let exists = element.exists
+            if exists, element.isHittable, reading.contains(element.frame) { return }
+            // SwiftUI may omit offscreen controls from the current snapshot.
+            // Scroll to materialize them before asking XCTest for their frame.
+            let frame = exists ? element.frame : .zero
+            let downward = exists && frame.minY < reading.minY
+            let overflow = exists
+                ? (downward ? reading.minY - frame.minY : frame.maxY - reading.maxY)
+                : min(160, reading.height / 2)
             // A full-height swipe can jump past a tall accessibility label and oscillate.
-            let distance = min(160, max(40, overflow + 12), max(40, reading.height - 48))
-            // The page's padding is an inert scroll gutter. A synthetic press that
-            // starts on a button may activate it while its frame moves under the finger.
-            let gutterX = reading.minX + 8
+            let distance = min(280, max(40, overflow + 12), max(40, reading.height - 48))
+            // Start inside the content inset so the native ScrollView receives
+            // the pan. Its outer blank padding is not a reliable hit region.
+            let gutterX = reading.minX + 24
             let start = app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: gutterX, dy: reading.midY + (downward ? -distance / 2 : distance / 2)))
             let end = app.coordinate(withNormalizedOffset: .zero)

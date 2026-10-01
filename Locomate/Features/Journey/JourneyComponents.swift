@@ -416,6 +416,7 @@ struct JourneyTimeline: View {
 
 struct JourneyActions: View {
     @Environment(\.locomoteColors) private var colors
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let liveCardEnabled: Bool
     let liveCardPending: Bool
@@ -427,14 +428,41 @@ struct JourneyActions: View {
     let onToggleLiveCard: () -> Void
 
     var body: some View {
-        HStack(spacing: Spacing.units(2.5)) {
-            action("Live card", systemImage: liveCardEnabled ? "rectangle.inset.filled" : "rectangle",
-                   active: liveCardEnabled, pending: liveCardPending, action: onToggleLiveCard)
-            action("Calendar", systemImage: "calendar", active: false, pending: calendarPending, action: onCalendar)
-            action("Save", systemImage: journeySaved ? "bookmark.fill" : "bookmark",
-                   active: journeySaved, pending: false, action: onSave)
-            action("Share", systemImage: "square.and.arrow.up", active: false, pending: false, action: onShare)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                Grid(horizontalSpacing: 10, verticalSpacing: 16) {
+                    GridRow { liveCardAction; calendarAction }
+                    GridRow { saveAction; shareAction }
+                }
+            } else {
+                HStack(spacing: Spacing.units(2.5)) { actions }
+            }
         }
+    }
+
+    @ViewBuilder private var actions: some View {
+        liveCardAction
+        calendarAction
+        saveAction
+        shareAction
+    }
+
+    private var liveCardAction: some View {
+        action("Live card", systemImage: liveCardEnabled ? "rectangle.inset.filled" : "rectangle",
+               active: liveCardEnabled, pending: liveCardPending, action: onToggleLiveCard)
+    }
+
+    private var calendarAction: some View {
+        action("Calendar", systemImage: "calendar", active: false, pending: calendarPending, action: onCalendar)
+    }
+
+    private var saveAction: some View {
+        action("Save", systemImage: journeySaved ? "bookmark.fill" : "bookmark",
+               active: journeySaved, pending: false, action: onSave)
+    }
+
+    private var shareAction: some View {
+        action("Share", systemImage: "square.and.arrow.up", active: false, pending: false, action: onShare)
     }
 
     private func action(_ title: String, systemImage: String, active: Bool, pending: Bool, action: @escaping () -> Void) -> some View {
@@ -454,6 +482,7 @@ struct JourneyActions: View {
                 Text(title)
                     .font(.system(.caption, weight: .medium))
                     .foregroundStyle(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity)
         }
