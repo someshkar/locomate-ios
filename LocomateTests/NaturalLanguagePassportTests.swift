@@ -116,3 +116,48 @@ struct PassportPeriodTests {
                      completedAt: nil, preview: preview)
     }
 }
+
+@Suite("Personal timetable duration")
+struct TimetableDurationTests {
+    @Test("the captured full route crosses two midnights and takes 2020 minutes")
+    func fullRoute() throws {
+        let journey = try fixture()
+        let plan = JourneyPlanLogic.default(journey: journey, originDate: journey.travelDate)
+        #expect(RailNaturalLanguage.scheduledSegmentDuration(journey: journey, plan: plan) == 2_020)
+    }
+
+    @Test("personal durations use boarding departure and alighting arrival across midnight")
+    func personalSegments() throws {
+        let journey = try fixture()
+        for (boarding, alighting, expected) in [("NK", "MMR", 67), ("JIND", "NRW", 25), ("NK", "NRW", 1_511)] {
+            let start = try #require(journey.stops.firstIndex { $0.code == boarding })
+            let end = try #require(journey.stops.firstIndex { $0.code == alighting })
+            let plan = try JourneyPlanLogic.create(journey: journey, originDate: journey.travelDate,
+                                                   boardingIndex: start, alightingIndex: end)
+            #expect(RailNaturalLanguage.scheduledSegmentDuration(journey: journey, plan: plan) == expected)
+        }
+    }
+
+    @Test("missing personal departure or arrival never falls back to the full-run duration")
+    func unavailablePersonalSchedule() throws {
+        for missing in ["departure", "arrival"] {
+            let journey = try fixture { raw in
+                var stops = raw["stops"] as! [[String: Any]]
+                if missing == "departure" { stops[4]["scheduledDeparture"] = NSNull() }
+                else { stops[5]["scheduledArrival"] = "--:--" }
+                raw["stops"] = stops
+            }
+            let plan = try JourneyPlanLogic.create(journey: journey, originDate: journey.travelDate,
+                                                   boardingIndex: 4, alightingIndex: 5)
+            #expect(RailNaturalLanguage.scheduledSegmentDuration(journey: journey, plan: plan) == nil)
+        }
+    }
+
+    private func fixture(edit: (inout [String: Any]) -> Void = { _ in }) throws -> Journey {
+        let url = try #require(Bundle(for: FixtureAnchor.self).url(forResource: "run-12137-2026-09-18", withExtension: "json"))
+        let envelope = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        var raw = try #require(envelope["journey"] as? [String: Any])
+        edit(&raw)
+        return try JSONDecoder.locomote.decode(Journey.self, from: JSONSerialization.data(withJSONObject: raw))
+    }
+}

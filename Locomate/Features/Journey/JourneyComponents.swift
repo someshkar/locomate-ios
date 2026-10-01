@@ -203,24 +203,43 @@ struct NextStopStat: View {
 
     let journey: Journey
     let originDate: String
-
-    private var isFuture: Bool { IndiaDate.isFuture(originDate) }
+    let plan: JourneyPlan?
+    let cached: Bool
+    let preview: Bool
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: Spacing.units(2)) {
-                Text(isFuture ? "Boarding at" : "Next stop").eyebrow(colors.textTertiary)
-                Text(journey.position.nextStation)
-                    .font(LocomateFont.title)
-                    .tracking(-1.2)
-                    .foregroundStyle(colors.textPrimary)
-                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16)) : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(4)))) {
-                    Stat(label: isFuture ? "Scheduled" : "ETA",
-                         value: RailTime.format(journey.prediction.expectedTime ?? journey.scheduledArrival))
-                    Stat(label: "Distance",
-                         value: "\(Int(journey.position.distanceToNextKm.rounded()))",
-                         unit: "km")
-                    DelayStat(journey: journey)
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            if let stop = JourneyStopProjection.make(journey: journey, plan: plan, originDate: originDate,
+                                                       cached: cached, preview: preview, now: context.date) {
+                Card {
+                    VStack(alignment: .leading, spacing: Spacing.units(2)) {
+                        Text(stop.heading).eyebrow(colors.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("\(stop.code) · \(stop.name)")
+                            .font(LocomateFont.title)
+                            .tracking(-1.2)
+                            .foregroundStyle(colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("journey.nextStop.station")
+                        (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16)) : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(4)))) {
+                            Stat(label: stop.timeLabel, value: stop.time ?? "Unavailable")
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("journey.nextStop.time")
+                            if let distance = stop.distanceKm {
+                                Stat(label: "Reported distance", value: String(format: "%.0f", distance), unit: "km")
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Delay at this stop").eyebrow(colors.textTertiary)
+                                Text(stop.delayLabel)
+                                    .font(LocomateFont.bodyStrong.monospacedDigit())
+                                    .foregroundStyle(colors.pair(for: stop.delayKind).fg)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        Text(stop.detail).font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }

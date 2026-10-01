@@ -25,6 +25,7 @@ public final class JourneyModel {
     public private(set) var cachedAt: Date?
     public private(set) var isCached = false
     public private(set) var isPreview = false
+    public private(set) var planNotice: String?
 
     public var trainNumber: String
     public var originDate: String
@@ -33,6 +34,7 @@ public final class JourneyModel {
     private let cache: JourneyCache
     private let passport: PassportRepository
     private let liveActivity: LiveActivityService
+    private var pendingSavedJourney: SavedJourney?
 
     public init(
         trainNumber: String = "12137",
@@ -40,7 +42,8 @@ public final class JourneyModel {
         service: RailServiceProtocol?,
         cache: JourneyCache,
         passport: PassportRepository,
-        liveActivity: LiveActivityService = LiveActivityService()
+        liveActivity: LiveActivityService = LiveActivityService(),
+        savedJourney: SavedJourney? = nil
     ) {
         self.trainNumber = trainNumber
         self.originDate = originDate
@@ -48,6 +51,7 @@ public final class JourneyModel {
         self.cache = cache
         self.passport = passport
         self.liveActivity = liveActivity
+        self.pendingSavedJourney = savedJourney
     }
 
     public var journey: Journey? {
@@ -137,6 +141,19 @@ public final class JourneyModel {
             phase = .failed("No route pack is bundled for \(requestedTrainNumber).")
         }
 
+        guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+        if let saved = pendingSavedJourney, let journey {
+            pendingSavedJourney = nil
+            if let resolved = PassportReopening.plan(for: saved, journey: journey, originDate: requestedOriginDate) {
+                plan = resolved
+                planNotice = nil
+            } else {
+                plan = JourneyPlanLogic.default(journey: journey, originDate: requestedOriginDate)
+                planNotice = "The saved boarding and drop-off calls no longer match this timetable. Showing the full route; choose your stops in Edit."
+            }
+            if let plan, !PrivacyDeletionLatch.isPending { await cache.savePlan(plan) }
+            return
+        }
         let loadedPlan = await cache.loadPlan(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
         guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
         plan = loadedPlan
@@ -172,6 +189,7 @@ public final class JourneyModel {
 
     public func savePlan(_ plan: JourneyPlan) async {
         self.plan = plan
+        planNotice = nil
         await cache.savePlan(plan)
     }
 
@@ -185,10 +203,12 @@ public final class JourneyModel {
         return "Journey saved privately on this device."
     }
 
-    public func update(trainNumber: String, originDate: String) async {
+    public func update(trainNumber: String, originDate: String, savedJourney: SavedJourney? = nil) async {
         let changedRun = self.trainNumber != trainNumber || self.originDate != originDate
         self.trainNumber = trainNumber
         self.originDate = originDate
+        pendingSavedJourney = savedJourney
+        planNotice = nil
         if changedRun {
             await liveActivity.end(unregisterRun: tokenUnregisterer())
         }

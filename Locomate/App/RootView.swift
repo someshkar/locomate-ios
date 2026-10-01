@@ -25,12 +25,14 @@ public struct RootView: View {
         public let originDate: String
         public let restored: Bool
         public let contributionActivationRevision: Int
+        public let savedJourney: SavedJourney?
         public init(trainNumber: String, originDate: String, restored: Bool = false,
-                    contributionActivationRevision: Int = 0) {
+                    contributionActivationRevision: Int = 0, savedJourney: SavedJourney? = nil) {
             self.trainNumber = trainNumber
             self.originDate = originDate
             self.restored = restored
             self.contributionActivationRevision = contributionActivationRevision
+            self.savedJourney = savedJourney
         }
 
         func allowsContribution(currentActivationRevision: Int) -> Bool {
@@ -55,7 +57,10 @@ public struct RootView: View {
                         selectJourney(destination)
                     })
                 case .passport:
-                    PassportScreen(onOpenSearch: { switchTab(.search) })
+                    PassportScreen(onOpenSearch: { switchTab(.search) }, onOpenJourney: { saved in
+                        guard let destination = PassportReopening.destination(for: saved, production: services.mode.isProduction) else { return }
+                        selectJourney(destination, savedJourney: saved)
+                    })
                 case .search:
                     SearchScreen(onSelect: { train, date in
                         selectJourney(.init(trainNumber: train.number, date: date))
@@ -100,9 +105,10 @@ public struct RootView: View {
         selectJourney(destination)
     }
 
-    private func selectJourney(_ destination: Routes.JourneyDestination) {
-        guard Routes.isValidTrainNumber(destination.trainNumber), Routes.isValidCalendarDate(destination.date) else { return }
-        pendingJourney = JourneyRequest(trainNumber: destination.trainNumber, originDate: destination.date)
+    private func selectJourney(_ destination: Routes.JourneyDestination, savedJourney: SavedJourney? = nil) {
+        guard !PrivacyDeletionLatch.isPending,
+              Routes.isValidTrainNumber(destination.trainNumber), Routes.isValidCalendarDate(destination.date) else { return }
+        pendingJourney = JourneyRequest(trainNumber: destination.trainNumber, originDate: destination.date, savedJourney: savedJourney)
         try? services.selectedJourney.save(destination)
         switchTab(.journey)
     }

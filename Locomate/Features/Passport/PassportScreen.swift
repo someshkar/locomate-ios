@@ -13,6 +13,7 @@ struct PassportScreen: View {
     @Environment(\.locomoteColors) private var colors
     @Environment(\.locomoteServices) private var services
     let onOpenSearch: () -> Void
+    var onOpenJourney: (SavedJourney) -> Void = { _ in }
 
     @State private var journeys: [SavedJourney] = []
     @State private var showSettings = false
@@ -126,9 +127,10 @@ struct PassportScreen: View {
             Text("\(period.label) saved journeys").eyebrow(colors.textTertiary)
             ForEach(Array(visibleJourneys.enumerated()), id: \.element.id) { index, journey in
                 StaggerIn(index: index) {
-                    SavedJourneyRow(journey: journey) {
-                        Task { await remove(journey) }
-                    }
+                    SavedJourneyRow(journey: journey,
+                        canOpen: PassportReopening.destination(for: journey, production: services.mode.isProduction) != nil,
+                        onOpen: { onOpenJourney(journey) },
+                        onDelete: { Task { await remove(journey) } })
                 }
             }
         }
@@ -211,6 +213,7 @@ struct PassportPeriodPicker: View {
 
 struct PassportHeroCard: View {
     @Environment(\.locomoteColors) private var colors
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let stats: PassportStats
     let previewCount: Int
     var periodLabel = "All-Time"
@@ -230,9 +233,11 @@ struct PassportHeroCard: View {
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textSecondary)
             Divider().overlay(colors.borderSubtle)
-            HStack(spacing: Spacing.units(2)) {
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(3)))
+                : AnyLayout(HStackLayout(spacing: Spacing.units(2)))) {
                 metric("SAVED RUNS", value: "\(stats.trips)")
-                metric("SCHEDULED", value: "\(stats.minutes / 60)h")
+                metric("SCHEDULED", value: durationLabel)
                 metric("STATIONS", value: "\(stats.uniqueStations)")
             }
             if let top = stats.routeFrequency.first {
@@ -258,22 +263,37 @@ struct PassportHeroCard: View {
 
     private func metric(_ label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).eyebrow(colors.textTertiary).lineLimit(1).minimumScaleFactor(0.75)
+            Text(label).eyebrow(colors.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("passport.metric.\(label)")
             Text(value).font(LocomateFont.title).monospacedDigit().foregroundStyle(colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var durationLabel: String {
+        guard stats.minutes > 0 else { return "—" }
+        let hours = stats.minutes / 60
+        let minutes = stats.minutes % 60
+        return hours == 0 ? "\(minutes)m" : (minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m")
     }
 }
 
 private struct SavedJourneyRow: View {
     @Environment(\.locomoteColors) private var colors
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let journey: SavedJourney
+    let canOpen: Bool
+    let onOpen: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: Spacing.units(3)) {
+        VStack(alignment: .leading, spacing: Spacing.units(3)) {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: Spacing.units(2)) {
+                (dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
+                    : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(2)))) {
                     Text(journey.trainNumber)
                         .font(LocomateFont.data)
                         .monospacedDigit()
@@ -281,16 +301,20 @@ private struct SavedJourneyRow: View {
                     Text(journey.trainName)
                         .font(LocomateFont.bodyStrong)
                         .foregroundStyle(colors.textPrimary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("passport.name.\(journey.id)")
                 }
                 Text("\(journey.originCode) → \(journey.destinationCode) · \(journey.originDate)")
                     .font(LocomateFont.caption)
                     .foregroundStyle(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if journey.preview != false {
                     Text(journey.preview == true ? "PREVIEW · NOT LIVE" : "LEGACY · SOURCE UNVERIFIED")
                         .eyebrow(colors.pair(for: .preview).fg)
                 }
-                HStack(spacing: Spacing.units(2.5)) {
+                (dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(1)))
+                    : AnyLayout(HStackLayout(spacing: Spacing.units(2.5)))) {
                     Text("\(Int(journey.distanceKm.rounded())) km")
                     Text(durationLabel(journey.minutes))
                 }
@@ -298,12 +322,32 @@ private struct SavedJourneyRow: View {
                 .monospacedDigit()
                 .foregroundStyle(colors.textTertiary)
             }
-            Spacer(minLength: 0)
-            ScaleButton(accessibilityLabel: "Remove saved journey", action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(colors.pair(for: .error).fg)
-                    .frame(width: 44, height: 44)
+            HStack(alignment: .center, spacing: 16) {
+                Button(action: onOpen) {
+                    Label("Open journey", systemImage: "arrow.up.right")
+                        .font(LocomateFont.bodyStrong)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(canOpen ? colors.accentBase : colors.textTertiary)
+                .disabled(!canOpen)
+                .accessibilityLabel("Open saved journey \(journey.trainNumber), \(journey.trainName), \(journey.originDate)")
+                .accessibilityIdentifier("passport.open.\(journey.id)")
+                ScaleButton(accessibilityLabel: "Remove saved journey \(journey.trainNumber), \(journey.originDate)", action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(colors.pair(for: .error).fg)
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityIdentifier("passport.remove.\(journey.id)")
+            }
+            if !canOpen {
+                Text("This saved entry has no verified dated route for the current data source.")
+                    .font(LocomateFont.caption)
+                    .foregroundStyle(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(Spacing.units(4))
@@ -314,6 +358,7 @@ private struct SavedJourneyRow: View {
     }
 
     private func durationLabel(_ minutes: Int) -> String {
+        guard minutes > 0 else { return "Duration unavailable" }
         let hours = minutes / 60
         let mins = minutes % 60
         return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"

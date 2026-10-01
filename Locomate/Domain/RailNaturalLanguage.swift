@@ -39,19 +39,40 @@ enum RailNaturalLanguage {
     /// stays on the run's next day. Missing timing never falls back to the origin.
     static func scheduledBoarding(journey: Journey, plan: JourneyPlan) -> Date? {
         guard Routes.isValidCalendarDate(plan.originDate),
+              let resolved = JourneyPlanLogic.resolve(journey: journey, plan: plan) else { return nil }
+        return scheduledEvent(journey: journey, originDate: plan.originDate,
+                              index: resolved.boarding.index, departure: true)
+    }
+
+    /// Read every intervening call: comparing only endpoint clocks loses whole
+    /// days on long runs and can confuse an arrival with the boarding departure.
+    static func scheduledSegmentDuration(journey: Journey, plan: JourneyPlan) -> Int? {
+        guard Routes.isValidCalendarDate(plan.originDate),
               let resolved = JourneyPlanLogic.resolve(journey: journey, plan: plan),
+              let start = scheduledEvent(journey: journey, originDate: plan.originDate,
+                                         index: resolved.boarding.index, departure: true),
+              let end = scheduledEvent(journey: journey, originDate: plan.originDate,
+                                       index: resolved.alighting.index, departure: false),
+              end >= start else { return nil }
+        return Int(end.timeIntervalSince(start) / 60)
+    }
+
+    private static func scheduledEvent(journey: Journey, originDate: String,
+                                       index target: Int, departure: Bool) -> Date? {
+        guard journey.stops.indices.contains(target),
               let origin = journey.stops.first,
               var cursor = scheduled(origin.scheduledDeparture ?? journey.departureTime,
-                                     originDate: plan.originDate, after: nil) else { return nil }
-        if resolved.boarding.index == 0 { return cursor }
-        for index in 1...resolved.boarding.index {
+                                     originDate: originDate, after: nil) else { return nil }
+        if target == 0 { return departure ? cursor : scheduled(origin.scheduledArrival, originDate: originDate, after: nil) }
+        for index in 1...target {
             let stop = journey.stops[index]
-            guard let arrival = scheduled(stop.scheduledArrival, originDate: plan.originDate, after: cursor) else { return nil }
+            guard let arrival = scheduled(stop.scheduledArrival, originDate: originDate, after: cursor) else { return nil }
+            if index == target && !departure { return arrival }
             cursor = arrival
             if let clock = stop.scheduledDeparture {
-                guard let departure = scheduled(clock, originDate: plan.originDate, after: cursor) else { return nil }
+                guard let departure = scheduled(clock, originDate: originDate, after: cursor) else { return nil }
                 cursor = departure
-            } else if index == resolved.boarding.index {
+            } else if index == target {
                 return nil
             }
         }

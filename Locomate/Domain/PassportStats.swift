@@ -34,6 +34,8 @@ public struct SavedJourney: Codable, Sendable, Identifiable, Equatable {
     public let completedAt: String?
     /// Nil denotes a legacy saved entry whose mode was not recorded.
     public var preview: Bool? = nil
+    /// The segment at Save time, independent of later edits to the working plan.
+    public var personalPlan: JourneyPlan? = nil
 }
 
 public struct PassportRouteFrequency: Sendable, Equatable, Identifiable {
@@ -136,28 +138,9 @@ public enum Passport {
         let boarding = segment.first
         let alighting = segment.last
 
-        // Walk the timetable chronologically so overnight runs roll past midnight
-        // (a 19:40 departure to a 05:40 arrival is ~10h, not a negative span).
-        let boardingStop = journey.stops[activePlan.boarding.index]
-        let alightingStop = journey.stops[activePlan.alighting.index]
-        let start = try? IndiaDate.instant(
-            originDate: originDate,
-            time: boardingStop.scheduledDeparture ?? boardingStop.scheduledArrival
-        )
-        var end = try? IndiaDate.instant(
-            originDate: originDate,
-            time: alightingStop.scheduledArrival
-        )
-        if let start, let endDate = end, endDate <= start {
-            // Arrival is on the next service day.
-            end = endDate.addingTimeInterval(86_400)
-        }
-        let minutes: Int
-        if let start, let end {
-            minutes = max(0, Int(end.timeIntervalSince(start) / 60))
-        } else {
-            minutes = journey.scheduledDurationMinutes ?? 0
-        }
+        // Every intermediate call establishes day rollover. Missing personal
+        // timing stays unknown (the existing zero sentinel), never whole-run time.
+        let minutes = RailNaturalLanguage.scheduledSegmentDuration(journey: journey, plan: activePlan) ?? 0
 
         let distance = (alighting?.distanceKm ?? journey.distanceKm) - (boarding?.distanceKm ?? 0)
 
@@ -181,7 +164,8 @@ public enum Passport {
             routeCoordinates: journey.routeCoordinates,
             savedAt: ISO8601DateFormatter.locomote.string(from: Date()),
             completedAt: nil,
-            preview: preview
+            preview: preview,
+            personalPlan: activePlan
         )
     }
 }

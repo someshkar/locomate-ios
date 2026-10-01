@@ -424,14 +424,13 @@ struct PassportTests {
         #expect(stats.distanceKm == 1451)
     }
 
-    @Test("overnight runs report a positive duration")
+    @Test("the bundled overnight run retains both midnight crossings")
     func overnightDuration() {
         let pack = RoutePackStore.pack("12137")!
         let journey = PreviewData.journey(from: pack, originDate: "2026-09-08")
-        // 12137 departs 19:40 and arrives 05:40 the next day.
+        // This route pack departs 19:40 on day 1 and arrives 05:40 on day 3.
         let saved = Passport.makeSaved(journey: journey, originDate: "2026-09-08", plan: nil)
-        #expect(saved.minutes > 9 * 60)
-        #expect(saved.minutes < 11 * 60)
+        #expect(saved.minutes == 2_040)
         #expect(saved.distanceKm > 0)
     }
 

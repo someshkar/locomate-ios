@@ -82,6 +82,7 @@ struct JourneySetupSheet: View {
             }
             .pickerStyle(.menu)
             .tint(colors.accentBase)
+            .accessibilityIdentifier("journey.plan.\(title)")
         }
     }
 }

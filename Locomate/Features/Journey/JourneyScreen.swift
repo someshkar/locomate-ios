@@ -75,7 +75,8 @@ struct JourneyScreen: View {
             Task {
                 if let model {
                     services.contribution.stop()
-                    await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate)
+                    await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate,
+                                       savedJourney: newValue.savedJourney)
                     liveCardEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
                     await reconcileContribution()
                 } else {
@@ -106,7 +107,8 @@ struct JourneyScreen: View {
                 service: services.railService,
                 cache: services.cache,
                 passport: services.passport,
-                liveActivity: services.liveActivity
+                liveActivity: services.liveActivity,
+                savedJourney: request?.savedJourney
             )
             model = created
             await created.load()
@@ -299,6 +301,12 @@ struct JourneyScreen: View {
                     cached: model.isCached,
                     onEdit: { setupVisible = true }
                 )
+                if let notice = model.planNotice {
+                    Text(notice)
+                        .font(LocomateFont.caption)
+                        .foregroundStyle(colors.pair(for: .stale).fg)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if detentIndex == 0 {
                     JourneySections(selected: panel, onChange: { section in panel = section })
                     DataBanner(model: DataReport.banner(DataReportInput(
@@ -446,7 +454,8 @@ struct JourneyScreen: View {
     }
 
     @ViewBuilder private func tripPanel(model: JourneyModel, journey: Journey) -> some View {
-        NextStopStat(journey: journey, originDate: model.originDate)
+        NextStopStat(journey: journey, originDate: model.originDate, plan: model.plan,
+                     cached: model.isCached, preview: model.isPreview)
         JourneyActions(
             liveCardEnabled: liveCardEnabled,
             liveCardPending: liveCardPending,
