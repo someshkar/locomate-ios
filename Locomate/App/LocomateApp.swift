@@ -3,6 +3,7 @@ import UIKit
 
 @main
 struct LocomateApp: App {
+    @UIApplicationDelegateAdaptor(JourneyAlertDelegate.self) private var notificationDelegate
     @State private var preferences = Preferences()
     @State private var services = LocomoteServices.live()
     @State private var dataRevision = 0
@@ -13,14 +14,21 @@ struct LocomateApp: App {
         WindowGroup {
             RootView()
                 .id(dataRevision)
-                .task { try? await services.flushPendingConsentEvidence() }
+                .task {
+                    JourneyAlertPushBridge.shared.service = services.journeyAlerts
+                    await services.journeyAlerts.start()
+                    try? await services.flushPendingConsentEvidence()
+                }
                 .environment(preferences)
                 .environment(\.locomoteServices, services)
                 .preferredColorScheme(preferences.dark ? .dark : .light)
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         NotificationCenter.default.post(name: .locomoteForeground, object: nil)
-                        Task { try? await services.flushPendingConsentEvidence() }
+                        Task {
+                            await services.journeyAlerts.refresh()
+                            try? await services.flushPendingConsentEvidence()
+                        }
                     } else if phase == .background && !preferences.backgroundLocationEnabled {
                         services.contribution.stop()
                     }

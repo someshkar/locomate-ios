@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Security
+import UserNotifications
 
 @MainActor
 public final class LocomoteServices {
@@ -16,6 +17,7 @@ public final class LocomoteServices {
     public let passport: PassportRepository
     public let contribution: ContributionService
     public let liveActivity: LiveActivityService
+    public let journeyAlerts: JourneyAlertService
     public let mode: RailDataMode
 
     public init(
@@ -24,7 +26,8 @@ public final class LocomoteServices {
         passport: PassportRepository,
         contribution: ContributionService = ContributionService(),
         liveActivity: LiveActivityService = LiveActivityService(),
-        mode: RailDataMode
+        mode: RailDataMode,
+        journeyAlerts: JourneyAlertService? = nil
     ) {
         self.railService = railService
         self.cache = cache
@@ -32,6 +35,10 @@ public final class LocomoteServices {
         self.contribution = contribution
         self.liveActivity = liveActivity
         self.mode = mode
+        let alertScope: String
+        if case .production(let baseURL) = mode { alertScope = RailStorageScope.gateway(baseURL) }
+        else { alertScope = "preview" }
+        self.journeyAlerts = journeyAlerts ?? JourneyAlertService(api: railService, scope: alertScope)
     }
 
     public static func live() -> LocomoteServices {
@@ -151,14 +158,19 @@ public final class LocomoteServices {
     /// A false result means the server succeeded but local erasure was partial.
     public func deletePrivacyData(preferences: Preferences) async throws -> Bool {
         // Stop the token observer before the server deletion can invalidate its session.
+        await journeyAlerts.beginPrivacyDeletion()
         await liveActivity.beginPrivacyDeletion()
         do {
             try await railService?.deletePrivacyData()
         } catch {
+            journeyAlerts.restoreAfterPrivacyDeletion()
             liveActivity.restoreAfterPrivacyDeletion()
             throw error
         }
         contribution.revoke()
+        JourneyAlertPushBridge.shared.pendingPayload = nil
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         preferences.contributionsEnabled = false
         preferences.backgroundLocationEnabled = false
         let manager = FileManager.default

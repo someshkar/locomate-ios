@@ -21,6 +21,13 @@ public struct APIError: Error, LocalizedError, Sendable {
     public let requestId: String
     public let retryable: Bool
     public let message: String
+    public let currentRevision: Int64?
+
+    public init(status: Int, code: String, requestId: String, retryable: Bool, message: String,
+                currentRevision: Int64? = nil) {
+        self.status = status; self.code = code; self.requestId = requestId
+        self.retryable = retryable; self.message = message; self.currentRevision = currentRevision
+    }
 
     public var errorDescription: String? { message }
 }
@@ -150,9 +157,9 @@ public actor APIClient {
         }
     }
 
-    public func delete(_ path: String) async throws {
+    public func delete(_ path: String, query: [String: String] = [:]) async throws {
         let session = try await validSession()
-        _ = try await performRequest(path: path, method: "DELETE", body: nil, token: session.accessToken)
+        _ = try await performRequest(path: path, method: "DELETE", query: query, body: nil, token: session.accessToken)
     }
 
     private func rawRequest<T: Decodable>(
@@ -232,6 +239,7 @@ public actor APIClient {
         var code = "http_error"
         var message = "Rail API request failed (\(http.statusCode))"
 
+        var currentRevision: Int64?
         if let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if let title = payload["title"] as? String, title.hasPrefix("Error 1102") {
                 code = "gateway_resource_limit"
@@ -240,6 +248,9 @@ public actor APIClient {
             if let error = payload["error"] as? [String: Any] {
                 if let value = error["code"] as? String { code = value }
                 if let value = error["message"] as? String { message = value }
+                if let value = error["currentRevision"] as? NSNumber, value.doubleValue.isFinite,
+                   value.doubleValue >= 0, value.doubleValue < 9_007_199_254_740_991,
+                   value.doubleValue.rounded(.down) == value.doubleValue { currentRevision = value.int64Value }
             }
         }
 
@@ -258,7 +269,8 @@ public actor APIClient {
             code: code,
             requestId: requestId,
             retryable: retryableStatuses.contains(http.statusCode),
-            message: message
+            message: message,
+            currentRevision: currentRevision
         )
     }
 

@@ -16,7 +16,7 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   test CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
 ```
 
-The 91 routine Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, Live Activity attributes, source isolation, Passport calculations, and device-only Keychain migration. Two routine UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
+The routine Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, Live Activity attributes, source isolation, Passport calculations, and device-only Keychain migration. Routine UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
 
 To exercise current public rail data without changing the deployed gateway, start the SmartRail gateway locally with its development secrets and D1 migrations, then run:
 
@@ -48,5 +48,11 @@ Community location contribution is opt-in for a current production run. Settings
 A live train position marker requires recent observed evidence from an official, community, or device source. Scheduled or predicted route progress does not create a live marker; historical previews use a separately labeled violet sample marker.
 
 The **Live card** action starts a Lock Screen Live Activity after an explicit tap when the current production run has a known delay. It updates when the app loads fresh run data and marks its ETA stale after ten minutes without a refresh. Server-sent ActivityKit updates still require gateway APNs delivery.
+
+The separate **Journey alerts** control offers observed station progress, delay changes of at least five minutes, platform changes, and actual arrival/departure events. Enabling explicitly requests notification permission and records push consent with the gateway. Optional quiet hours use the chosen IANA time zone and skip events during that interval. Alerts apply to the whole dated train run, independently of the personal boarding/alighting segment and Live card.
+
+Alert choices and pending stop requests are stored atomically per gateway. A foreground retry runs every 30 seconds, with revisions preventing stale registrations from undoing an opt-out. Expired runs and revoked iOS notification permission trigger unregister. APNs tokens are requested each launch and never cached in local files. Notification taps validate the exact run/date, subscription revision, freshness, and route before opening Journey. Privacy export includes preferences and pending mutations; deletion stops registration work before erasing the server installation and removes delivered notifications.
+
+For physical push delivery, enable Push Notifications on `com.locomate.app` in the Apple developer account and provision the target with its `aps-environment` entitlement. Debug uses development signing and the APNs sandbox; Release uses production. Keep `LOCOMATE_APNS_ENVIRONMENT` and `LOCOMATE_APNS_ENTITLEMENT` aligned with the provisioning profile. The gateway also needs its native-alert delivery flag, database migration, and APNs credentials. Simulator navigation and lifecycle tests do not establish delivery on a physical iPhone.
 
 This repository is still under active implementation. Physical-device background location, push delivery, accessibility review, and performance profiling require further verification.

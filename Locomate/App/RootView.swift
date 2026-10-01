@@ -10,6 +10,8 @@
 import SwiftUI
 
 public struct RootView: View {
+    @Environment(\.locomoteServices) private var services
+    @State private var pushBridge = JourneyAlertPushBridge.shared
     @Environment(Preferences.self) private var preferences
     @State private var tab: LocomateTab = .journey
     @State private var pendingJourney: JourneyRequest?
@@ -69,6 +71,8 @@ public struct RootView: View {
             .presentationCornerRadius(28)
             .presentationBackground(.ultraThinMaterial)
         }
+        .task { consumeNotificationRoute() }
+        .onChange(of: pushBridge.pendingPayload) { _, _ in consumeNotificationRoute() }
         .onOpenURL { url in
             // Deep links: locomate://journeys/{trainNumber}?date=yyyy-MM-dd
             guard let destination = Routes.parse(url) else { return }
@@ -78,6 +82,15 @@ public struct RootView: View {
             )
             switchTab(.journey)
         }
+    }
+
+    private func consumeNotificationRoute() {
+        guard let payload = pushBridge.pendingPayload else { return }
+        pushBridge.pendingPayload = nil
+        guard services.journeyAlerts.accepts(payload, presenting: false),
+              let destination = Routes.parse(payload.url) else { return }
+        pendingJourney = JourneyRequest(trainNumber: destination.trainNumber, originDate: destination.date)
+        switchTab(.journey)
     }
 
     private func switchTab(_ newTab: LocomateTab) {

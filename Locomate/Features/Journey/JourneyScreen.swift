@@ -27,8 +27,9 @@ struct JourneyScreen: View {
     @State private var daylight: MapDaylight = MapDaylight(solarElevation: 90, nightAmount: 0, label: .day)
     @State private var message: String?
     @State private var calendarPending = false
-    @State private var alertsEnabled = false
-    @State private var alertsPending = false
+    @State private var liveCardEnabled = false
+    @State private var liveCardPending = false
+    @State private var showJourneyAlerts = false
     @State private var journeySaved = false
     @State private var showDataSource = false
 
@@ -74,7 +75,7 @@ struct JourneyScreen: View {
                 if let model {
                     services.contribution.stop()
                     await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate)
-                    alertsEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
+                    liveCardEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
                     await reconcileContribution()
                 } else {
                     await ensureModel()
@@ -108,7 +109,7 @@ struct JourneyScreen: View {
             )
             model = created
             await created.load()
-            alertsEnabled = created.journey.map { created.isLiveActivityRunning(for: $0.id) } ?? false
+            liveCardEnabled = created.journey.map { created.isLiveActivityRunning(for: $0.id) } ?? false
             recomputeDaylight()
             await reconcileContribution()
         }
@@ -333,6 +334,11 @@ struct JourneyScreen: View {
                 Haptics.success()
             }
         }
+        .sheet(isPresented: $showJourneyAlerts) {
+            JourneyAlertsSheet(journey: journey, originDate: model.originDate,
+                               available: !model.isPreview && !model.isCached)
+                .id(journey.id)
+        }
     }
 
     private func trainHeader(_ journey: Journey) -> some View {
@@ -373,26 +379,26 @@ struct JourneyScreen: View {
         }
     }
 
-    private func toggleAlerts(model: JourneyModel, journey: Journey) {
+    private func toggleLiveCard(model: JourneyModel, journey: Journey) {
         guard !model.isPreview, !model.isCached else {
             message = "A current production journey is required for a Lock Screen card."
             Haptics.warn()
             return
         }
-        guard !alertsPending else { return }
-        alertsPending = true
+        guard !liveCardPending else { return }
+        liveCardPending = true
         Task { @MainActor in
-            defer { alertsPending = false }
-            if alertsEnabled {
+            defer { liveCardPending = false }
+            if liveCardEnabled {
                 await model.endLiveActivity()
                 guard model.journey?.id == journey.id else { return }
-                alertsEnabled = false
+                liveCardEnabled = false
                 message = "Lock Screen card is off for \(journey.trainNumber)."
                 Haptics.warn()
             } else {
                 let started = await model.startLiveActivity()
                 guard model.journey?.id == journey.id else { return }
-                alertsEnabled = started
+                liveCardEnabled = started
                 message = started
                     ? "Lock Screen card shows \(journey.trainNumber)'s current ETA."
                     : "A current delay and Live Activities access in iOS Settings are required."
@@ -434,15 +440,18 @@ struct JourneyScreen: View {
     @ViewBuilder private func tripPanel(model: JourneyModel, journey: Journey) -> some View {
         NextStopStat(journey: journey, originDate: model.originDate)
         JourneyActions(
-            alertsEnabled: alertsEnabled,
-            alertsPending: alertsPending,
+            liveCardEnabled: liveCardEnabled,
+            liveCardPending: liveCardPending,
             calendarPending: calendarPending,
             journeySaved: journeySaved,
             onCalendar: { addToCalendar(model: model, journey: journey) },
             onSave: { Task { message = await model.saveToPassport(); journeySaved = true; Haptics.success() } },
             onShare: { share(model: model, journey: journey) },
-            onToggleAlerts: { toggleAlerts(model: model, journey: journey) }
+            onToggleLiveCard: { toggleLiveCard(model: model, journey: journey) }
         )
+        JourneyAlertsSummary(journey: journey, available: !model.isPreview && !model.isCached) {
+            showJourneyAlerts = true
+        }
     }
 
     @ViewBuilder private func insightsPanel(model: JourneyModel, journey: Journey) -> some View {

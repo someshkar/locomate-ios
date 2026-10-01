@@ -332,19 +332,19 @@ struct JourneyTimeline: View {
 struct JourneyActions: View {
     @Environment(\.locomoteColors) private var colors
 
-    let alertsEnabled: Bool
-    let alertsPending: Bool
+    let liveCardEnabled: Bool
+    let liveCardPending: Bool
     let calendarPending: Bool
     let journeySaved: Bool
     let onCalendar: () -> Void
     let onSave: () -> Void
     let onShare: () -> Void
-    let onToggleAlerts: () -> Void
+    let onToggleLiveCard: () -> Void
 
     var body: some View {
         HStack(spacing: Spacing.units(2.5)) {
-            action("Live card", systemImage: alertsEnabled ? "bell.fill" : "bell",
-                   active: alertsEnabled, pending: alertsPending, action: onToggleAlerts)
+            action("Live card", systemImage: liveCardEnabled ? "rectangle.inset.filled" : "rectangle",
+                   active: liveCardEnabled, pending: liveCardPending, action: onToggleLiveCard)
             action("Calendar", systemImage: "calendar", active: false, pending: calendarPending, action: onCalendar)
             action("Save", systemImage: journeySaved ? "bookmark.fill" : "bookmark",
                    active: journeySaved, pending: false, action: onSave)

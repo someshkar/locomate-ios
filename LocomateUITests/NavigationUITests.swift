@@ -86,6 +86,44 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testPreviewJourneyAlertsStayUnavailable() {
+        let app = XCUIApplication()
+        app.launch()
+
+        let expand = app.buttons["Expand journey details"]
+        XCTAssertTrue(expand.waitForExistence(timeout: 10))
+        expand.tap()
+        let alerts = app.buttons["journeyAlerts.open"]
+        for _ in 0..<5 where !alerts.isHittable {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(alerts.isHittable)
+        alerts.tap()
+
+        XCTAssertTrue(app.navigationBars["Journey alerts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Alerts need a current journey from the production service. Historical previews and cached journeys cannot enable new alerts."].exists)
+        XCTAssertFalse(app.buttons["journeyAlerts.enable"].exists)
+        XCTAssertFalse(app.switches["journeyAlerts.channel.delay"].exists)
+        XCTAssertTrue(app.buttons["Open notification settings"].exists)
+        capture(app, "Preview alerts unavailable")
+        app.buttons["Done"].tap()
+
+        app.buttons["Passport"].tap()
+        let settings = app.buttons["Open settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.tap()
+        let unavailable = app.staticTexts["Journey alerts are unavailable in historical preview."]
+        for _ in 0..<5 where !unavailable.isHittable {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(unavailable.isHittable)
+        XCTAssertFalse(app.buttons["Stop all journey alerts"].exists)
+        XCTAssertFalse(app.buttons["Refresh and retry pending changes"].exists)
+        XCTAssertTrue(app.buttons["Open notification settings"].exists)
+        capture(app, "Preview alert settings")
+    }
+
+    @MainActor
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

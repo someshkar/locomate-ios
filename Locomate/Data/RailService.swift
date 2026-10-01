@@ -34,7 +34,7 @@ private struct JourneyResponse: Decodable {
     let journey: Journey
 }
 
-public protocol RailServiceProtocol: Sendable {
+public protocol RailServiceProtocol: JourneyAlertAPI {
     func recordCommunityConsent(_ evidence: CommunityConsentEvidence) async throws
     func exportPrivacyData() async throws -> Data
     func deletePrivacyData() async throws
@@ -54,6 +54,15 @@ public struct RailService: RailServiceProtocol {
     private let client: APIClient
 
     public init(client: APIClient) { self.client = client }
+
+    public func registerJourneyAlerts(_ request: JourneyAlertRegistration) async throws -> JourneyAlertAcknowledgement {
+        try await client.postData("/v1/journey-alerts/subscriptions", bodyData: JSONEncoder().encode(request))
+    }
+
+    public func unregisterJourneyAlerts(runId: String, revision: Int64) async throws {
+        guard JourneyAlertIdentity.parse(runId) != nil else { throw JourneyAlertError.invalidJourney }
+        try await client.delete("/v1/journey-alerts/subscriptions/\(runId)", query: ["revision": String(revision)])
+    }
 
     public func recordCommunityConsent(_ evidence: CommunityConsentEvidence) async throws {
         struct Ack: Decodable { let recorded: Bool }

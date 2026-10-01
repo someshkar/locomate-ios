@@ -41,6 +41,7 @@ struct SettingsScreen: View {
                 darkModeRow
                 dataSourceRow
                 mapLightingRow
+                JourneyAlertsSettings()
                 ContributionSettings()
                 privacyDataRow
 

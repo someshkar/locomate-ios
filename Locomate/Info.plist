@@ -31,6 +31,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LocomateAPNSEnvironment</key>
+	<string>$(LOCOMATE_APNS_ENVIRONMENT)</string>
 	<key>LocomoteRailAPIURL</key>
 	<string>$(LOCOMOTE_RAIL_API_URL)</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
