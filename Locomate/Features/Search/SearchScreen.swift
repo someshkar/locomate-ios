@@ -133,7 +133,9 @@ struct SearchScreen: View {
     private var searchField: some View {
         HStack(spacing: 12) {
             NavigationGlyph(tab: .search, side: 20).foregroundStyle(colors.textTertiary)
-            TextField(dynamicTypeSize.isAccessibilitySize ? "Train or station" : "Train no. or station", text: Binding(get: { query }, set: { query = $0; selectedStation = nil }))
+            TextField("", text: Binding(get: { query }, set: { query = $0; selectedStation = nil }),
+                      prompt: Text(dynamicTypeSize.isAccessibilitySize ? "Train or station" : "Train no. or station")
+                        .foregroundColor(colors.textSecondary))
                 .focused($isFieldFocused)
                 .font(.system(size: fieldSize, weight: .medium))
                 .foregroundStyle(colors.textPrimary)
@@ -781,7 +783,8 @@ private struct BetweenStationPicker: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    TextField("Station name or code", text: $query)
+                    TextField("", text: $query,
+                              prompt: Text("Station name or code").foregroundColor(colors.textSecondary))
                         .textInputAutocapitalization(.characters).autocorrectionDisabled()
                         .font(LocomateFont.body)
                         .padding(14)
