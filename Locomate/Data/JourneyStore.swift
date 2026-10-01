@@ -53,6 +53,7 @@ public actor JourneyCache {
         guard let data = try? Data(contentsOf: url("plan-\(trainNumber)-\(originDate).json")) else { return nil }
         return try? JSONDecoder.locomote.decode(JourneyPlan.self, from: data)
     }
+
 }
 
 public struct CachedJourney: Codable, Sendable {

@@ -32,20 +32,22 @@ public final class JourneyModel {
     private let service: RailServiceProtocol?
     private let cache: JourneyCache
     private let passport: PassportRepository
-    private let liveActivity = LiveActivityService()
+    private let liveActivity: LiveActivityService
 
     public init(
         trainNumber: String = "12137",
         originDate: String = IndiaDate.today(),
         service: RailServiceProtocol?,
         cache: JourneyCache,
-        passport: PassportRepository
+        passport: PassportRepository,
+        liveActivity: LiveActivityService = LiveActivityService()
     ) {
         self.trainNumber = trainNumber
         self.originDate = originDate
         self.service = service
         self.cache = cache
         self.passport = passport
+        self.liveActivity = liveActivity
     }
 
     public var journey: Journey? {

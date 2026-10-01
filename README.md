@@ -39,6 +39,8 @@ Debug builds default to clearly labeled historical route packs. They provide rea
 
 Saved journeys and pending location observations stay on the device: their files are excluded from device backups. Installation identity and gateway sessions use device-only Keychain entries. Route previews are excluded from Passport's saved-run distance, and a forecast is not counted as an observed on-time outcome.
 
+Settings offers **Export my data** and **Delete my data**. Export combines the current gateway installation record with Passport, pending observations, preferences, and private files from every local gateway scope. It opens the native share sheet; the exported file is removed when that sheet closes. Deletion first requests gateway erasure, then ends Live Activities, clears consent and local files across scopes, and rotates the device identity. A gateway error leaves local data in place so the request can be retried. Both actions are installation scoped; the app cannot access records created on another device.
+
 Production sessions, cached runs, journey plans, and Passport entries are scoped to the gateway origin. A development gateway's stored data cannot appear when the app points to production.
 
 A live train position marker requires recent observed evidence from an official, community, or device source. Scheduled or predicted route progress does not create a live marker; historical previews use a separately labeled violet sample marker.

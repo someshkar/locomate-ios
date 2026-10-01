@@ -59,6 +59,14 @@ public final class KeychainTokenStore: TokenStore, @unchecked Sendable {
         SecItemDelete(baseQuery as CFDictionary)
     }
 
+    public static func clearAllSessions() -> Bool {
+        let status = SecItemDelete([
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.locomate.app.session",
+        ] as CFDictionary)
+        return status == errSecSuccess || status == errSecItemNotFound
+    }
+
     public enum KeychainError: Error { case saveFailed(OSStatus) }
 }
 

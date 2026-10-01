@@ -94,7 +94,8 @@ struct JourneyScreen: View {
                 originDate: request?.originDate ?? IndiaDate.today(),
                 service: services.railService,
                 cache: services.cache,
-                passport: services.passport
+                passport: services.passport,
+                liveActivity: services.liveActivity
             )
             model = created
             await created.load()

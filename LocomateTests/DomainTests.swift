@@ -43,6 +43,28 @@ struct RailStorageScopeTests {
     }
 }
 
+@Suite("Privacy export")
+struct PrivacyExportTests {
+    @Test("includes saved data from every gateway scope")
+    @MainActor
+    func includesAllLocalScopes() throws {
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let documents = temporary.appendingPathComponent("Documents/locomote")
+        let caches = temporary.appendingPathComponent("Caches/locomote")
+        let oldPassport = documents.appendingPathComponent("old-gateway/passport.json")
+        let currentCache = caches.appendingPathComponent("current-gateway/journey.json")
+        try FileManager.default.createDirectory(at: oldPassport.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: currentCache.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("saved".utf8).write(to: oldPassport)
+        try Data("cached".utf8).write(to: currentCache)
+
+        let exported = try LocomoteServices.exportLocalFilesBase64(documentRoot: documents, cacheRoot: caches)
+        #expect(exported["Documents/locomote/old-gateway/passport.json"] == Data("saved".utf8).base64EncodedString())
+        #expect(exported["Caches/locomote/current-gateway/journey.json"] == Data("cached".utf8).base64EncodedString())
+    }
+}
+
 @Suite("Installation identity")
 struct InstallationIdentityTests {
     @Test("legacy backed-up identifier is discarded")
@@ -934,6 +956,8 @@ struct PassportStorageTests {
 @Suite("Observation sync")
 struct ObservationSyncTests {
     private final class StubService: RailServiceProtocol, @unchecked Sendable {
+        func exportPrivacyData() async throws -> Data { Data("{}".utf8) }
+        func deletePrivacyData() async throws {}
         var uploaded: [[CompactObservation]] = []
         var shouldFail = false
         func searchTrains(_ query: String) async throws -> [TrainSearchResult] { [] }
@@ -1021,6 +1045,8 @@ struct ObservationSyncTests {
 @MainActor
 struct JourneySourceIsolationTests {
     private struct FailingService: RailServiceProtocol {
+        func exportPrivacyData() async throws -> Data { Data("{}".utf8) }
+        func deletePrivacyData() async throws {}
         func searchTrains(_ query: String) async throws -> [TrainSearchResult] { [] }
         func journey(trainNumber: String, originDate: String) async throws -> Journey {
             throw URLError(.notConnectedToInternet)

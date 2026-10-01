@@ -34,6 +34,8 @@ private struct JourneyResponse: Decodable {
 }
 
 public protocol RailServiceProtocol: Sendable {
+    func exportPrivacyData() async throws -> Data
+    func deletePrivacyData() async throws
     func registerLiveActivityToken(
         runId: String, token: String, state: JourneyActivityAttributes.ContentState
     ) async throws
@@ -50,6 +52,14 @@ public struct RailService: RailServiceProtocol {
     private let client: APIClient
 
     public init(client: APIClient) { self.client = client }
+
+    public func exportPrivacyData() async throws -> Data {
+        try await client.getRaw("/v1/privacy/export")
+    }
+
+    public func deletePrivacyData() async throws {
+        try await client.delete("/v1/privacy/installation")
+    }
 
     /// Register a Live Activity push-to-update token so the gateway can refresh
     /// the ETA without the app polling. Mirrors the SmartRail subscription call.

@@ -108,6 +108,15 @@ public actor APIClient {
         return try await rawRequest(path: path, method: "GET", query: query, body: nil, token: session.accessToken)
     }
 
+    /// Preserve the gateway's complete privacy export without narrowing its schema in the app.
+    public func getRaw(_ path: String) async throws -> Data {
+        let session = try await validSession()
+        let (data, _, _) = try await performRequest(
+            path: path, method: "GET", body: nil, token: session.accessToken
+        )
+        return data
+    }
+
     public func post<T: Decodable>(
         _ path: String,
         body: [String: Any]?,
