@@ -12,6 +12,7 @@ struct JourneyMapCameraTests {
         let map = MKMapView(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
         let coordinator = RailMapView.Coordinator()
         await update(coordinator, map, scope: "first", display: .preview, command: nil)
+        #expect(map.layoutMargins.bottom == 330)
         let fittedSpan = map.region.span.latitudeDelta
         let focus = RailMapCommand(journeyID: "first", target: .position)
         await update(coordinator, map, scope: "first", display: .preview, command: focus)
@@ -68,7 +69,8 @@ struct JourneyMapCameraTests {
     @MainActor private func update(_ coordinator: RailMapView.Coordinator, _ map: MKMapView,
                                     scope: String, display: JourneyPositionDisplay, command: RailMapCommand?) async {
         coordinator.update(mapView: map, journeyID: scope, route: route, progress: 0.5,
-                           positionDisplay: display, markers: [], sheetVisibleHeight: 320, cameraCommand: command)
+                           positionDisplay: display, markers: [], sheetVisibleHeight: 320, cameraCommand: command,
+                           attributionTopOnScreen: 524)
         await withCheckedContinuation { continuation in
             DispatchQueue.main.async { continuation.resume() }
         }

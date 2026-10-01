@@ -261,6 +261,14 @@ final class NavigationUITests: XCTestCase {
             focus.tap()
             capture(app, "Historical map focus \(category)")
             fit.tap()
+            let legal = app.links["Legal"].firstMatch
+            XCTAssertTrue(legal.waitForExistence(timeout: 5))
+            let heading = app.staticTexts["My Journeys"]
+            XCTAssertTrue(heading.waitForExistence(timeout: 5))
+            XCTAssertGreaterThan(legal.frame.width, 0)
+            XCTAssertGreaterThan(legal.frame.height, 0)
+            XCTAssertLessThan(legal.frame.maxY, heading.frame.minY,
+                              "Native attribution must remain visible above the resting Journey sheet.")
             capture(app, "Journey route fit \(category)")
             app.buttons["Expand journey details"].tap()
             let source = app.buttons["Data source details"]
@@ -443,6 +451,16 @@ final class AccessibilityUITests: XCTestCase {
     override func setUpWithError() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["LOCOMATE_RUN_ACCESSIBILITY_AUDITS"] == "1",
                           "Full accessibility audits are an explicit release gate. Set LOCOMATE_RUN_ACCESSIBILITY_AUDITS=1.")
+    }
+
+    @MainActor
+    func testJourneyNativeLegalHitRegion() {
+        let app = previewApp()
+        let legal = app.links["Legal"].firstMatch
+        XCTAssertTrue(legal.waitForExistence(timeout: 5))
+        XCTAssertTrue(legal.isHittable, "Native MapKit Legal interaction remains a release gate.")
+        XCTAssertGreaterThanOrEqual(legal.frame.width, 44 - 0.001)
+        XCTAssertGreaterThanOrEqual(legal.frame.height, 44 - 0.001)
     }
 
     @MainActor

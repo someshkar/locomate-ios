@@ -48,6 +48,7 @@ struct RailMapView: UIViewRepresentable {
     let sheetVisibleHeight: Double
     let cameraCommand: RailMapCommand?
     var sheetTopOnScreen: Double? = nil
+    var attributionTopOnScreen: Double? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -69,7 +70,8 @@ struct RailMapView: UIViewRepresentable {
         context.coordinator.update(mapView: mapView, journeyID: journeyID, route: route, progress: progress,
                                    positionDisplay: positionDisplay, markers: markers,
                                    sheetVisibleHeight: sheetVisibleHeight, cameraCommand: cameraCommand,
-                                   sheetTopOnScreen: sheetTopOnScreen)
+                                   sheetTopOnScreen: sheetTopOnScreen,
+                                   attributionTopOnScreen: attributionTopOnScreen)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
@@ -88,11 +90,13 @@ struct RailMapView: UIViewRepresentable {
         private var cameraTarget: RailMapCommand.Target = .route
         private var cameraRevision = 0
         private var previousSheetTop: Double?
+        private var previousAttributionTop: Double?
 
         func update(mapView: MKMapView, journeyID: String, route: [RailCoordinate], progress: Double,
                     positionDisplay: JourneyPositionDisplay,
                     markers: [MapStationMarker], sheetVisibleHeight: Double,
-                    cameraCommand: RailMapCommand?, sheetTopOnScreen: Double? = nil) {
+                    cameraCommand: RailMapCommand?, sheetTopOnScreen: Double? = nil,
+                    attributionTopOnScreen: Double? = nil) {
             guard route.count >= 2 else { return }
             if journeyID != previousJourneyID {
                 previousJourneyID = journeyID
@@ -171,9 +175,11 @@ struct RailMapView: UIViewRepresentable {
                 }
             }
 
-            if !fitted || abs(previousSheetHeight - sheetVisibleHeight) > 48 || previousSheetTop != sheetTopOnScreen {
+            if !fitted || abs(previousSheetHeight - sheetVisibleHeight) > 48 || previousSheetTop != sheetTopOnScreen
+                || previousAttributionTop != attributionTopOnScreen {
                 previousSheetHeight = sheetVisibleHeight
                 previousSheetTop = sheetTopOnScreen
+                previousAttributionTop = attributionTopOnScreen
                 fitted = true
                 cameraRevision += 1
                 let revision = cameraRevision
@@ -181,6 +187,14 @@ struct RailMapView: UIViewRepresentable {
                 DispatchQueue.main.async { [weak self, weak mapView] in
                     guard let self, revision == self.cameraRevision,
                           let mapView, mapView.bounds.height > 100 else { return }
+                    // Public margins keep Apple's attribution above the resting sheet.
+                    // Keep the map full size so expanding/collapsing preserves its surface.
+                    let covered = attributionTopOnScreen.map {
+                        mapView.convert(mapView.bounds, to: nil).maxY - CGFloat($0)
+                    } ?? CGFloat(sheetVisibleHeight)
+                    mapView.layoutMargins = UIEdgeInsets(top: 0, left: 7,
+                        bottom: min(max(0, covered) + 10, max(0, mapView.bounds.height - 120)), right: 7)
+                    mapView.layoutIfNeeded()
                     if target == .position, positionDisplay != .hidden, progress.isFinite,
                        let point = try? RouteGeometry.coordinate(along: route, progress: progress) {
                         Self.focus(point, on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen)
@@ -194,8 +208,15 @@ struct RailMapView: UIViewRepresentable {
         private static func padding(on mapView: MKMapView, sheetVisibleHeight: Double, sheetTopOnScreen: Double?) -> UIEdgeInsets {
             let obscured = sheetTopOnScreen.map { mapView.convert(mapView.bounds, to: nil).maxY - CGFloat($0) }
                 ?? CGFloat(sheetVisibleHeight)
-            return UIEdgeInsets(top: 112, left: 32,
+            let requested = UIEdgeInsets(top: 112, left: 32,
                 bottom: min(max(0, obscured) + 32, max(0, mapView.bounds.height - 212)), right: 72)
+            // MapKit also applies its layout margins to the camera. Account for
+            // them once, otherwise the route loses the visible space above the sheet.
+            let margins = mapView.layoutMargins
+            return UIEdgeInsets(top: max(0, requested.top - margins.top),
+                left: max(0, requested.left - margins.left),
+                bottom: max(0, requested.bottom - margins.bottom),
+                right: max(0, requested.right - margins.right))
         }
 
         private static func fit(_ route: [RailCoordinate], on mapView: MKMapView, sheetVisibleHeight: Double, sheetTopOnScreen: Double?) {

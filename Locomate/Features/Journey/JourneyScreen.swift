@@ -42,7 +42,8 @@ struct JourneyScreen: View {
             let detents = detents(for: geometry.size.height)
             ZStack(alignment: .top) {
                 colors.canvas.ignoresSafeArea(edges: .top)
-                map(sheetTopOnScreen: geometry.frame(in: .global).minY + sheetPosition.topEdge)
+                map(sheetTopOnScreen: geometry.frame(in: .global).minY + sheetPosition.topEdge,
+                    attributionTopOnScreen: geometry.frame(in: .global).minY + detents[1])
                 mapChrome
                 if let model {
                     ResizableSheet(
@@ -180,7 +181,7 @@ struct JourneyScreen: View {
 
     // MARK: Map
 
-    @ViewBuilder private func map(sheetTopOnScreen: Double) -> some View {
+    @ViewBuilder private func map(sheetTopOnScreen: Double, attributionTopOnScreen: Double) -> some View {
         if let journey = model?.journey, let route = journey.routeCoordinates, route.count >= 2 {
             RailMapView(
                 journeyID: mapJourneyID,
@@ -192,7 +193,8 @@ struct JourneyScreen: View {
                 lightingMode: preferences.mapLighting,
                 sheetVisibleHeight: sheetPosition.visibleHeight,
                 cameraCommand: mapCommand,
-                sheetTopOnScreen: sheetTopOnScreen
+                sheetTopOnScreen: sheetTopOnScreen,
+                attributionTopOnScreen: attributionTopOnScreen
             )
             .id(preferences.mapLighting)
             .overlay {

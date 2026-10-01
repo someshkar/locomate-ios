@@ -214,10 +214,10 @@ import XCTest
 import MapKit
 
 /// Hosts the production overlay without MapKit or a network request. This checks
-/// the constrained reading region, not physical VoiceOver or a full AX audit.
+/// the shared scrolling sheet's reading region, not physical VoiceOver or a full AX audit.
 @MainActor
 final class NetworkOverlayLayoutTests: XCTestCase {
-    func testLargestTextStatsStayScrollableBelowHeader() async throws {
+    func testLargestTextHeadingAndStatsShareScrollableSheet() async throws {
         let markers = (0..<5000).map { index in
             NetworkMarker(id: String(index), destination: .init(trainNumber: "12137", date: "2026-10-01"),
                           latitude: 19, longitude: 72,
@@ -248,11 +248,14 @@ final class NetworkOverlayLayoutTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(400))
         let scroll = try XCTUnwrap(scrollViews(in: host.view).first)
         let frame = scroll.convert(scroll.bounds, to: host.view)
-        XCTAssertGreaterThan(frame.minY, 150, "The enlarged header must retain its own reading space.")
+        XCTAssertGreaterThanOrEqual(frame.minY, 0)
+        XCTAssertLessThanOrEqual(frame.minY, 1, "The heading and statistics share the sheet's scrolling viewport.")
         XCTAssertGreaterThanOrEqual(frame.height, 100, "The stats viewport must leave a usable reading region.")
         XCTAssertLessThanOrEqual(frame.maxY, host.view.bounds.maxY)
         XCTAssertGreaterThan(scroll.contentSize.height, scroll.bounds.height)
         XCTAssertTrue(scroll.isScrollEnabled)
+        XCTAssertEqual(scroll.contentOffset.y, -scroll.adjustedContentInset.top, accuracy: 1,
+                       "The heading starts at the top of the shared sheet, including native safe-area insets.")
         let bounds = XCTAttachment(string: "Container: \(host.view.bounds); stats viewport: \(frame); scroll content: \(scroll.contentSize)")
         bounds.name = "Explore largest stats bounds"
         bounds.lifetime = .keepAlways
