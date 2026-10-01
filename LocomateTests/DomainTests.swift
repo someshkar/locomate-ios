@@ -970,6 +970,7 @@ struct JourneySourceIsolationTests {
         #expect(model.journey == nil)
         #expect(!model.isPreview)
         #expect(!model.isCached)
+        #expect(model.statusKind == .error)
         if case .failed = model.phase {} else {
             Issue.record("A failed production request must display its error")
         }
