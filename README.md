@@ -15,6 +15,8 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
 
 The project has 85 Swift tests covering gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, and Passport calculations. Two UI tests cover primary navigation and a fresh production launch without sample data. Both suites passed on fresh iPhone 18 Pro simulators.
 
+The native app icon uses the same route-shaped L as Android. Its 1024px asset can be regenerated with `swift scripts/render-app-icon.swift`. GitHub Actions runs the simulator tests on the Xcode 27 runner for each pull request.
+
 ## Rail data modes
 
 The default build uses clearly labeled historical route packs. They provide real route geometry for interface review, but no live position or ETA. To use a deployed SmartRail rail gateway, set `LOCOMOTE_RAIL_API_URL` to its HTTPS base URL when building. The gateway creates an installation-scoped device session; provider credentials stay on the server. Live, predicted, scheduled, stale, and preview data retain separate labels. A production build opens with an empty journey state until a train is selected. A failed production request may show an aged cached run; it does not switch to a preview fixture.

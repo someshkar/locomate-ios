@@ -12,6 +12,7 @@
 		082B34188937EF0017CFB53F /* UIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520654B8BAB3C176F3FBEA4D /* UIKit.swift */; };
 		0A605D9A8E4A4D07F0E958D1 /* IndiaDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 061D048759544082BC0EFAD8 /* IndiaDate.swift */; };
 		0CAAD1BEE4C01C2D11ED6F94 /* JourneyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C71F03CCD1FFFD8F3C9C6480 /* JourneyStore.swift */; };
+		0FA3CFF3F9748CBF1C7C983F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C456C68DD9719FA56DE481A1 /* Assets.xcassets */; };
 		199CE718C0CC6E7C52059939 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011CC319CD366A283B75CFEA /* RootView.swift */; };
 		2552FDEFCBDDB06E71C5B161 /* RailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2E0C7DEF27E3A528E5924B /* RailMapView.swift */; };
 		2D3FD787C843D31DD4480276 /* JourneyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F413F45BBC29EF3E713BB7 /* JourneyModel.swift */; };
@@ -143,6 +144,7 @@
 		C028E9C77E24D717A7837279 /* RailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailService.swift; sourceTree = "<group>"; };
 		C10C0EE449E2BE889F54ED4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationSync.swift; sourceTree = "<group>"; };
+		C456C68DD9719FA56DE481A1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyActivityAttributes.swift; sourceTree = "<group>"; };
 		C71F03CCD1FFFD8F3C9C6480 /* JourneyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyStore.swift; sourceTree = "<group>"; };
 		C739FB0ACAE431529F2E6A7E /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
@@ -259,6 +261,7 @@
 		68DDB9E9A38F8CB117910A84 /* Locomate */ = {
 			isa = PBXGroup;
 			children = (
+				C456C68DD9719FA56DE481A1 /* Assets.xcassets */,
 				F17BE4121785AC405A4936FB /* Info.plist */,
 				CCD289480B20B21CEC6E8683 /* App */,
 				294BCA259A90C9334CE0BBD2 /* Data */,
@@ -507,6 +510,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0FA3CFF3F9748CBF1C7C983F /* Assets.xcassets in Resources */,
 				D58B255030973F3BDDE62466 /* route-packs.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
