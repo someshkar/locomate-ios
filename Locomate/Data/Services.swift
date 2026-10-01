@@ -19,6 +19,7 @@ public final class LocomoteServices {
     public let liveActivity: LiveActivityService
     public let journeyAlerts: JourneyAlertService
     public let selectedJourney: SelectedJourneyStore
+    public let recentTrains: RecentTrainStore
     public let mode: RailDataMode
     public private(set) var contributionActivationRevision = 0
 
@@ -30,7 +31,8 @@ public final class LocomoteServices {
         liveActivity: LiveActivityService = LiveActivityService(),
         mode: RailDataMode,
         journeyAlerts: JourneyAlertService? = nil,
-        selectedJourney: SelectedJourneyStore? = nil
+        selectedJourney: SelectedJourneyStore? = nil,
+        recentTrains: RecentTrainStore? = nil
     ) {
         self.railService = railService
         self.cache = cache
@@ -43,6 +45,7 @@ public final class LocomoteServices {
         else { alertScope = "preview" }
         self.journeyAlerts = journeyAlerts ?? JourneyAlertService(api: railService, scope: alertScope)
         self.selectedJourney = selectedJourney ?? SelectedJourneyStore(scope: alertScope)
+        self.recentTrains = recentTrains ?? RecentTrainStore(scope: alertScope)
     }
 
     public static func live() -> LocomoteServices {
@@ -165,6 +168,7 @@ public final class LocomoteServices {
     public func deletePrivacyData(preferences: Preferences) async throws -> Bool {
         try PrivacyDeletionLatch.begin()
         selectedJourney.beginPrivacyDeletion()
+        recentTrains.beginPrivacyDeletion()
         contribution.stop()
         // Stop the token observer before the server deletion can invalidate its session.
         await journeyAlerts.beginPrivacyDeletion()

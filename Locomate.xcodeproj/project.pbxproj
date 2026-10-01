@@ -71,6 +71,7 @@
 		B2FC1F9CE589FCA867F45006 /* Routes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF8D8513F38692BB1E594A0 /* Routes.swift */; };
 		B43615A65548A38E05A804CB /* ForecastPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D6BC2610056C92E9F84EA6 /* ForecastPresentation.swift */; };
 		B4C06C5B212FCFD0F216505B /* ResizableSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E467C69EC422AB7BF48CBF /* ResizableSheet.swift */; };
+		BD8934F7287F520C19C23515 /* RecentTrainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65FFF7639B6B13CD61655745 /* RecentTrainTests.swift */; };
 		C02DE5CF2329A9A487D949F0 /* ReliabilityHistoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 642123CD04A4A49768E92382 /* ReliabilityHistoryModel.swift */; };
 		C0459AAA2D30BB29D7288E49 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */; };
 		C0707F656FE02C4CD4691193 /* JourneyRefreshUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB32C59931182D618E441565 /* JourneyRefreshUITests.swift */; };
@@ -82,6 +83,7 @@
 		CF6E4DF2F32EC9D6DF182956 /* JourneyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */; };
 		CFEB47F14C0BE05EFF1CE1C8 /* history-12137.json in Resources */ = {isa = PBXBuildFile; fileRef = 9C25D4485BBAF8B2E7C01C66 /* history-12137.json */; };
 		D0A57786A0557CDF48A46D39 /* ReliabilityHistoryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB39602E964E4687506F87 /* ReliabilityHistoryCard.swift */; };
+		D116008450C1EDDE04FA5D74 /* RecentTrainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2DD444A598CF3CCD656B07 /* RecentTrainStore.swift */; };
 		D525888C2403AB89BB02BBD3 /* JourneyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3631B6854F32B3965C32036B /* JourneyPlan.swift */; };
 		D58B255030973F3BDDE62466 /* route-packs.json in Resources */ = {isa = PBXBuildFile; fileRef = 77D651A8F7C73C875F222ACD /* route-packs.json */; };
 		D5BAD8044F7E3398D0A5B501 /* PassportScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06E9E14840D47CCB6666C82 /* PassportScreen.swift */; };
@@ -179,6 +181,7 @@
 		5DA3598213C928DE72CD8922 /* ReliabilityHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliabilityHistoryTests.swift; sourceTree = "<group>"; };
 		5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalGatewayIntegrationTests.swift; sourceTree = "<group>"; };
 		642123CD04A4A49768E92382 /* ReliabilityHistoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliabilityHistoryModel.swift; sourceTree = "<group>"; };
+		65FFF7639B6B13CD61655745 /* RecentTrainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTrainTests.swift; sourceTree = "<group>"; };
 		6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = LocomateWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EF8D8513F38692BB1E594A0 /* Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routes.swift; sourceTree = "<group>"; };
 		71D6BC2610056C92E9F84EA6 /* ForecastPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastPresentation.swift; sourceTree = "<group>"; };
@@ -219,6 +222,7 @@
 		C7734B47F77BD5FBB27E7F38 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		C8005BC3E33D455B3C56A38E /* LocomateUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LocomateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE583CF262143B60198CA75E /* BottomDock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomDock.swift; sourceTree = "<group>"; };
+		CF2DD444A598CF3CCD656B07 /* RecentTrainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTrainStore.swift; sourceTree = "<group>"; };
 		D6F413F45BBC29EF3E713BB7 /* JourneyModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyModel.swift; sourceTree = "<group>"; };
 		DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyScreen.swift; sourceTree = "<group>"; };
 		E06E9E14840D47CCB6666C82 /* PassportScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportScreen.swift; sourceTree = "<group>"; };
@@ -274,6 +278,7 @@
 				8C70932B43912D748A7E000C /* PrivacyDeletionLatch.swift */,
 				C028E9C77E24D717A7837279 /* RailService.swift */,
 				BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */,
+				CF2DD444A598CF3CCD656B07 /* RecentTrainStore.swift */,
 				742FF165A9FB065C0F1C37AE /* RoutePacks.swift */,
 				E708B9040B3F95795D5B9D23 /* SelectedJourneyStore.swift */,
 				F1543B7756311FD507CCE878 /* Services.swift */,
@@ -414,6 +419,7 @@
 				4D4F0B20B6918691EC3D5D82 /* OverviewMapLayoutTests.swift */,
 				206EFE964E4377EDF51AE5C7 /* PassportReopeningTests.swift */,
 				7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */,
+				65FFF7639B6B13CD61655745 /* RecentTrainTests.swift */,
 				5DA3598213C928DE72CD8922 /* ReliabilityHistoryTests.swift */,
 				D457528F22290ED0F75A20DE /* Fixtures */,
 			);
@@ -716,6 +722,7 @@
 				9D87DC2D6499A2AAF7ECCC9B /* RailNaturalLanguage.swift in Sources */,
 				E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */,
 				A5F4E86345EECD41A7ACD1F2 /* RailStorageScope.swift in Sources */,
+				D116008450C1EDDE04FA5D74 /* RecentTrainStore.swift in Sources */,
 				D0A57786A0557CDF48A46D39 /* ReliabilityHistoryCard.swift in Sources */,
 				C02DE5CF2329A9A487D949F0 /* ReliabilityHistoryModel.swift in Sources */,
 				AD837FE3E534AF4FEEE41A9F /* ReliabilitySummary.swift in Sources */,
@@ -751,6 +758,7 @@
 				FACE7ABD26A3A8CB5F534D3A /* OverviewMapLayoutTests.swift in Sources */,
 				6FBF83666ECC2CA590252401 /* PassportReopeningTests.swift in Sources */,
 				F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */,
+				BD8934F7287F520C19C23515 /* RecentTrainTests.swift in Sources */,
 				45F1C84BE31A2529B520907A /* ReliabilityHistoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

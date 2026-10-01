@@ -27,6 +27,7 @@ struct SearchScreen: View {
     @State private var selectedDate = IndiaDate.today()
     @State private var calendarDraft = Date()
     @State private var showsCalendar = false
+    @State private var recentNotice: String?
     @State private var searchTask: Task<Void, Never>?
     @FocusState private var isFieldFocused: Bool
     @ScaledMetric(relativeTo: .body) private var fieldSize: CGFloat = 16
@@ -52,6 +53,7 @@ struct SearchScreen: View {
                     searchField
                     dateStrip
                     if !production { snapshotNotice }
+                    if normalizedQuery.isEmpty { recentList }
                     if let error = currentError {
                         EmptyState(icon: "wifi.exclamationmark",
                                    title: "Couldn't reach the railway feed",
@@ -304,7 +306,46 @@ struct SearchScreen: View {
                 StaggerIn(index: index) {
                     SearchResultRow(train: train, showSeparator: index < currentResults.count - 1) {
                         Haptics.tap()
+                        try? services.recentTrains.record(train)
                         onSelect(train, selectedDate)
+                    }
+                }
+            }
+        }
+    }
+
+    private var recentList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            dateHeaderLayout {
+                Text("Recent trains").eyebrow(colors.textTertiary)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                if !services.recentTrains.trains.isEmpty {
+                    Button {
+                        do { try services.recentTrains.clear(); recentNotice = nil }
+                        catch { recentNotice = "Couldn't clear recent trains. Try again." }
+                    } label: {
+                        Text("Clear").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                            .padding(.horizontal, 12).frame(minHeight: 44)
+                    }
+                    .accessibilityLabel("Clear recent trains")
+                }
+            }
+            if let recentNotice {
+                Text(recentNotice).font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+            }
+            if services.recentTrains.trains.isEmpty {
+                Text("Trains you choose will appear here.")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(services.recentTrains.trains.enumerated()), id: \.element.id) { index, train in
+                        SearchResultRow(train: train, showSeparator: index < services.recentTrains.trains.count - 1) {
+                            Haptics.tap()
+                            try? services.recentTrains.record(train)
+                            onSelect(train, selectedDate)
+                        }
+                        .accessibilityIdentifier("search.recent.\(train.number)")
                     }
                 }
             }

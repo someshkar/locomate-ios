@@ -3,6 +3,105 @@ import Network
 
 final class SearchAccessibilityUITests: XCTestCase {
     @MainActor
+    func testRecentTrainPersistsReopensChosenDateAndStaysInItsGatewayScope() async throws {
+        continueAfterFailure = false
+        let ready = expectation(description: "Recent gateway ready")
+        let gateway = try SearchSelectionGateway(ready: ready)
+        defer { gateway.stop() }
+        await fulfillment(of: [ready], timeout: 5)
+        let app = XCUIApplication()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        app.launch()
+        defer { app.terminate() }
+        app.buttons["Find a train"].tap()
+        let field = app.textFields["Search trains"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap(); field.typeText("12951\n")
+        var scroll = app.scrollViews.firstMatch
+        reveal(app.buttons["Try again"], in: scroll, app: app)
+        app.buttons["Try again"].tap()
+        let result = app.buttons["search.result.12951"]
+        reveal(result, in: scroll, app: app)
+        result.tap()
+        XCTAssertTrue(app.buttons["Find a train"].waitForExistence(timeout: 5))
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.buttons["Find a train"].waitForExistence(timeout: 10))
+        app.buttons["Find a train"].tap()
+        scroll = app.scrollViews.firstMatch
+        let recent = app.buttons["search.recent.12951"]
+        reveal(recent, in: scroll, app: app)
+        XCTAssertEqual(recent.label, "12951 First Express")
+        XCTAssertFalse(app.staticTexts["On Time"].exists)
+        capture(app, "Recent train restored after app restart")
+        let yesterday = app.buttons["Yest"]
+        reveal(yesterday, in: scroll, app: app); yesterday.tap()
+        let selectedDate = try XCTUnwrap(yesterday.value as? String)
+        reveal(recent, in: scroll, app: app); recent.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Selected dated query reached fixture.")).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(gateway.paths.contains("/v1/runs/12951/\(selectedDate)"))
+        XCTAssertEqual(gateway.paths.filter { $0.hasPrefix("/v1/trains/search?") }.count, 2)
+
+        let otherReady = expectation(description: "Other gateway ready")
+        let other = try SearchSelectionGateway(ready: otherReady)
+        defer { other.stop() }
+        await fulfillment(of: [otherReady], timeout: 5)
+        app.terminate()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(other.baseURL)
+        app.launch(); app.buttons["Find a train"].tap()
+        XCTAssertFalse(app.buttons["search.recent.12951"].exists)
+        app.terminate()
+        app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+        app.launch(); app.buttons["Find a train"].tap()
+        scroll = app.scrollViews.firstMatch
+        let clear = app.buttons["Clear recent trains"]
+        reveal(clear, in: scroll, app: app)
+        XCTAssertGreaterThanOrEqual(clear.frame.height, 44)
+        clear.tap()
+        XCTAssertFalse(recent.exists)
+        capture(app, "Recent trains cleared through the native action")
+        app.terminate(); app.launch(); app.buttons["Find a train"].tap()
+        XCTAssertFalse(recent.exists)
+        XCTAssertFalse(gateway.paths.contains { $0.contains("/privacy/consent") || $0.contains("journey-alerts") })
+    }
+
+    @MainActor
+    func testRecentPreviewTrainRemainsReadableAndClearableAtLargestText() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch(); defer { app.terminate() }
+        XCTAssertTrue(app.buttons["Find a train"].waitForExistence(timeout: 10))
+        app.buttons["Find a train"].tap()
+        var scroll = app.scrollViews.firstMatch
+        let field = app.textFields["Search trains"]
+        reveal(field, in: scroll, app: app)
+        field.tap(); field.typeText("12951\n")
+        let name = app.staticTexts["search.result.name.12951"]
+        reveal(name, in: scroll, app: app); name.tap()
+        XCTAssertTrue(app.buttons["Find a train"].waitForExistence(timeout: 5))
+        app.buttons["Find a train"].tap()
+        scroll = app.scrollViews.firstMatch
+        reveal(name, in: scroll, app: app)
+        XCTAssertEqual(name.label, "Mumbai Central-New Delhi Rajdhani Express")
+        XCTAssertTrue(app.buttons["search.recent.12951"].exists)
+        capture(app, "Full recent train name at largest text")
+        let source = app.staticTexts["search.result.source.12951"]
+        reveal(source, in: scroll, app: app)
+        XCTAssertEqual(source.label, "Historical route pack")
+        capture(app, "Recent catalogue provenance at largest text")
+        reveal(name, in: scroll, app: app); name.tap()
+        XCTAssertTrue(app.staticTexts["12951 · Mumbai Central-New Delhi Rajdhani Express"].waitForExistence(timeout: 10))
+        app.buttons["Find a train"].tap()
+        scroll = app.scrollViews.firstMatch
+        let clear = app.buttons["Clear recent trains"]
+        reveal(clear, in: scroll, app: app)
+        XCTAssertGreaterThanOrEqual(clear.frame.height, 44)
+        capture(app, "Reachable clear-recent action at largest text")
+        clear.tap()
+        XCTAssertFalse(app.buttons["search.recent.12951"].exists)
+    }
+
+    @MainActor
     func testOriginCalendarConfirmsExactDateAndCancelRetainsQuickSelection() async throws {
         try await verifyOriginCalendar(largest: false)
     }
