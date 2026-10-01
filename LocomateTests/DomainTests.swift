@@ -1066,6 +1066,8 @@ struct GatewayContractTests {
             preview: false, now: now) == .stale)
         #expect(JourneyPositionEvidence.display(journey: journey, cached: false,
             preview: false, now: now.addingTimeInterval(11 * 60)) == .hidden)
+        #expect(JourneyPositionEvidence.display(journey: journey, cached: true,
+            preview: false, now: now.addingTimeInterval(-90)) == .hidden)
     }
 
     @Test("real data survives the passport summary")

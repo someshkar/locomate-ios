@@ -156,12 +156,12 @@ public enum JourneyPositionEvidence {
               journey.position.observedAt.isFinite,
               journey.position.observedAt > 0 else { return .hidden }
         let age = now.timeIntervalSince1970 * 1_000 - journey.position.observedAt
-        guard age >= -60_000 else { return .hidden }
+        guard age >= 0 else { return .hidden }
         let freshness = journey.provenance?.freshness
         if cached || freshness == "stale" {
             return age <= 72 * 60 * 60 * 1_000 ? .stale : .hidden
         }
-        if (freshness == "live" || freshness == nil), age >= 0, age <= 10 * 60 * 1_000 {
+        if (freshness == "live" || freshness == nil), age <= 10 * 60 * 1_000 {
             return .observed
         }
         return .hidden
