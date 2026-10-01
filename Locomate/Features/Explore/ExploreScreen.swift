@@ -18,6 +18,9 @@ struct ExploreScreen: View {
 
     @State private var network = NetworkSnapshotModel()
     @State private var refreshTask: Task<Void, Never>?
+    @State private var trainList: NetworkTrainListScope?
+
+    let onSelect: (Routes.JourneyDestination) -> Void
 
     private var production: Bool { services.mode.isProduction }
     private var markers: [NetworkMarker] { network.markers }
@@ -27,6 +30,8 @@ struct ExploreScreen: View {
             colors.canvas.ignoresSafeArea(edges: .top)
             NetworkMapView(
                 markers: markers,
+                onSelect: openJourney,
+                onInspectCluster: { trainList = .cluster($0) },
                 onBoundsChange: { newBounds in
                     network.setBounds(newBounds)
                     scheduleRefresh()
@@ -37,7 +42,13 @@ struct ExploreScreen: View {
 
             ExploreNetworkOverlay(production: production, markers: markers,
                                   loading: network.loading, error: network.error,
-                                  expired: network.expired, generatedAt: network.snapshot?.generatedAt)
+                                  expired: network.expired, generatedAt: network.snapshot?.generatedAt,
+                                  onShowTrains: { trainList = .all })
+        }
+        .sheet(item: $trainList) { scope in
+            NetworkTrainList(markers: scope.filter(markers), title: scope.title,
+                             expired: network.expired, onSelect: openJourney)
+                .environment(\.locomoteColors, colors)
         }
         .task(id: scenePhase) {
             guard production, scenePhase == .active else { return }
@@ -61,6 +72,12 @@ struct ExploreScreen: View {
             if phase != .active { stopRefresh() }
         }
         .onDisappear { stopRefresh() }
+    }
+
+    private func openJourney(_ markerID: NetworkMarker.ID) {
+        guard let destination = network.destination(for: markerID) else { return }
+        trainList = nil
+        onSelect(destination)
     }
 
     // MARK: Data
@@ -102,6 +119,7 @@ struct ExploreNetworkOverlay: View {
     let error: String?
     let expired: Bool
     let generatedAt: Date?
+    var onShowTrains: () -> Void = {}
 
     var body: some View {
         Group {
@@ -190,6 +208,17 @@ struct ExploreNetworkOverlay: View {
 
     private var statsContent: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
+            if production {
+                Button(action: onShowTrains) {
+                    Label("View trains", systemImage: "list.bullet")
+                        .font(LocomateFont.body)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .foregroundStyle(colors.accentBase)
+                .accessibilityIdentifier("explore.viewTrains")
+                .accessibilityHint("Opens a list of current train positions and dated journeys.")
+            }
             if production, !markers.isEmpty {
                 (dynamicTypeSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
@@ -259,9 +288,13 @@ struct ExploreNetworkOverlay: View {
 
 struct NetworkMapView: UIViewRepresentable {
     let markers: [NetworkMarker]
+    let onSelect: (NetworkMarker.ID) -> Void
+    let onInspectCluster: ([NetworkMarker.ID]) -> Void
     let onBoundsChange: (NetworkBounds) -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(onBoundsChange: onBoundsChange) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onBoundsChange: onBoundsChange, onSelect: onSelect, onInspectCluster: onInspectCluster)
+    }
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView(frame: .zero)
@@ -279,17 +312,25 @@ struct NetworkMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
+        context.coordinator.onSelect = onSelect
+        context.coordinator.onInspectCluster = onInspectCluster
         context.coordinator.update(mapView: mapView, markers: markers)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         private let onBoundsChange: (NetworkBounds) -> Void
+        var onSelect: (NetworkMarker.ID) -> Void
+        var onInspectCluster: ([NetworkMarker.ID]) -> Void
         private var annotations: [NetworkAnnotation] = []
         private var lastMarkers: [NetworkMarker] = []
         private var lastBounds = ""
 
-        init(onBoundsChange: @escaping (NetworkBounds) -> Void) {
+        init(onBoundsChange: @escaping (NetworkBounds) -> Void,
+             onSelect: @escaping (NetworkMarker.ID) -> Void,
+             onInspectCluster: @escaping ([NetworkMarker.ID]) -> Void) {
             self.onBoundsChange = onBoundsChange
+            self.onSelect = onSelect
+            self.onInspectCluster = onInspectCluster
         }
 
         func update(mapView: MKMapView, markers: [NetworkMarker]) {
@@ -297,10 +338,7 @@ struct NetworkMapView: UIViewRepresentable {
             lastMarkers = markers
             mapView.removeAnnotations(annotations)
             annotations = markers.map { marker in
-                NetworkAnnotation(
-                    coordinate: CLLocationCoordinate2D(latitude: marker.latitude, longitude: marker.longitude),
-                    title: marker.title, subtitle: marker.subtitle, observed: marker.observed
-                )
+                NetworkAnnotation(marker: marker)
             }
             mapView.addAnnotations(annotations)
         }
@@ -328,6 +366,11 @@ struct NetworkMapView: UIViewRepresentable {
                 view.markerTintColor = UIColor(red: 0, green: 0.62, blue: 0.98, alpha: 1)
                 view.glyphText = "\(cluster.memberAnnotations.count)"
                 view.displayPriority = .defaultHigh
+                cluster.title = "\(cluster.memberAnnotations.count) trains"
+                cluster.subtitle = "Choose a train from the list"
+                view.accessibilityLabel = cluster.title
+                view.accessibilityHint = "Show the callout, then view the trains in this cluster."
+                view.rightCalloutAccessoryView = actionButton(symbol: "list.bullet", label: "View \(cluster.memberAnnotations.count) trains")
                 view.canShowCallout = true
                 return view
             }
@@ -341,26 +384,119 @@ struct NetworkMapView: UIViewRepresentable {
                 : UIColor(red: 1, green: 0.72, blue: 0.30, alpha: 1))
             view.accessibilityLabel = train.title
             view.accessibilityValue = train.subtitle
-            view.accessibilityHint = "Double-tap to show train details."
+            view.accessibilityHint = "Show the callout, then open this dated journey."
+            view.rightCalloutAccessoryView = actionButton(
+                symbol: "arrow.right", label: "Open journey for \(train.marker.title), origin date \(train.marker.destination.date)"
+            )
             view.canShowCallout = true
             view.clusteringIdentifier = "locomate-trains"
             view.displayPriority = .defaultLow
             view.collisionMode = .circle
             return view
         }
+
+        func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,
+                     calloutAccessoryControlTapped control: UIControl) {
+            if let train = view.annotation as? NetworkAnnotation {
+                onSelect(train.marker.id)
+            } else if let cluster = view.annotation as? MKClusterAnnotation {
+                let ids = cluster.memberAnnotations.compactMap { ($0 as? NetworkAnnotation)?.marker.id }
+                if !ids.isEmpty { onInspectCluster(ids) }
+            }
+        }
+
+        private func actionButton(symbol: String, label: String) -> UIButton {
+            let button = UIButton(type: .system)
+            button.setImage(UIImage(systemName: symbol), for: .normal)
+            button.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
+            button.accessibilityLabel = label
+            return button
+        }
     }
 }
 
-private final class NetworkAnnotation: NSObject, MKAnnotation {
-    let coordinate: CLLocationCoordinate2D
-    let title: String?
-    let subtitle: String?
-    let observed: Bool
+final class NetworkAnnotation: NSObject, MKAnnotation {
+    let marker: NetworkMarker
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: marker.latitude, longitude: marker.longitude)
+    }
+    var title: String? { marker.title }
+    var subtitle: String? { marker.subtitle }
+    var observed: Bool { marker.observed }
 
-    init(coordinate: CLLocationCoordinate2D, title: String, subtitle: String, observed: Bool) {
-        self.coordinate = coordinate
-        self.title = title
-        self.subtitle = subtitle
-        self.observed = observed
+    init(marker: NetworkMarker) { self.marker = marker }
+}
+
+/// Store membership, not a captured snapshot: a presented list must lose expired
+/// entries and pick up current source/time values while it remains on screen.
+enum NetworkTrainListScope: Identifiable {
+    case all
+    case cluster([NetworkMarker.ID])
+    var id: String { "network-trains" }
+    var title: String {
+        if case .cluster = self { return "Trains in cluster" }
+        return "Trains on map"
+    }
+    func filter(_ markers: [NetworkMarker]) -> [NetworkMarker] {
+        guard case let .cluster(ids) = self else { return markers }
+        let membership = Set(ids)
+        return markers.filter { membership.contains($0.id) }
+    }
+}
+
+struct NetworkTrainList: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.locomoteColors) private var colors
+    let markers: [NetworkMarker]
+    let title: String
+    let expired: Bool
+    let onSelect: (NetworkMarker.ID) -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.units(3)) {
+                    Text("Origin dates use India Standard Time. Position type, source and update time are shown for each train.")
+                        .font(LocomateFont.caption)
+                        .foregroundStyle(colors.textSecondary)
+                    if markers.isEmpty {
+                        Text(expired ? "Positions expired. This list will update when fresh positions arrive." : "No current train positions in this list. Move the map or wait for a network update.")
+                            .font(LocomateFont.body)
+                            .foregroundStyle(colors.textPrimary)
+                    }
+                    ForEach(markers) { marker in
+                        VStack(alignment: .leading, spacing: Spacing.units(2)) {
+                            Text(marker.title)
+                                .font(LocomateFont.headline)
+                                .foregroundStyle(colors.textPrimary)
+                            Text(marker.subtitle)
+                                .font(LocomateFont.caption)
+                                .foregroundStyle(colors.textSecondary)
+                            Button { onSelect(marker.id) } label: {
+                                Label("Open journey", systemImage: "arrow.right")
+                                    .font(LocomateFont.body)
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .foregroundStyle(colors.accentBase)
+                            .accessibilityLabel("Open journey for \(marker.title), origin date \(marker.destination.date)")
+                            .accessibilityIdentifier("explore.openJourney.\(marker.id)")
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(Spacing.units(3))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(colors.raised, in: RoundedRectangle(cornerRadius: Radius.lg))
+                    }
+                }
+                .padding(Spacing.units(4))
+            }
+            .accessibilityIdentifier("explore.trainList")
+            .background(colors.canvas)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+        }
     }
 }

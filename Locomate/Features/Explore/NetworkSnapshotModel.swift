@@ -5,6 +5,7 @@ import Observation
 /// timestamp changes must update MapKit even when the coordinate is unchanged.
 struct NetworkMarker: Identifiable, Equatable {
     let id: String
+    let destination: Routes.JourneyDestination
     let latitude: Double
     let longitude: Double
     let title: String
@@ -33,17 +34,23 @@ struct NetworkSnapshot {
         freshUntil = expiry
         entries = response.trains.compactMap { train in
             let point = train.coordinate
-            guard point.latitude.isFinite, point.longitude.isFinite,
+            guard Routes.isValidTrainNumber(train.trainNumber),
+                  Routes.isValidCalendarDate(train.originDate),
+                  point.latitude.isFinite, point.longitude.isFinite,
                   (-90...90).contains(point.latitude), (-180...180).contains(point.longitude),
                   let observedAt = Self.date(train.observedAt) else { return nil }
             // An observed label needs an observation source. Do not relabel an
             // inconsistent entry as a prediction that the gateway did not send.
             if train.positionKind == .observed,
                ![DataSource.official, .community, .device].contains(train.source) { return nil }
+            // Run IDs are provider-owned. Date and train fields are the route
+            // authority and also participate in identity when a provider reuses an ID.
+            let id = "\(train.runId)|\(train.trainNumber)|\(train.originDate)"
             return Entry(marker: NetworkMarker(
-                id: train.runId, latitude: point.latitude, longitude: point.longitude,
+                id: id, destination: .init(trainNumber: train.trainNumber, date: train.originDate),
+                latitude: point.latitude, longitude: point.longitude,
                 title: "\(train.trainNumber) · \(train.name)",
-                subtitle: "\(train.positionKind.rawValue) · \(train.source.rawValue) · \(train.observedAt)",
+                subtitle: "Origin date \(train.originDate) IST · \(train.positionKind.rawValue) · \(train.source.rawValue) · updated \(train.observedAt)",
                 kind: train.positionKind
             ), observedAt: observedAt)
         }
@@ -55,10 +62,19 @@ struct NetworkSnapshot {
 
     func markers(at now: Date) -> [NetworkMarker] {
         guard isFresh(at: now) else { return [] }
-        return entries.filter {
-            let age = now.timeIntervalSince($0.observedAt)
-            return age >= -60 && age <= 10 * 60
-        }.map(\.marker)
+        var indices: [NetworkMarker.ID: Int] = [:]
+        var latest: [Entry] = []
+        for entry in entries {
+            let age = now.timeIntervalSince(entry.observedAt)
+            guard age >= -60 && age <= 10 * 60 else { continue }
+            if let index = indices[entry.marker.id] {
+                if entry.observedAt > latest[index].observedAt { latest[index] = entry }
+            } else {
+                indices[entry.marker.id] = latest.count
+                latest.append(entry)
+            }
+        }
+        return latest.map(\.marker)
     }
 
     private static func date(_ value: String) -> Date? {
@@ -95,6 +111,12 @@ final class NetworkSnapshotModel {
     var expired: Bool { snapshot.map { !$0.isFresh(at: now) } ?? false }
 
     func tick() { now = clock() }
+
+    /// Recheck at the action boundary, including between display-clock ticks.
+    func destination(for markerID: NetworkMarker.ID) -> Routes.JourneyDestination? {
+        tick()
+        return markers.first { $0.id == markerID }?.destination
+    }
 
     func setBounds(_ newBounds: NetworkBounds) {
         guard newBounds != bounds else { return }

@@ -41,7 +41,10 @@ public struct RootView: View {
                 case .journey:
                     JourneyScreen(request: pendingJourney, onOpenSearch: { switchTab(.search) })
                 case .explore:
-                    ExploreScreen()
+                    ExploreScreen(onSelect: { destination in
+                        pendingJourney = JourneyRequest(trainNumber: destination.trainNumber, originDate: destination.date)
+                        switchTab(.journey)
+                    })
                 case .passport:
                     PassportScreen(onOpenSearch: { switchTab(.search) })
                 case .search:

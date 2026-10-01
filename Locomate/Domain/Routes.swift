@@ -16,9 +16,9 @@ public enum Routes {
         public let date: String
     }
 
-    private static let trainPattern = try! NSRegularExpression(pattern: "^\\d{4,6}$")
+    private static let trainPattern = try! NSRegularExpression(pattern: "\\A[0-9]{4,6}\\z")
     private static let datePattern = try! NSRegularExpression(
-        pattern: "^(\\d{4})-(\\d{2})-(\\d{2})$"
+        pattern: "\\A([0-9]{4})-([0-9]{2})-([0-9]{2})\\z"
     )
 
     public static func isValidTrainNumber(_ value: String) -> Bool {

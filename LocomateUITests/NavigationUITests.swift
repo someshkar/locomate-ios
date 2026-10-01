@@ -1,6 +1,49 @@
 import XCTest
+import Network
 
 final class NavigationUITests: XCTestCase {
+    @MainActor
+    func testNetworkTrainListOpensExactDatedJourney() async throws {
+        for category in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+            let ready = expectation(description: "Loopback network fixture ready")
+            let gateway = try NetworkSelectionGateway(ready: ready)
+            defer { gateway.stop() }
+            await fulfillment(of: [ready], timeout: 5)
+            let app = XCUIApplication()
+            app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = try XCTUnwrap(gateway.baseURL)
+            app.launchArguments = ["-UIPreferredContentSizeCategoryName", category]
+            app.launch()
+            XCTAssertTrue(app.buttons["Explore"].waitForExistence(timeout: 10))
+            app.buttons["Explore"].tap()
+            let listButton = app.buttons["explore.viewTrains"]
+            XCTAssertTrue(listButton.waitForExistence(timeout: 10))
+            for _ in 0..<6 where !listButton.isHittable { app.scrollViews.firstMatch.swipeUp() }
+            XCTAssertTrue(listButton.isHittable)
+            listButton.tap()
+            let journey = app.buttons["explore.openJourney.opaque-provider-run|01234|2026-09-30"]
+            XCTAssertTrue(journey.waitForExistence(timeout: 10))
+            let source = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Origin date 2026-09-30 IST · observed · official")).firstMatch
+            XCTAssertTrue(source.exists)
+            let list = app.scrollViews["explore.trainList"]
+            capture(app, "Network train list top \(category)")
+            for _ in 0..<6 where !journey.isHittable { list.swipeUp() }
+            XCTAssertTrue(journey.isHittable)
+            XCTAssertGreaterThanOrEqual(journey.frame.height, 44)
+            XCTAssertTrue(journey.label.contains("01234"))
+            XCTAssertTrue(journey.label.contains("2026-09-30"))
+            capture(app, "Network train list \(category)")
+            journey.tap()
+            // The fake returns a named 404 for the dated run request. This
+            // proves the real list→RootView→Journey→RailService route, without
+            // shipping a test-only app navigation path or pretending feed data.
+            XCTAssertTrue(app.staticTexts["2026-09-30 · Dated journey request reached fixture."].waitForExistence(timeout: 10))
+            XCTAssertTrue(gateway.paths.contains("/v1/runs/01234/2026-09-30"))
+            XCTAssertFalse(gateway.paths.contains { $0.contains("journey-alerts") || $0.contains("/privacy/consent") || $0.contains("observations") })
+            XCTAssertFalse(journey.exists, "Selecting a journey must dismiss the train list.")
+            app.terminate()
+        }
+    }
+
     @MainActor
     func testCurrentLocalGatewayJourneyAndNetwork() throws {
         guard let gateway = ProcessInfo.processInfo.environment["LOCOMOTE_LOCAL_GATEWAY_URL"],
@@ -443,5 +486,74 @@ private extension XCTestCase {
         add(diagnostic)
         XCTAssertTrue(element.isHittable, screen)
         return CGRect(x: screenFrame.minX, y: top, width: screenFrame.width, height: bottom - top)
+    }
+}
+
+/// A deterministic loopback HTTP service used by the UI test process only.
+/// The application uses its ordinary API configuration and request code.
+private final class NetworkSelectionGateway: @unchecked Sendable {
+    private let listener: NWListener
+    private let queue = DispatchQueue(label: "NetworkSelectionGateway")
+    private let lock = NSLock()
+    private var requests: [String] = []
+    var paths: [String] { lock.withLock { requests } }
+    var baseURL: String? { listener.port.map { "http://127.0.0.1:\($0.rawValue)" } }
+
+    init(ready: XCTestExpectation) throws {
+        listener = try NWListener(using: .tcp, on: .any)
+        listener.stateUpdateHandler = { state in
+            if case .ready = state { ready.fulfill() }
+        }
+        listener.newConnectionHandler = { [weak self] connection in
+            guard let self else { connection.cancel(); return }
+            connection.start(queue: self.queue)
+            self.receive(connection, accumulated: Data())
+        }
+        listener.start(queue: queue)
+    }
+
+    func stop() { listener.cancel() }
+
+    private func receive(_ connection: NWConnection, accumulated: Data) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 16384) { [weak self] data, _, complete, error in
+            guard let self else { connection.cancel(); return }
+            var buffer = accumulated
+            if let data { buffer.append(data) }
+            guard let text = String(data: buffer, encoding: .utf8), text.contains("\r\n\r\n") else {
+                if complete || error != nil || buffer.count > 65536 { connection.cancel() }
+                else { self.receive(connection, accumulated: buffer) }
+                return
+            }
+            let rawPath = text.split(separator: " ").dropFirst().first.map(String.init) ?? ""
+            let path = String(rawPath.split(separator: "?").first ?? "")
+            self.lock.withLock { self.requests.append(path) }
+            let response = self.response(for: path)
+            let body = (try? JSONSerialization.data(withJSONObject: response.body)) ?? Data()
+            var bytes = Data("HTTP/1.1 \(response.status)\r\nContent-Type: application/json\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n".utf8)
+            bytes.append(body)
+            connection.send(content: bytes, completion: .contentProcessed { _ in connection.cancel() })
+        }
+    }
+
+    private func response(for path: String) -> (status: String, body: [String: Any]) {
+        if path == "/v1/auth/device-session" {
+            return ("200 OK", ["accessToken": "test-session", "expiresIn": 3600])
+        }
+        if path == "/v1/network/trains" {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let now = Date()
+            let train: [String: Any] = [
+                "runId": "opaque-provider-run", "trainNumber": "01234", "originDate": "2026-09-30",
+                "name": "A deliberately long overnight express train name",
+                "coordinate": ["latitude": 22.6, "longitude": 79.5], "bearingDegrees": 0,
+                "observedAt": formatter.string(from: now), "source": "official", "confidence": "high",
+                "delayMinutes": 0, "delayStatus": "observed", "originCode": "AAA", "destinationCode": "BBB",
+                "positionKind": "observed"
+            ]
+            return ("200 OK", ["trains": [train], "generatedAt": formatter.string(from: now),
+                               "freshUntil": formatter.string(from: now.addingTimeInterval(120))])
+        }
+        return ("404 Not Found", ["error": ["code": "fixture_unavailable", "message": "Dated journey request reached fixture."]])
     }
 }
