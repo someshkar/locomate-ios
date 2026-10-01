@@ -26,6 +26,12 @@ public final class JourneyModel {
     public private(set) var isCached = false
     public private(set) var isPreview = false
     public private(set) var planNotice: String?
+    public private(set) var refreshError: String?
+    public private(set) var evidenceNow = Date()
+
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+    @ObservationIgnored private var loadID: UUID?
+    @ObservationIgnored private var selectionID = UUID()
 
     public var trainNumber: String
     public var originDate: String
@@ -35,6 +41,8 @@ public final class JourneyModel {
     private let passport: PassportRepository
     private let liveActivity: LiveActivityService
     private var pendingSavedJourney: SavedJourney?
+    private var planLoaded = false
+    private var lastLoadedAt: Date?
 
     public init(
         trainNumber: String = "12137",
@@ -70,7 +78,8 @@ public final class JourneyModel {
             error: {
                 if case .failed = phase { return "failed" }
                 return nil
-            }()
+            }(),
+            now: evidenceNow
         )
     }
 
@@ -82,28 +91,108 @@ public final class JourneyModel {
 
     // MARK: Loading
 
-    public func load() async {
+    public func load() async { await requestLoad(preserveVisible: false) }
+
+    /// The existing card stays usable while its dated run is revalidated.
+    public func refresh() async { await requestLoad(preserveVisible: true) }
+
+    /// A caller owns this task for one active scene/selection. Cancelling it
+    /// cancels the request as well as the delay; resuming starts with a refresh.
+    func runActiveRefresh(refreshImmediately: Bool = true,
+                          sleep: (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
+                          didRefresh: () async -> Void = {}) async {
+        if refreshImmediately {
+            await refresh()
+            guard !Task.isCancelled else { return }
+            await didRefresh()
+        }
+        while !Task.isCancelled {
+            do { try await sleep(.seconds(60)) } catch { return }
+            guard !Task.isCancelled else { return }
+            await refresh()
+            guard !Task.isCancelled else { return }
+            await didRefresh()
+        }
+    }
+
+    public var positionDisplay: JourneyPositionDisplay {
+        guard let journey else { return .hidden }
+        return JourneyPositionEvidence.display(journey: journey, cached: isCached,
+                                                preview: isPreview, now: evidenceNow)
+    }
+
+    /// Independent from network completion, including while a request hangs.
+    func refreshClock(now: Date = Date()) { evidenceNow = now }
+
+    var nextEvidenceDeadline: Date? {
+        guard let journey, !isPreview, journey.position.observedAt.isFinite,
+              journey.position.observedAt > 0 else { return nil }
+        let observed = Date(timeIntervalSince1970: journey.position.observedAt / 1_000)
+        if observed > evidenceNow {
+            // Bad provider clocks must not create an unbounded sleep duration.
+            return observed.timeIntervalSince(evidenceNow) <= 60 ? observed : nil
+        }
+        switch positionDisplay {
+        case .observed: return observed.addingTimeInterval(10 * 60 + 0.001)
+        case .stale: return observed.addingTimeInterval(72 * 60 * 60 + 0.001)
+        case .hidden, .preview: return nil
+        }
+    }
+
+    func cancelLoad() {
+        loadTask?.cancel()
+        loadTask = nil
+        loadID = nil
+    }
+
+    private func requestLoad(preserveVisible: Bool) async {
+        guard !Task.isCancelled, !PrivacyDeletionLatch.isPending else { return }
+        // A Retry tap and a lifecycle refresh share the current request.
+        if let loadTask { await loadTask.value; return }
+        let id = UUID()
+        loadID = id
+        let task = Task { await performLoad(preserveVisible: preserveVisible, id: id) }
+        loadTask = task
+        await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
+        if loadID == id { loadTask = nil; loadID = nil }
+    }
+
+    private func performLoad(preserveVisible: Bool, id: UUID) async {
         let requestedTrainNumber = trainNumber
         let requestedOriginDate = originDate
-        // Preview packs are always available, even offline.
+        let previousJourney = journey
+        let previousCachedAt = cachedAt ?? lastLoadedAt
+        let restorePlan = !preserveVisible || !planLoaded
+        func current() -> Bool {
+            loadID == id && !Task.isCancelled && !PrivacyDeletionLatch.isPending
+                && trainNumber == requestedTrainNumber && originDate == requestedOriginDate
+        }
+        guard current() else { return }
         let pack = RoutePackStore.pack(requestedTrainNumber)
-
         if let service {
-            phase = .loading
+            if !preserveVisible || previousJourney == nil { phase = .loading }
             do {
                 let loaded = try await service.journey(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
-                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+                guard current() else { return }
                 isPreview = false
                 isCached = false
                 cachedAt = nil
+                refreshError = nil
+                refreshClock()
+                lastLoadedAt = evidenceNow
                 phase = .loaded(loaded)
                 await cache.saveJourney(loaded, originDate: requestedOriginDate)
+                guard current() else { return }
                 let loadedOperations = try? await service.operationalChain(
                     trainNumber: requestedTrainNumber, originDate: requestedOriginDate
                 )
-                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+                guard current() else { return }
                 operations = loadedOperations
-                // Restore only a Live Activity that the traveller started for this run.
+                // Only sync a Live Activity the traveller previously started.
                 if liveActivity.isRunning(for: loaded.id) {
                     await liveActivity.sync(
                         journey: loaded, registerToken: tokenRegistrar(for: loaded.id),
@@ -113,16 +202,19 @@ public final class JourneyModel {
                     await liveActivity.end(unregisterRun: tokenUnregisterer())
                 }
             } catch {
-                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+                // Cancellation is lifecycle control, not an offline response.
+                guard current() else { return }
                 await liveActivity.end(unregisterRun: tokenUnregisterer())
-                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
-                // Retain the last good journey rather than falling through to fixtures.
-                if let cached = await cache.loadJourney(trainNumber: requestedTrainNumber, originDate: requestedOriginDate) {
-                    guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+                guard current() else { return }
+                let cached = await cache.loadJourney(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
+                guard current() else { return }
+                refreshError = error.localizedDescription
+                refreshClock()
+                if let retained = cached?.journey ?? previousJourney {
                     isPreview = false
                     isCached = true
-                    cachedAt = cached.cachedAt
-                    phase = .loaded(cached.journey)
+                    cachedAt = cached?.cachedAt ?? previousCachedAt
+                    phase = .loaded(retained)
                 } else {
                     isPreview = false
                     isCached = false
@@ -133,15 +225,15 @@ public final class JourneyModel {
             }
         } else if let pack {
             await liveActivity.end(unregisterRun: tokenUnregisterer())
-            guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+            guard current() else { return }
             presentPreview(pack)
         } else {
             await liveActivity.end(unregisterRun: tokenUnregisterer())
-            guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+            guard current() else { return }
             phase = .failed("No route pack is bundled for \(requestedTrainNumber).")
         }
 
-        guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+        guard current() else { return }
         if let saved = pendingSavedJourney, let journey {
             pendingSavedJourney = nil
             if let resolved = PassportReopening.plan(for: saved, journey: journey, originDate: requestedOriginDate) {
@@ -151,12 +243,16 @@ public final class JourneyModel {
                 plan = JourneyPlanLogic.default(journey: journey, originDate: requestedOriginDate)
                 planNotice = "The saved boarding and drop-off calls no longer match this timetable. Showing the full route; choose your stops in Edit."
             }
-            if let plan, !PrivacyDeletionLatch.isPending { await cache.savePlan(plan) }
+            planLoaded = true
+            if let plan { await cache.savePlan(plan) }
             return
         }
-        let loadedPlan = await cache.loadPlan(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
-        guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
-        plan = loadedPlan
+        if restorePlan {
+            let loadedPlan = await cache.loadPlan(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
+            guard current() else { return }
+            plan = loadedPlan
+            planLoaded = true
+        }
     }
 
     /// Registers a push-to-update token for gateway delivery when configured.
@@ -189,6 +285,7 @@ public final class JourneyModel {
 
     public func savePlan(_ plan: JourneyPlan) async {
         self.plan = plan
+        planLoaded = true
         planNotice = nil
         await cache.savePlan(plan)
     }
@@ -204,14 +301,24 @@ public final class JourneyModel {
     }
 
     public func update(trainNumber: String, originDate: String, savedJourney: SavedJourney? = nil) async {
+        cancelLoad()
+        let selection = UUID()
+        selectionID = selection
         let changedRun = self.trainNumber != trainNumber || self.originDate != originDate
         self.trainNumber = trainNumber
         self.originDate = originDate
         pendingSavedJourney = savedJourney
         planNotice = nil
         if changedRun {
+            phase = .idle
+            operations = nil
+            plan = nil
+            planLoaded = false
+            refreshError = nil
+            lastLoadedAt = nil
             await liveActivity.end(unregisterRun: tokenUnregisterer())
         }
+        guard !Task.isCancelled, selectionID == selection else { return }
         await load()
     }
 

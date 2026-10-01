@@ -12,6 +12,8 @@ struct JourneyStopProjection {
     let delayLabel: String
     let delayKind: StatusKind
     let distanceKm: Double?
+    let platform: String?
+    let platformLabel: String
 
     static func make(journey: Journey, plan: JourneyPlan?, originDate: String,
                      cached: Bool, preview: Bool, now: Date = Date()) -> Self? {
@@ -106,7 +108,8 @@ struct JourneyStopProjection {
                     detail: detail,
                     delayLabel: preview ? "Timetable only" : RailNaturalLanguage.delay(minutes: delay, status: delayStatus),
                     delayKind: StatusMapping.statusForDelay(delayMinutes: delay, delayStatus: delayStatus),
-                    distanceKm: distance)
+                    distanceKm: distance, platform: preview ? nil : stop.knownPlatform,
+                    platformLabel: stale ? "Last known platform" : "Platform")
     }
 
     private static func validTime(_ value: String?) -> String? {

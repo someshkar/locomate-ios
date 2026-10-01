@@ -1,5 +1,7 @@
 import Foundation
 import Testing
+import SwiftUI
+import XCTest
 @testable import Locomate
 
 @Suite("Personal station card evidence")
@@ -182,6 +184,23 @@ struct JourneyStopProjectionTests {
         #expect(card.distanceKm == nil)
     }
 
+    @Test("platform is the selected call's known value, omitted for unknown and preview")
+    func selectedPlatform() throws {
+        let journey = try fixture(running: true) { raw in
+            var stops = raw["stops"] as! [[String: Any]]
+            stops[0]["platform"] = "9"
+            stops[1]["platform"] = "3A"
+            raw["stops"] = stops
+        }
+        #expect(project(journey)?.code == "DR")
+        #expect(project(journey)?.platform == "3A")
+        #expect(project(journey)?.platformLabel == "Platform")
+        #expect(project(journey, cached: true)?.platformLabel == "Last known platform")
+        #expect(project(journey, preview: true)?.platform == nil)
+        let unknown = try fixture(running: true)
+        #expect(project(unknown)?.platform == nil)
+    }
+
     private func project(_ journey: Journey, plan: JourneyPlan? = nil, cached: Bool = false,
                          preview: Bool = false, at date: Date? = nil) -> JourneyStopProjection? {
         JourneyStopProjection.make(journey: journey, plan: plan, originDate: journey.travelDate,
@@ -214,5 +233,65 @@ struct JourneyStopProjectionTests {
         }
         edit(&raw)
         return try JSONDecoder.locomote.decode(Journey.self, from: JSONSerialization.data(withJSONObject: raw))
+    }
+}
+
+// Renders the production card in an ordinary scroll container for inspection.
+// This does not substitute for a physical VoiceOver pass.
+@MainActor
+final class JourneyPlatformLayoutTests: XCTestCase {
+    func testPlatformCardNormalAndLargestTextRemainScrollable() async throws {
+        let file = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "run-12137-2026-09-18", withExtension: "json"))
+        let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        var raw = try XCTUnwrap(envelope["journey"] as? [String: Any])
+        var stops = try XCTUnwrap(raw["stops"] as? [[String: Any]])
+        stops[0]["platform"] = "3A"
+        stops[0]["name"] = "Chhatrapati Shivaji Maharaj Terminus"
+        raw["stops"] = stops
+        let journey = try JSONDecoder.locomote.decode(Journey.self, from: JSONSerialization.data(withJSONObject: raw))
+        for size in [DynamicTypeSize.large, .accessibility5] {
+            let content = ScrollView {
+                NextStopStat(journey: journey, originDate: journey.travelDate, plan: nil, cached: false, preview: false)
+                    .padding(16)
+            }
+            .dynamicTypeSize(size)
+            .environment(\.locomoteColors, LocomateTheme.dark)
+            .background(LocomateTheme.dark.canvas)
+            let host = UIHostingController(rootView: content)
+            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 740))
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            host.view.frame = window.bounds
+            host.view.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(400))
+            let scroll = try XCTUnwrap(scrollViews(in: host.view).first)
+            XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1,
+                                     "Large type must not create horizontally clipped content.")
+            capture(host.view, name: "Station platform card \(size) top")
+            if size.isAccessibilitySize {
+                XCTAssertGreaterThan(scroll.contentSize.height, scroll.bounds.height)
+                XCTAssertTrue(scroll.isScrollEnabled)
+                scroll.setContentOffset(CGPoint(x: 0, y: min(320, scroll.contentSize.height - scroll.bounds.height)), animated: false)
+                host.view.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(100))
+                capture(host.view, name: "Station platform card largest text scrolled")
+            }
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+    }
+
+    private func scrollViews(in view: UIView) -> [UIScrollView] {
+        (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews(in: $0) }
+    }
+
+    private func capture(_ view: UIView, name: String) {
+        let image = UIGraphicsImageRenderer(bounds: view.bounds).image { _ in
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }

@@ -11,6 +11,7 @@ import SwiftUI
 import MapKit
 
 struct JourneyScreen: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -21,6 +22,7 @@ struct JourneyScreen: View {
     var onOpenSearch: () -> Void = {}
 
     @State private var model: JourneyModel?
+    @State private var modelRequest: RootView.JourneyRequest?
     @State private var sheetPosition = SheetPosition()
     @State private var detentIndex = 1
     @State private var panel: JourneyPanel = .trip
@@ -69,25 +71,23 @@ struct JourneyScreen: View {
         .sheet(isPresented: $showDataSource) {
             DataSourceSheet(model: model)
         }
-        .task { await ensureModel() }
-        .onChange(of: request) { _, newValue in
-            guard let newValue else { return }
-            Task {
-                if let model {
-                    services.contribution.stop()
-                    await model.update(trainNumber: newValue.trainNumber, originDate: newValue.originDate,
-                                       savedJourney: newValue.savedJourney)
-                    liveCardEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
-                    await reconcileContribution()
-                } else {
-                    await ensureModel()
-                }
-            }
+        .task(id: RefreshContext(request: request, phase: scenePhase)) {
+            guard scenePhase == .active else { return }
+            await keepJourneyCurrent()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .locomoteForeground)) { _ in
-            recomputeDaylight()
-            Task { await reconcileContribution() }
+        .task(id: ClockContext(phase: scenePhase, deadline: model?.nextEvidenceDeadline)) {
+            guard scenePhase == .active, let model else { return }
+            model.refreshClock()
+            guard let deadline = model.nextEvidenceDeadline else { return }
+            do { try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSinceNow))) }
+            catch { return }
+            guard !Task.isCancelled else { return }
+            model.refreshClock()
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { model?.cancelLoad() }
+        }
+        .onDisappear { model?.cancelLoad() }
         .onChange(of: preferences.contributionsEnabled) { _, _ in
             Task { await reconcileContribution() }
         }
@@ -98,10 +98,20 @@ struct JourneyScreen: View {
 
     // MARK: Model lifecycle
 
-    private func ensureModel() async {
+    private struct RefreshContext: Equatable {
+        let request: RootView.JourneyRequest?
+        let phase: ScenePhase
+    }
+    private struct ClockContext: Equatable {
+        let phase: ScenePhase
+        let deadline: Date?
+    }
+
+    private func keepJourneyCurrent() async {
+        if services.mode.isProduction && request == nil { return }
+        var loadedSelection = false
         if model == nil {
-            if services.mode.isProduction && request == nil { return }
-            let created = JourneyModel(
+            model = JourneyModel(
                 trainNumber: request?.trainNumber ?? "12137",
                 originDate: request?.originDate ?? IndiaDate.today(),
                 service: services.railService,
@@ -110,12 +120,31 @@ struct JourneyScreen: View {
                 liveActivity: services.liveActivity,
                 savedJourney: request?.savedJourney
             )
-            model = created
-            await created.load()
-            liveCardEnabled = created.journey.map { created.isLiveActivityRunning(for: $0.id) } ?? false
-            recomputeDaylight()
-            await reconcileContribution()
+            modelRequest = request
+        } else if modelRequest != request, let request, let model {
+            services.contribution.stop()
+            modelRequest = request
+            await model.update(trainNumber: request.trainNumber, originDate: request.originDate,
+                               savedJourney: request.savedJourney)
+            loadedSelection = true
         }
+        guard !Task.isCancelled, let model else { return }
+        model.refreshClock()
+        if loadedSelection { await didRefreshJourney() }
+        if services.mode.isProduction {
+            await model.runActiveRefresh(refreshImmediately: !loadedSelection, didRefresh: didRefreshJourney)
+        } else {
+            if !loadedSelection { await model.load() }
+            guard !Task.isCancelled else { return }
+            await didRefreshJourney()
+        }
+    }
+
+    private func didRefreshJourney() async {
+        guard !Task.isCancelled, let model else { return }
+        liveCardEnabled = model.journey.map { model.isLiveActivityRunning(for: $0.id) } ?? false
+        recomputeDaylight()
+        await reconcileContribution()
     }
 
     private func reconcileContribution() async {
@@ -155,8 +184,7 @@ struct JourneyScreen: View {
             RailMapView(
                 route: route,
                 progress: journey.position.progress,
-                positionDisplay: JourneyPositionEvidence.display(
-                    journey: journey, cached: model?.isCached == true, preview: model?.isPreview == true),
+                positionDisplay: model?.positionDisplay ?? .hidden,
                 markers: markers(for: journey),
                 daylight: daylight,
                 lightingMode: preferences.mapLighting,
@@ -314,12 +342,12 @@ struct JourneyScreen: View {
                         historicalRoute: model.isPreview,
                         cached: model.isCached,
                         cachedAt: model.cachedAt,
-                        error: nil,
+                        error: model.refreshError,
                         observedAt: journey.provenance?.observedAt
                     )))
                     switch panel {
                     case .trip: tripPanel(model: model, journey: journey)
-                    case .stops: JourneyTimeline(journey: journey, plan: model.plan)
+                    case .stops: JourneyTimeline(journey: journey, plan: model.plan, cached: model.isCached, preview: model.isPreview)
                     case .insights: insightsPanel(model: model, journey: journey)
                     }
                 }

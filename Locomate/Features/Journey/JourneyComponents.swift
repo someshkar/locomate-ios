@@ -215,12 +215,23 @@ struct NextStopStat: View {
                     VStack(alignment: .leading, spacing: Spacing.units(2)) {
                         Text(stop.heading).eyebrow(colors.textTertiary)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text("\(stop.code) · \(stop.name)")
-                            .font(LocomateFont.title)
-                            .tracking(-1.2)
-                            .foregroundStyle(colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("journey.nextStop.station")
+                        (dynamicTypeSize.isAccessibilitySize
+                            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
+                            : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(3)))) {
+                            Text("\(stop.code) · \(stop.name)")
+                                .font(LocomateFont.title)
+                                .tracking(-1.2)
+                                .foregroundStyle(colors.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityIdentifier("journey.nextStop.station")
+                            if let platform = stop.platform {
+                                PlatformBadge(platform: platform, label: stop.platformLabel, station: stop.name)
+                                    .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil,
+                                           alignment: .trailing)
+                                    .accessibilityIdentifier("journey.nextStop.platform")
+                            }
+                        }
                         (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16)) : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(4)))) {
                             Stat(label: stop.timeLabel, value: stop.time ?? "Unavailable")
                                 .fixedSize(horizontal: false, vertical: true)
@@ -243,6 +254,28 @@ struct NextStopStat: View {
                 }
             }
         }
+    }
+}
+
+/// A known platform belongs to this station call, with a separate readable box.
+struct PlatformBadge: View {
+    @Environment(\.locomoteColors) private var colors
+    let platform: String
+    let label: String
+    let station: String
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Text(label).font(LocomateFont.caption)
+            Text(platform).font(LocomateFont.title.monospacedDigit())
+        }
+        .foregroundStyle(colors.textPrimary)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(Spacing.units(2))
+        .background(RoundedRectangle(cornerRadius: Radius.sm).fill(colors.raised))
+        .overlay(RoundedRectangle(cornerRadius: Radius.sm).strokeBorder(colors.borderStrong, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label) \(platform) for \(station)")
     }
 }
 
@@ -290,6 +323,8 @@ struct JourneyTimeline: View {
 
     let journey: Journey
     let plan: JourneyPlan?
+    var cached = false
+    var preview = false
 
     private var stops: [StationStop] {
         guard let plan, let resolved = JourneyPlanLogic.resolve(journey: journey, plan: plan) else {
@@ -341,9 +376,6 @@ struct JourneyTimeline: View {
                             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 3))
                             : AnyLayout(HStackLayout(spacing: Spacing.units(2)))) {
                             Text(stop.code).eyebrow(colors.textTertiary)
-                            if let platform = stop.knownPlatform {
-                                Text("PF \(platform)").eyebrow(colors.textTertiary)
-                            }
                             let kind = StatusMapping.statusForDelay(
                                 delayMinutes: stop.delayMinutes, delayStatus: stop.delayStatus
                             )
@@ -352,6 +384,12 @@ struct JourneyTimeline: View {
                                     .font(LocomateFont.micro)
                                     .monospacedDigit()
                                     .foregroundStyle(colors.pair(for: kind).fg)
+                            }
+                            if !preview, let platform = stop.knownPlatform {
+                                PlatformBadge(platform: platform,
+                                              label: cached || stop.delayStatus == .stale ? "Last known platform" : "Platform",
+                                              station: stop.name)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
                             }
                         }
                     }

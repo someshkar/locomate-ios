@@ -233,7 +233,6 @@ struct SearchScreen: View {
                     )
                 }
             results = matches
-            if !matches.isEmpty { isFieldFocused = false }
             return
         }
 
@@ -248,7 +247,6 @@ struct SearchScreen: View {
                 await MainActor.run {
                     results = found
                     loading = false
-                    if !found.isEmpty { isFieldFocused = false }
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -262,6 +260,7 @@ struct SearchScreen: View {
 }
 
 private struct SearchResultRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     let train: TrainSearchResult
     let onTap: () -> Void
@@ -269,29 +268,38 @@ private struct SearchResultRow: View {
     var body: some View {
         ScaleButton(accessibilityLabel: "\(train.number) \(train.name)", action: onTap) {
             VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
-                HStack {
+                metadataLayout {
                     Text(train.number)
                         .font(LocomateFont.timeLarge)
                         .monospacedDigit()
                         .foregroundStyle(colors.textPrimary)
-                    Spacer(minLength: Spacing.units(2))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("search.result.number.\(train.number)")
+                    if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.units(2)) }
                     Text(train.live ? "LIVE" : train.sourceLabel.uppercased())
                         .eyebrow(train.live ? colors.pair(for: .onTime).fg : colors.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("search.result.source.\(train.number)")
                 }
                 Text(train.name)
                     .font(LocomateFont.bodyStrong)
                     .foregroundStyle(colors.textPrimary)
-                    .lineLimit(1)
-                HStack(spacing: Spacing.units(2)) {
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("search.result.name.\(train.number)")
+                metadataLayout {
                     Text("\(train.originCode) → \(train.destinationCode)")
                         .font(LocomateFont.data)
                         .foregroundStyle(colors.textSecondary)
-                    Spacer(minLength: Spacing.units(2))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("search.result.route.\(train.number)")
+                    if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.units(2)) }
                     if train.distanceKm > 0 {
                         Text("\(Int(train.distanceKm)) km")
                             .font(LocomateFont.data)
                             .monospacedDigit()
                             .foregroundStyle(colors.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("search.result.distance.\(train.number)")
                     }
                 }
             }
@@ -301,5 +309,12 @@ private struct SearchResultRow: View {
             .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                 .strokeBorder(colors.borderSubtle, lineWidth: 0.75))
         }
+        .accessibilityIdentifier("search.result.\(train.number)")
+    }
+
+    private var metadataLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.units(2)))
+            : AnyLayout(HStackLayout(spacing: Spacing.units(2)))
     }
 }
