@@ -68,6 +68,7 @@
 		DFDD352BB7A5B3CFFBBB4ABD /* PassportStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */; };
 		E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C028E9C77E24D717A7837279 /* RailService.swift */; };
 		EA5A844900F4D07715CE95BA /* JourneyAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBA6C10BB98B18C8F24535C /* JourneyAlerts.swift */; };
+		F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */; };
 		FB196DB12892DEA724331CCE /* BottomDock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE583CF262143B60198CA75E /* BottomDock.swift */; };
 /* End PBXBuildFile section */
 
@@ -144,6 +145,7 @@
 		742FF165A9FB065C0F1C37AE /* RoutePacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePacks.swift; sourceTree = "<group>"; };
 		77B4810BE4039C50CEC22F72 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		77D651A8F7C73C875F222ACD /* route-packs.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "route-packs.json"; sourceTree = "<group>"; };
+		7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyRequestTests.swift; sourceTree = "<group>"; };
 		7D57AB5B4B797F9F0A3EE315 /* Locomate.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Locomate.entitlements; sourceTree = "<group>"; };
 		88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportStats.swift; sourceTree = "<group>"; };
 		8C70932B43912D748A7E000C /* PrivacyDeletionLatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyDeletionLatch.swift; sourceTree = "<group>"; };
@@ -333,6 +335,7 @@
 				EE97A4E1410E4133B6E288E0 /* DomainTests.swift */,
 				4FD965AE762908BAC26F73B0 /* JourneyAlertTests.swift */,
 				5E12393A5FFC0B022CC9F8A5 /* LocalGatewayIntegrationTests.swift */,
+				7C5B41F8A448B7C87661AB28 /* PrivacyRequestTests.swift */,
 				D457528F22290ED0F75A20DE /* Fixtures */,
 			);
 			path = LocomateTests;
@@ -632,6 +635,7 @@
 				56734436EA551F5755619328 /* DomainTests.swift in Sources */,
 				8BBE6CD6F52F6F162EA68E54 /* JourneyAlertTests.swift in Sources */,
 				49DF9587385C9F47580F3BF2 /* LocalGatewayIntegrationTests.swift in Sources */,
+				F3D4D8594C9630DD941958E1 /* PrivacyRequestTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

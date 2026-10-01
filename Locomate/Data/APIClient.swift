@@ -61,17 +61,21 @@ public actor APIClient {
     private let tokenStore: TokenStore
     private let session: URLSession
     private let installationId: String
+    private let privacyDeletionPending: @Sendable () -> Bool
     private var refreshTask: Task<AuthSession, Error>?
 
-    public init(baseURL: URL, tokenStore: TokenStore, installationId: String) {
+    public init(baseURL: URL, tokenStore: TokenStore, installationId: String,
+                session: URLSession? = nil,
+                privacyDeletionPending: @escaping @Sendable () -> Bool = { PrivacyDeletionLatch.isPending }) {
         self.baseURL = baseURL
         self.tokenStore = tokenStore
         self.installationId = installationId
+        self.privacyDeletionPending = privacyDeletionPending
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = APIClient.requestTimeout
         configuration.timeoutIntervalForResource = APIClient.requestTimeout * 2
         configuration.waitsForConnectivity = false
-        self.session = URLSession(configuration: configuration)
+        self.session = session ?? URLSession(configuration: configuration)
     }
 
     // MARK: Auth
@@ -79,19 +83,20 @@ public actor APIClient {
     /// Create or refresh a device session. Single-flight: concurrent callers
     /// await one refresh rather than stampeding the gateway.
     private func validSession(allowPrivacyDeletion: Bool = false) async throws -> AuthSession {
-        guard allowPrivacyDeletion || !PrivacyDeletionLatch.isPending else {
+        guard allowPrivacyDeletion || !privacyDeletionPending() else {
             throw APIError(status: 0, code: "privacy_deletion_pending", requestId: "", retryable: false,
                 message: "Data deletion is pending. Retry deletion in Settings before using the rail service.")
         }
         if let existing = tokenStore.load(), !existing.isExpired { return existing }
         if let refreshTask { return try await refreshTask.value }
 
-        let task = Task<AuthSession, Error> { [installationId] in
+        let task = Task<AuthSession, Error> { [installationId, allowPrivacyDeletion] in
             let response: SessionResponse = try await self.rawRequest(
                 path: "/v1/auth/device-session",
                 method: "POST",
                 body: ["installationId": installationId],
-                token: nil
+                token: nil,
+                allowPrivacyDeletion: allowPrivacyDeletion
             )
             let session = AuthSession(
                 accessToken: response.accessToken,
@@ -163,7 +168,8 @@ public actor APIClient {
 
     public func delete(_ path: String, query: [String: String] = [:]) async throws {
         let session = try await validSession(allowPrivacyDeletion: path == "/v1/privacy/installation")
-        _ = try await performRequest(path: path, method: "DELETE", query: query, body: nil, token: session.accessToken)
+        _ = try await performRequest(path: path, method: "DELETE", query: query, body: nil, token: session.accessToken,
+                                     allowPrivacyDeletion: path == "/v1/privacy/installation")
     }
 
     private func rawRequest<T: Decodable>(
@@ -172,11 +178,12 @@ public actor APIClient {
         query: [String: String] = [:],
         body: [String: Any]?,
         token: String?,
-        idempotencyKey: String? = nil
+        idempotencyKey: String? = nil,
+        allowPrivacyDeletion: Bool = false
     ) async throws -> T {
         let (data, status, requestId) = try await performRequest(
             path: path, method: method, query: query, body: body, token: token,
-            idempotencyKey: idempotencyKey
+            idempotencyKey: idempotencyKey, allowPrivacyDeletion: allowPrivacyDeletion
         )
         do {
             return try JSONDecoder.locomote.decode(T.self, from: data)
@@ -193,8 +200,14 @@ public actor APIClient {
         body: [String: Any]?,
         token: String?,
         idempotencyKey: String? = nil,
-        bodyData: Data? = nil
+        bodyData: Data? = nil,
+        allowPrivacyDeletion: Bool = false
     ) async throws -> (Data, Int, String) {
+        // Recheck after session refresh: deletion may have started while authentication awaited the network.
+        guard allowPrivacyDeletion || !privacyDeletionPending() else {
+            throw APIError(status: 0, code: "privacy_deletion_pending", requestId: "", retryable: false,
+                message: "Data deletion is pending. Retry deletion in Settings before using the rail service.")
+        }
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
         if !query.isEmpty {
             components?.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
