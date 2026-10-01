@@ -20,6 +20,14 @@ Search is a primary map-backed page with the floating dock visible, following th
 
 On 2026-10-01, four focused simulator cases passed (77.419 seconds): normal primary navigation, largest-text navigation, keyboard/dock bounds with preview selection, and the complete long train name, number, source, route, and distance at the largest Dynamic Type size. Search screenshots were inspected. The updated Release performance workload also passed its one simulator dry-run case (16.955 seconds), returning through the Journey dock action. These are layout and interaction results; physical performance and the full accessibility gate remain open. Logs: `/tmp/locomate-ios-search-page-final-ui.log` and `/tmp/locomate-ios-search-performance-dryrun.log`; captures: `/tmp/locomate-ios-search-page-final-captures`.
 
+## Shared Journey summary
+
+Journey reuses the map sheet's native material and dark gradient, with a compact 22-point summary card, horizontal station code/time rows at ordinary text sizes, and stacked clocks at accessibility sizes. Full-word departure countdowns emphasize the numbers while keeping their scheduled-boarding qualification. Segment editing appears when details expand. One quiet source-details control replaces the duplicated floating mode/Search badges.
+
+Each summary clock comes from the selected station's actual event, available matched forecast, or scheduled event. Intermediate stops cannot inherit the destination forecast or legacy compatibility arrival. Preview, cached, and stale evidence suppress forecasts; saved clocks retain explicit labels. Scheduled arrival day markers follow the ordered timetable and selected boarding day; clock-only actual/forecast reports do not invent a day offset.
+
+On 2026-10-01, 19 focused Swift cases and three navigation/timeline cases passed before the final map-control cleanup. After that cleanup, three simulator cases passed in **152.429 seconds**, covering normal/largest navigation and the real HTTP future-countdown, Save, and Passport year-filter flow at both text sizes. Four Journey/countdown captures were inspected. The current Release interaction dry run passed (one case, **17.137 seconds**), validating expansion, scrolling, collapse and Search return without recording physical performance. Logs: `/tmp/locomate-ios-journey-card-final.log`, `/tmp/locomate-ios-journey-card-verified.log`, `/tmp/locomate-ios-journey-card-release-dryrun.log`; captures: `/tmp/locomate-ios-journey-card-verified-captures`. Full visual parity, the full accessibility audit, and physical-device checks remain open.
+
 ## Build and test
 
 Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.

@@ -83,7 +83,7 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
     }
 }
 
-private struct OverviewSheetSurface: View {
+struct OverviewSheetSurface: View {
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 

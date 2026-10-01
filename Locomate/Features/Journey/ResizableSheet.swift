@@ -110,27 +110,11 @@ public struct ResizableSheet<Handle: View, Content: View>: View {
             // the view to the whole container, so `.background` would then paint
             // ink across the entire screen above the sheet.
             .frame(height: sheetHeight, alignment: .top)
-            .background(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: Radius.sheet, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: Radius.sheet,
-                    style: .continuous
-                )
-                .fill(colors.elevated)
-            )
-            .overlay(alignment: .top) {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: Radius.sheet, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: Radius.sheet,
-                    style: .continuous
-                )
-                .strokeBorder(colors.borderSubtle, lineWidth: 0.75)
-                .allowsHitTesting(false)
-            }
+            .background { OverviewSheetSurface() }
             .clipShape(
                 UnevenRoundedRectangle(
-                    topLeadingRadius: Radius.sheet, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: Radius.sheet,
+                    topLeadingRadius: 28, bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0, topTrailingRadius: 28,
                     style: .continuous
                 )
             )

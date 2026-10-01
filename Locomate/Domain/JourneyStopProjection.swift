@@ -122,4 +122,29 @@ struct JourneyStopProjection {
                           options: .regularExpression) != nil else { return nil }
         return String(value.prefix(5))
     }
+
+    /// Summary clocks use the selected call, never a destination-wide compatibility value.
+    static func summaryClock(stop: StationStop, departure: Bool, preview: Bool, cached: Bool,
+                             originDeparture: String? = nil, stale: Bool = false) -> JourneySummaryClock {
+        let event = departure ? "departure" : "arrival"
+        if !preview, let actual = validTime(departure ? stop.actualDeparture : stop.actualArrival) {
+            return .init(time: actual, label: "\(cached ? "Saved actual" : "Actual") \(event)", evidence: .recorded)
+        }
+        if !departure, !preview, !cached, !stale, stop.delayStatus != .stale,
+           case .available(let forecast) = stop.forecast,
+           forecast.source != .unavailable, let time = validTime(forecast.p50) {
+            return .init(time: time, label: forecast.source == .observed ? "Observed arrival" : "Estimated arrival",
+                         evidence: forecast.source == .observed ? .recorded : .estimated)
+        }
+        let time = departure ? validTime(stop.scheduledDeparture) ?? validTime(originDeparture)
+            : validTime(stop.scheduledArrival)
+        return .init(time: time, label: "\(cached ? "Saved scheduled" : "Scheduled") \(event)", evidence: .scheduled)
+    }
+}
+
+struct JourneySummaryClock {
+    enum Evidence { case scheduled, estimated, recorded }
+    let time: String?
+    let label: String
+    let evidence: Evidence
 }

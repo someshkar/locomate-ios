@@ -201,6 +201,59 @@ struct JourneyStopProjectionTests {
         #expect(project(unknown)?.platform == nil)
     }
 
+    @Test("summary arrival never borrows the destination forecast or compatibility time")
+    func summaryUsesOnlySelectedArrival() throws {
+        let journey = try fixture { raw in
+            var stops = raw["stops"] as! [[String: Any]]
+            stops[1]["predictedArrival"] = "23:59"
+            stops[1]["scheduledArrival"] = "19:48"
+            raw["stops"] = stops
+            var prediction = raw["prediction"] as! [String: Any]
+            prediction["expectedTime"] = "23:59"
+            raw["prediction"] = prediction
+        }
+        let clock = JourneyStopProjection.summaryClock(stop: journey.stops[1], departure: false, preview: false, cached: false)
+        #expect(clock.time == "19:48")
+        #expect(clock.label == "Scheduled arrival")
+        #expect(clock.evidence == .scheduled)
+    }
+
+    @Test("summary forecast is matched, suppressed in preview/cache, and actual arrival wins")
+    func summaryQualifiesEvidence() throws {
+        let journey = try fixture { raw in
+            var stops = raw["stops"] as! [[String: Any]]
+            stops[1]["forecast"] = forecast("20:05")
+            stops[1]["scheduledArrival"] = "19:48"
+            raw["stops"] = stops
+        }
+        let stop = journey.stops[1]
+        let estimated = JourneyStopProjection.summaryClock(stop: stop, departure: false, preview: false, cached: false)
+        #expect(estimated.time == "20:05" && estimated.label == "Estimated arrival")
+        #expect(JourneyStopProjection.summaryClock(stop: stop, departure: false, preview: true, cached: false).time == "19:48")
+        let saved = JourneyStopProjection.summaryClock(stop: stop, departure: false, preview: false, cached: true)
+        #expect(saved.time == "19:48" && saved.label == "Saved scheduled arrival")
+        let recorded = try fixture { raw in
+            var stops = raw["stops"] as! [[String: Any]]
+            stops[1]["forecast"] = forecast("20:05")
+            stops[1]["actualArrival"] = "19:49"
+            raw["stops"] = stops
+        }
+        let actual = JourneyStopProjection.summaryClock(stop: recorded.stops[1], departure: false, preview: false, cached: true)
+        #expect(actual.time == "19:49" && actual.label == "Saved actual arrival")
+    }
+
+    @Test("summary departure does not turn an arrival-only call into a departure")
+    func summaryMissingDeparture() throws {
+        let journey = try fixture { raw in
+            var stops = raw["stops"] as! [[String: Any]]
+            stops[1]["scheduledDeparture"] = NSNull()
+            stops[1]["actualDeparture"] = NSNull()
+            stops[1]["scheduledArrival"] = "19:48"
+            raw["stops"] = stops
+        }
+        #expect(JourneyStopProjection.summaryClock(stop: journey.stops[1], departure: true, preview: false, cached: false).time == nil)
+    }
+
     private func project(_ journey: Journey, plan: JourneyPlan? = nil, cached: Bool = false,
                          preview: Bool = false, at date: Date? = nil) -> JourneyStopProjection? {
         JourneyStopProjection.make(journey: journey, plan: plan, originDate: journey.travelDate,

@@ -62,136 +62,158 @@ struct PersonalizedTripCard: View {
     let mode: StatusKind
     let preview: Bool
     var cached = false
+    var expanded = false
     let onEdit: () -> Void
 
     private var segment: [StationStop] { JourneyPlanLogic.stops(journey: journey, plan: plan) }
-    private var boardingTime: String {
-        RailTime.format(segment.first?.scheduledDeparture ?? segment.first?.scheduledArrival ?? journey.departureTime)
+    private var boardingClock: JourneySummaryClock? {
+        segment.first.map { JourneyStopProjection.summaryClock(stop: $0, departure: true,
+            preview: preview, cached: cached,
+            originDeparture: plan.boarding.index == 0 ? journey.departureTime : nil) }
     }
-    private var alightingTime: String {
-        let stop = segment.last
-        return RailTime.format(preview ? stop?.scheduledArrival : stop?.forecast.flatMap { forecast in
-            if case .available(let available) = forecast { return available.p50 }
-            return nil
-        } ?? stop?.predictedArrival ?? journey.prediction.expectedTime ?? journey.scheduledArrival)
+    private var alightingClock: JourneySummaryClock? {
+        segment.last.map { JourneyStopProjection.summaryClock(stop: $0, departure: false,
+            preview: preview, cached: cached, stale: journey.provenance?.freshness == "stale") }
     }
-
-    /// Line height of the station-code text, used to align the centre column's
-    /// arrow with the code row so the distance lands on the name row.
-    private var codeLineHeight: CGFloat {
-        UIFont.monospacedSystemFont(ofSize: 26, weight: .regular).lineHeight
+    private var arrivalDaySuffix: String {
+        guard alightingClock?.evidence == .scheduled,
+              let start = RailNaturalLanguage.scheduledBoarding(journey: journey, plan: plan),
+              let end = RailNaturalLanguage.scheduledAlighting(journey: journey, plan: plan) else { return "" }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = IndiaDate.timeZone
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: start),
+                                           to: calendar.startOfDay(for: end)).day ?? 0
+        return days > 0 ? " +\(days)" : ""
     }
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: Spacing.units(4)) {
-                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 6))) {
-                    Text("\(journey.trainNumber) · \(journey.trainName)")
-                        .font(LocomateFont.caption)
-                        .foregroundStyle(colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 4)
-                    Text(preview ? "PREVIEW · NOT LIVE" : StatusMapping.journeyModeLabel(mode, cached: cached))
-                        .font(LocomateFont.micro)
-                        .foregroundStyle(colors.pair(for: cached ? .stale : mode).fg)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .minimumScaleFactor(0.8)
-                }
-                VStack(alignment: .leading, spacing: 5) {
-                    TimelineView(.periodic(from: .now, by: 30)) { context in
-                        if let countdown = RailNaturalLanguage.departureCountdown(
-                            journey: journey, plan: plan, preview: preview, now: context.date
-                        ) {
-                            Text(countdown)
-                                .font(.system(.title2, weight: .semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(colors.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityIdentifier("journey.departureCountdown")
-                            Text("\(cached ? "Saved timetable · " : "")Scheduled boarding at \(plan.boarding.code)")
-                                .font(LocomateFont.caption)
-                                .foregroundStyle(colors.textSecondary)
-                        } else {
-                            Text(preview ? "Timetable sample" : "Your railway journey")
-                                .font(.system(.title2, weight: .semibold))
-                                .foregroundStyle(colors.textPrimary)
-                        }
-                    }
-                    Text("\(plan.boarding.name) to \(plan.alighting.name)")
-                        .font(LocomateFont.bodyStrong)
-                        .foregroundStyle(colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                // Two flexible outer columns of EQUAL width keep the centre
-                // column optically centred on the card. Using `Spacer`s here
-                // instead would centre the leftover *gap*, which drifts by half
-                // the difference between the two station-name widths.
-                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.units(3)))) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(plan.boarding.code)
-                            .font(LocomateFont.bodyStrong.monospacedDigit())
-                            .monospacedDigit()
-                            .foregroundStyle(colors.textPrimary)
-                        Text(boardingTime)
+        VStack(alignment: .leading, spacing: 16) {
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))) {
+                Text("\(journey.trainNumber) · \(journey.trainName)")
+                    .font(LocomateFont.caption)
+                    .foregroundStyle(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                Text(preview ? "PREVIEW · NOT LIVE" : StatusMapping.journeyModeLabel(mode, cached: cached))
+                    .font(LocomateFont.micro)
+                    .foregroundStyle(colors.pair(for: cached ? .stale : mode).fg)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    if let countdown = RailNaturalLanguage.departureCountdown(
+                        journey: journey, plan: plan, preview: preview, now: context.date
+                    ) {
+                        JourneyCountdownText(value: countdown)
+                            .accessibilityIdentifier("journey.departureCountdown")
+                        Text("\(cached ? "Saved timetable · " : "")Scheduled boarding at \(plan.boarding.code)")
                             .font(LocomateFont.caption)
-                            .foregroundStyle(preview ? colors.textSecondary : colors.pair(for: mode).fg)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    VStack(spacing: 2) {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(colors.accentBase)
-                            .frame(height: codeLineHeight)
-                        Text("\(Int(totalDistance)) km")
-                            .font(LocomateFont.caption.monospacedDigit())
-                            .foregroundStyle(colors.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .fixedSize()
-                    }
-                    .accessibilityHidden(true)
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(plan.alighting.code)
-                            .font(LocomateFont.bodyStrong.monospacedDigit())
-                            .monospacedDigit()
+                            .foregroundStyle(colors.textSecondary)
+                    } else {
+                        Text(preview ? "Timetable sample" : "Your railway journey")
+                            .font(.system(.title2, weight: .bold))
                             .foregroundStyle(colors.textPrimary)
-                        Text(alightingTime)
-                            .font(LocomateFont.caption)
-                            .foregroundStyle(preview ? colors.textSecondary : colors.pair(for: mode).fg)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    "\(plan.boarding.name), \(boardingTime), to \(plan.alighting.name), \(alightingTime). \(Int(totalDistance)) kilometres"
-                )
-
-                Divider().overlay(colors.borderSubtle)
-
-                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout())) {
-                    Text("\(segment.count) stops on your segment")
+                Text("\(plan.boarding.name) to \(plan.alighting.name)")
+                    .font(LocomateFont.bodyStrong)
+                    .foregroundStyle(colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Divider().overlay(colors.borderSubtle)
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 14))) {
+                stationClock(code: plan.boarding.code, clock: boardingClock, name: plan.boarding.name)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                stationClock(code: plan.alighting.code, clock: alightingClock, name: plan.alighting.name,
+                             daySuffix: arrivalDaySuffix)
+            }
+            if expanded {
+                (dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                    : AnyLayout(HStackLayout())) {
+                    Text("\(segment.count) stops · \(Int(totalDistance)) km on your segment")
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)
-                    Spacer()
+                        .fixedSize(horizontal: false, vertical: true)
+                    if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                     ScaleButton(accessibilityLabel: "Edit your journey", action: onEdit) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "ticket")
-                            Text("Edit").font(LocomateFont.bodyStrong)
-                        }
-                        .foregroundStyle(colors.accentBase)
+                        Label("Edit", systemImage: "ticket").font(LocomateFont.bodyStrong)
+                            .foregroundStyle(colors.accentBase)
                     }
                 }
             }
         }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(colors.canvas.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(colors.borderSubtle, lineWidth: 0.75))
         .accessibilityElement(children: .contain)
+    }
+
+    private func stationClock(code: String, clock: JourneySummaryClock?, name: String, daySuffix: String = "") -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))) {
+                Text(code).font(LocomateFont.data.weight(.semibold))
+                    .foregroundStyle(colors.textSecondary)
+                Text("\(clock?.time ?? "—")\(daySuffix)")
+                    .font(.system(.body, weight: .bold)).monospacedDigit()
+                    .foregroundStyle(clock?.evidence == .estimated ? colors.pair(for: .delayed).fg
+                        : clock?.evidence == .recorded ? colors.pair(for: .onTime).fg : colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(clock?.label ?? "Timing unavailable")
+                .font(LocomateFont.micro)
+                .foregroundStyle(colors.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(name), \(clock?.label ?? "Timing unavailable"), \(clock?.time ?? "unavailable")\(daySuffix)")
     }
 
     private var totalDistance: Double {
         guard let first = segment.first, let last = segment.last else { return journey.distanceKm }
         return max(1, last.distanceKm - first.distanceKm)
+    }
+}
+
+private struct JourneyCountdownText: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locomoteColors) private var colors
+    @ScaledMetric(relativeTo: .title2) private var numberSize: CGFloat = 27
+    @ScaledMetric(relativeTo: .caption) private var unitSize: CGFloat = 15
+
+    let value: String
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                Text(value).font(.system(.title2, weight: .bold))
+            } else {
+                Text(styledValue)
+            }
+        }
+        .monospacedDigit()
+        .foregroundStyle(colors.textPrimary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var styledValue: AttributedString {
+        var text = AttributedString(value)
+        text.font = .system(size: unitSize, weight: .semibold)
+        text.foregroundColor = colors.textSecondary
+        for range in value.ranges(of: /[0-9]+/) {
+            if let lower = AttributedString.Index(range.lowerBound, within: text),
+               let upper = AttributedString.Index(range.upperBound, within: text) {
+                text[lower..<upper].font = .system(size: numberSize, weight: .heavy)
+                text[lower..<upper].foregroundColor = colors.textPrimary
+            }
+        }
+        return text
     }
 }
 

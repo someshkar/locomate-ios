@@ -57,6 +57,12 @@ enum RailNaturalLanguage {
         return Int(end.timeIntervalSince(start) / 60)
     }
 
+    static func scheduledAlighting(journey: Journey, plan: JourneyPlan) -> Date? {
+        guard let resolved = JourneyPlanLogic.resolve(journey: journey, plan: plan) else { return nil }
+        return scheduledEvent(journey: journey, originDate: plan.originDate,
+                              index: resolved.alighting.index, departure: false)
+    }
+
     private static func scheduledEvent(journey: Journey, originDate: String,
                                        index target: Int, departure: Bool) -> Date? {
         guard journey.stops.indices.contains(target),

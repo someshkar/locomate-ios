@@ -230,22 +230,11 @@ struct JourneyScreen: View {
 
     private var mapChrome: some View {
         HStack {
-            iconButton("magnifyingglass", label: "Search trains", action: onOpenSearch)
             Spacer()
-            if let model {
-                StatusPill(
-                    label: StatusMapping.journeyModeLabel(model.statusKind, cached: model.isCached),
-                    kind: model.isCached ? .stale : model.statusKind,
-                    onGlass: true,
-                    pulsing: !model.isCached && (model.modeInput.map { StatusMapping.isLivePulseAllowed($0) } ?? false)
-                )
-            } else {
-                StatusPill(label: "FIND A TRAIN", kind: .scheduled, onGlass: true, pulsing: false)
-            }
-            Spacer()
-            iconButton("ellipsis", label: "Data source details", action: { showDataSource = true })
+            iconButton("info.circle", label: "Data source details", action: { showDataSource = true })
         }
         .padding(.horizontal, Spacing.units(4))
+        .padding(.top, 56)
         .safeAreaPadding(.top)
     }
 
@@ -326,6 +315,7 @@ struct JourneyScreen: View {
                     mode: model.statusKind,
                     preview: model.isPreview,
                     cached: model.isCached,
+                    expanded: detentIndex == 0,
                     onEdit: { setupVisible = true }
                 )
                 if let notice = model.planNotice {
@@ -357,7 +347,7 @@ struct JourneyScreen: View {
                         .accessibilityAddTraits(.isStaticText)
                 }
             }
-            .padding(.horizontal, Spacing.units(4))
+            .padding(.horizontal, Spacing.units(5.5))
             .padding(.bottom, 190)
             .contentShape(Rectangle())
         }

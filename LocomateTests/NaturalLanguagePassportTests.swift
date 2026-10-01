@@ -32,6 +32,8 @@ struct NaturalLanguageTests {
         let plan = try JourneyPlanLogic.create(journey: journey, originDate: "2026-10-01", boardingIndex: 1, alightingIndex: 2)
         let boarding = try #require(RailNaturalLanguage.scheduledBoarding(journey: journey, plan: plan))
         #expect(boarding == (try IndiaDate.instant(originDate: "2026-10-02", time: "01:20")))
+        #expect(RailNaturalLanguage.scheduledAlighting(journey: journey, plan: plan)
+            == (try IndiaDate.instant(originDate: "2026-10-02", time: "03:00")))
         let now = boarding.addingTimeInterval(-28 * 3_600)
         #expect(RailNaturalLanguage.departureCountdown(journey: journey, plan: plan, preview: false, now: now)
                 == "1 day 4 hours until scheduled departure")
