@@ -1,0 +1,23 @@
+name: iOS
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run Swift and simulator UI tests
+        run: >-
+          xcodebuild -project Locomate.xcodeproj
+          -scheme Locomate
+          -configuration Debug
+          -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
+          CODE_SIGNING_ALLOWED=NO
+          test
