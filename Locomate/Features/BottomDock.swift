@@ -3,8 +3,7 @@
 //  Locomate
 //
 //  Floating frosted tab bar with a sliding active indicator and a separate
-//  circular Search control. Ported from SmartRail
-//  `src/screens/BottomNavigation.tsx`.
+//  circular Search control. Native vectors follow the approved Doop navigation.
 //
 //  Micro-interaction: the icon translates up 1pt and scales 1.045 when active,
 //  the pill indicator springs between equal-width slots, and each selection
@@ -26,14 +25,6 @@ public enum LocomateTab: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var systemImage: String {
-        switch self {
-        case .journey: return "tram"
-        case .explore: return "globe"
-        case .passport: return "person.text.rectangle"
-        case .search: return "magnifyingglass"
-        }
-    }
 }
 
 struct BottomDock: View {
@@ -111,8 +102,7 @@ struct BottomDock: View {
     private var searchButton: some View {
         ScaleButton(accessibilityLabel: "Find a train", haptic: false, action: { select(.search) }) {
             ZStack {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 23, weight: .semibold))
+                NavigationGlyph(tab: .search, side: 23)
                     .foregroundStyle(colors.textPrimary)
             }
             .frame(width: 60, height: 60)
@@ -143,8 +133,7 @@ private struct DockItem: View {
     var body: some View {
         ScaleButton(accessibilityLabel: tab.label, haptic: false, action: onSelect) {
             VStack(spacing: 4) {
-                Image(systemName: tab.systemImage)
-                    .font(.system(size: 21, weight: .medium))
+                NavigationGlyph(tab: tab)
                     .foregroundStyle(active ? colors.textPrimary : colors.navigationSecondary)
                     .offset(y: active && !reduceMotion ? -1 : 0)
                     .scaleEffect(active && !reduceMotion ? 1.045 : 1)
@@ -161,7 +150,7 @@ private struct DockItem: View {
         }
         .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
         .accessibilityShowsLargeContentViewer {
-            Label(tab.label, systemImage: tab.systemImage)
+            Label { Text(tab.label) } icon: { NavigationGlyph(tab: tab, side: 56) }
         }
     }
 

@@ -6,6 +6,12 @@ The [Doop canvas](https://doop.design/c/ha6YK6QvsY) is the visual reference. The
 
 Main headings use the approved canvas’s native sans-serif fallback: a 32-point heavy system font for Journey, Search, and Explore, and a 34-point Passport heading, with −1.2/−1.3 tracking. These base sizes scale relative to Large Title across Dynamic Type categories. Journey titles have layout priority beside their controls so ordinary text stays on one line; accessibility layouts still put controls beneath the title. Passport’s distance uses the same unrounded, heavier font.
 
+## Shared navigation glyphs
+
+Both native repos draw the four navigation SVGs from the approved Doop frames: the train with two headlights, crosshair globe, vertical passport and Search lens. `NavigationGlyph` uses SwiftUI Canvas paths in the original 24 × 24 coordinates, with 1.9-unit tab strokes and a 2.2-unit Search stroke. Tabs render at 21 points and Search at 23 points. Colors, selection, motion, hit targets and accessibility names remain in the existing native buttons. The large-content viewer uses the same vector at 56 points.
+
+On 2026-10-02, the glyph update passed **three focused simulator UI cases in 49.126 seconds**, with no failures or skips: ordinary navigation, largest-text navigation with the native large-content viewer, and Search keyboard/dock bounds with preview Journey selection. All twelve exported screenshots were inspected. The Release simulator build also passed. Logs: `/tmp/locomate-ios-navigation-glyphs.log`, `/tmp/locomate-ios-navigation-glyphs-release-build.log`; captures: `/tmp/locomate-ios-navigation-glyphs-captures`. These checks cover the navigation change; full visual parity, the separate accessibility release gate and physical-device performance remain open.
+
 ## Shared Passport and Explore layout
 
 Both native repos use the approved iOS composition: a native map behind one rounded, scrollable bottom sheet and a floating dock, with the production dock kept outside the reading area. Explore's heading and source-aware viewport counts share that sheet. At accessibility sizes, the train-list action precedes the statistics so it can be reached without crossing the dock. Passport uses neutral All-Time/year filters and the canvas's deep violet gradient card, a 56-point distance total at ordinary text sizes, 22-point units, and 20-point supporting metrics. Accessibility categories use an adaptive distance layout and vertically stacked metrics.

@@ -43,6 +43,7 @@
 		77BAE3C7CCF47143B92EFBDC /* run-12137-2026-09-18.json in Resources */ = {isa = PBXBuildFile; fileRef = 3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */; };
 		7BE77F36FC438C8DF0A191B7 /* JourneyActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */; };
 		7C0B646A3C56CA1C98AB0E5A /* LocomateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73CC887AF73601484C4C90D2 /* LocomateApp.swift */; };
+		7EFC8FD13F1AD8B1F387B933 /* NavigationGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = B59CEAC435179E01425FB91B /* NavigationGlyph.swift */; };
 		80B1A74AEC23527E1260DA71 /* NetworkSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E1DB4EC560163257AA19C3E /* NetworkSnapshotTests.swift */; };
 		80F0EC525A2871B620DC7342 /* LocomateWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB694339FD14795C7B65C3DB /* LocomateWidgets.swift */; };
 		81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D753E598289063F4C2E948 /* SettingsScreen.swift */; };
@@ -203,6 +204,7 @@
 		AEBA6C10BB98B18C8F24535C /* JourneyAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAlerts.swift; sourceTree = "<group>"; };
 		AFC02771E41222AD2DF54EAA /* NaturalLanguagePassportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaturalLanguagePassportTests.swift; sourceTree = "<group>"; };
 		B16D7B1D0037EA920C357E74 /* JourneyMapCameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyMapCameraTests.swift; sourceTree = "<group>"; };
+		B59CEAC435179E01425FB91B /* NavigationGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationGlyph.swift; sourceTree = "<group>"; };
 		BA79DC1AEE48159E306D83F2 /* RailStorageScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailStorageScope.swift; sourceTree = "<group>"; };
 		BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDaylight.swift; sourceTree = "<group>"; };
 		BF89F017C9B92B9BB62877B6 /* PressableScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressableScale.swift; sourceTree = "<group>"; };
@@ -286,6 +288,7 @@
 				56107DD18F4B0A96F1291FEC /* Glass.swift */,
 				9764A28CB31A7EFF93F92590 /* Haptics.swift */,
 				0B203974EC00159BD3B5137B /* Motion.swift */,
+				B59CEAC435179E01425FB91B /* NavigationGlyph.swift */,
 				C739FB0ACAE431529F2E6A7E /* Palette.swift */,
 				BF89F017C9B92B9BB62877B6 /* PressableScale.swift */,
 				E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */,
@@ -698,6 +701,7 @@
 				91E5898D427B239E94D77784 /* MapMatcher.swift in Sources */,
 				862F49FD3CACCE368CBDA990 /* Models.swift in Sources */,
 				67ED51638DF6EE5626EDA37E /* Motion.swift in Sources */,
+				7EFC8FD13F1AD8B1F387B933 /* NavigationGlyph.swift in Sources */,
 				62CD4E9817A606A8124AFA43 /* NetworkSnapshotModel.swift in Sources */,
 				8229E764776C63DF94ABC90B /* ObservationSync.swift in Sources */,
 				217FBB048045E1081A2D1267 /* OverviewMapContainer.swift in Sources */,
