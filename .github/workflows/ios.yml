@@ -27,7 +27,8 @@ jobs:
           -scheme Locomate
           -configuration Debug
           -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=YES
+          CODE_SIGN_IDENTITY=-
           test
       - name: Build production configuration
         run: >-
@@ -36,5 +37,6 @@ jobs:
           -configuration Release
           -sdk iphonesimulator
           -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=YES
+          CODE_SIGN_IDENTITY=-
           build

@@ -10,10 +10,10 @@ Requirements: Xcode with an iOS 17 or newer SDK, and XcodeGen.
 xcodegen generate
 xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
-  test CODE_SIGNING_ALLOWED=NO
+  test CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
 ```
 
-The project has 85 Swift tests covering gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, and Passport calculations. Two UI tests cover primary navigation and a fresh production launch without sample data. Both suites passed on fresh iPhone 18 Pro simulators.
+The 89 Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, Passport calculations, and device-only Keychain migration. Two UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
 
 The native app icon uses the same route-shaped L as Android. Its 1024px asset can be regenerated with `swift scripts/render-app-icon.swift`. GitHub Actions runs the simulator tests on the Xcode 27 runner for each pull request.
 
