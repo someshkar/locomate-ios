@@ -23,6 +23,14 @@ struct PassportScreen: View {
     private var visibleJourneys: [SavedJourney] { period.filter(journeys) }
     private var stats: PassportStats { Passport.summarize(visibleJourneys) }
     private var years: [Int] { PassportPeriod.years(in: journeys) }
+    private var indiaYear: Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Kolkata")!
+        return calendar.component(.year, from: Date())
+    }
+    private var thisYearStats: PassportStats {
+        Passport.summarize(PassportPeriod.year(indiaYear).filter(journeys))
+    }
 
     var body: some View {
         Group {
@@ -64,6 +72,9 @@ struct PassportScreen: View {
                         PassportPeriodPicker(years: years, selection: $period)
                         PassportHeroCard(stats: stats, previewCount: visibleJourneys.filter { $0.preview == true }.count,
                                          periodLabel: period.label)
+                        if period == .allTime, thisYearStats.trips > 0 {
+                            thisYearTeaser
+                        }
                         journeyList
                     } else if loaded {
                         emptyState
@@ -74,6 +85,40 @@ struct PassportScreen: View {
             }
             .accessibilityIdentifier("passport.content")
         }
+    }
+
+    private var thisYearTeaser: some View {
+        let current = thisYearStats
+        let summary = current.distanceKm > 0
+            ? "\(Int(current.distanceKm.rounded()).formatted()) km · \(current.trips) saved \(current.trips == 1 ? "run" : "runs")"
+            : "\(current.trips) saved \(current.trips == 1 ? "run" : "runs") · distance unavailable"
+        return Button {
+            Haptics.select()
+            period = .year(indiaYear)
+        } label: {
+            HStack(spacing: Spacing.units(3)) {
+                VStack(alignment: .leading, spacing: Spacing.units(1)) {
+                    Text("THIS YEAR — " + String(indiaYear)).eyebrow(colors.textTertiary)
+                    Text(summary)
+                        .font(LocomateFont.bodyStrong)
+                        .foregroundStyle(colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(colors.textSecondary)
+            }
+            .padding(Spacing.units(3.5))
+            .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(colors.elevated.opacity(0.68)))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(colors.borderSubtle, lineWidth: 0.75))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show \(indiaYear) saved runs")
+        .accessibilityValue(summary)
+        .accessibilityIdentifier("passport.thisYear")
     }
 
     private func iconButton(_ system: String, label: String, action: @escaping () -> Void) -> some View {

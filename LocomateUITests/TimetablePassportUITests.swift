@@ -17,7 +17,7 @@ final class TimetablePassportUITests: XCTestCase {
             app.launchArguments = ["-UIPreferredContentSizeCategoryName", category]
             app.launch()
 
-            try openRun(app, date: gateway.futureDate, name: "Scheduled Boarding Express")
+            try openRun(app, gateway: gateway, date: gateway.futureDate, name: "Scheduled Boarding Express")
             let countdown = app.staticTexts["journey.departureCountdown"]
             XCTAssertTrue(countdown.waitForExistence(timeout: 10))
             XCTAssertTrue(countdown.label.contains("until scheduled departure"))
@@ -28,7 +28,7 @@ final class TimetablePassportUITests: XCTestCase {
             capture(app, "Scheduled countdown \(category)")
             save(app)
 
-            try openRun(app, date: gateway.pastDate, name: "Earlier Year Express")
+            try openRun(app, gateway: gateway, date: gateway.pastDate, name: "Earlier Year Express")
             XCTAssertTrue(app.staticTexts["12137 · Earlier Year Express"].waitForExistence(timeout: 10))
             XCTAssertFalse(app.staticTexts["journey.departureCountdown"].exists)
             save(app)
@@ -39,9 +39,19 @@ final class TimetablePassportUITests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Train origin year"].exists)
             let currentYear = app.buttons["passport.period.\(gateway.year)"]
             let periods = app.scrollViews["passport.periods"]
+            var indiaCalendar = Calendar(identifier: .gregorian)
+            indiaCalendar.timeZone = TimeZone(identifier: "Asia/Kolkata")!
+            if gateway.year == indiaCalendar.component(.year, from: Date()) {
+                let teaser = app.buttons["passport.thisYear"]
+                reveal(teaser, in: app.scrollViews["passport.content"])
+                XCTAssertTrue(teaser.isHittable)
+                capture(app, "Passport this year teaser \(category)")
+                teaser.tap()
+            }
+            reveal(periods, in: app.scrollViews["passport.content"])
             for _ in 0..<3 where !currentYear.isHittable { periods.swipeLeft() }
             XCTAssertTrue(currentYear.isHittable)
-            currentYear.tap()
+            if !currentYear.isSelected { currentYear.tap() }
             XCTAssertTrue(currentYear.isSelected)
             let futureName = app.staticTexts["Scheduled Boarding Express"]
             reveal(futureName, in: app.scrollViews["passport.content"])
@@ -71,10 +81,23 @@ final class TimetablePassportUITests: XCTestCase {
         }
     }
 
-    @MainActor private func openRun(_ app: XCUIApplication, date: String, name: String) throws {
+    @MainActor private func openRun(_ app: XCUIApplication, gateway: TimetablePassportGateway,
+                                    date: String, name: String) throws {
         // Exercise the production dated route and loader; Explore selection has its own gate.
-        app.open(try XCTUnwrap(URL(string: "locomate://journeys/12137?date=\(date)")))
-        XCTAssertTrue(app.staticTexts["12137 · \(name)"].waitForExistence(timeout: 10))
+        let link = try XCTUnwrap(URL(string: "locomate://journeys/12137?date=\(date)"))
+        app.open(link)
+        let systemOpen = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Open"]
+        if systemOpen.waitForExistence(timeout: 3) {
+            systemOpen.tap()
+            // On a fresh simulator the first open grants URL-scheme trust. Deliver
+            // the route again after that system confirmation.
+            app.open(link)
+        }
+        let journey = app.staticTexts["12137 · \(name)"]
+        let found = journey.waitForExistence(timeout: 15)
+        if !found { capture(app, "Missing dated journey \(date)") }
+        XCTAssertTrue(found, "Expected dated journey; fixture paths: \(gateway.paths); " +
+                      "visible text: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
     }
 
     @MainActor private func save(_ app: XCUIApplication) {
