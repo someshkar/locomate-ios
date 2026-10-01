@@ -91,6 +91,13 @@ struct ExploreScreen: View {
 
     private var statsCard: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
+            if production, !trains.isEmpty {
+                HStack(spacing: Spacing.units(2)) {
+                    networkStat("IN VIEW", value: trains.count)
+                    networkStat("OBSERVED", value: trains.filter { $0.positionKind == .observed }.count)
+                    networkStat("PREDICTED", value: trains.filter { $0.positionKind == .predicted }.count)
+                }
+            }
             Text(statsBody)
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textTertiary)
@@ -104,6 +111,24 @@ struct ExploreScreen: View {
         .background {
             GlassSurface(shape: RoundedRectangle(cornerRadius: Radius.lg, style: .continuous), heavy: true)
         }
+    }
+
+    private func networkStat(_ label: String, value: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value.formatted())
+                .font(LocomateFont.title)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(colors.textPrimary)
+            Text(label)
+                .font(LocomateFont.micro)
+                .foregroundStyle(colors.textTertiary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.units(2.5))
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(colors.raised))
     }
 
     private var statsBody: String {

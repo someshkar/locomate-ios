@@ -141,32 +141,52 @@ struct PassportHeroCard: View {
     let previewCount: Int
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: Spacing.units(4)) {
-                Text("SAVED RUNS · AS OF TODAY").eyebrow(colors.textTertiary)
-                HStack(alignment: .top, spacing: Spacing.units(4)) {
-                    Stat(label: "Saved runs", value: "\(stats.trips)")
-                    Stat(label: "Route km", value: "\(Int(stats.distanceKm.rounded()))")
-                    Stat(label: "Routes", value: "\(stats.uniqueRoutes)")
-                }
-                Text("Distance in saved runs, not verified travel history.\(previewCount > 0 ? " \(previewCount) route preview\(previewCount == 1 ? " is" : "s are") excluded." : "")")
+        VStack(alignment: .leading, spacing: Spacing.units(3)) {
+            Text("SAVED RUNS · AS OF TODAY").eyebrow(colors.textTertiary)
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(Int(stats.distanceKm.rounded()).formatted())
+                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                Text("km")
+                    .font(LocomateFont.title)
+            }
+            .foregroundStyle(colors.textPrimary)
+            Text("Distance in saved runs, not verified travel history.\(previewCount > 0 ? " \(previewCount) route preview\(previewCount == 1 ? " is" : "s are") excluded." : "")")
+                .font(LocomateFont.caption)
+                .foregroundStyle(colors.textSecondary)
+            Divider().overlay(colors.borderSubtle)
+            HStack(spacing: Spacing.units(2)) {
+                metric("SAVED RUNS", value: "\(stats.trips)")
+                metric("SCHEDULED", value: "\(stats.minutes / 60)h")
+                metric("STATIONS", value: "\(stats.uniqueStations)")
+            }
+            if let top = stats.routeFrequency.first {
+                Text("Most saved: \(top.originCode) → \(top.destinationCode) · \(top.trips) \(top.trips == 1 ? "run" : "runs")")
                     .font(LocomateFont.caption)
-                    .foregroundStyle(colors.textSecondary)
-                Divider().overlay(colors.borderSubtle)
-                HStack(alignment: .top, spacing: Spacing.units(4)) {
-                    Stat(label: "Stations", value: "\(stats.uniqueStations)")
-                    Stat(label: "Trains", value: "\(stats.uniqueTrains)")
-                    Stat(label: "Scheduled",
-                         value: "\(stats.minutes / 60)", unit: "h")
-                }
-                if let top = stats.routeFrequency.first {
-                    Text("Most saved: \(top.originCode) → \(top.destinationCode) · \(top.trips) \(top.trips == 1 ? "run" : "runs")")
-                        .font(LocomateFont.caption)
-                        .foregroundStyle(colors.textTertiary)
-                }
+                    .foregroundStyle(colors.textTertiary)
             }
         }
+        .padding(Spacing.units(5))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(colors.elevated)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(LinearGradient(colors: [Palette.violet400.opacity(0.18), colors.accentWash],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                }
+        }
+        .shadow(color: .black.opacity(0.3), radius: 20, y: 12)
         .accessibilityElement(children: .contain)
+    }
+
+    private func metric(_ label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).eyebrow(colors.textTertiary).lineLimit(1).minimumScaleFactor(0.75)
+            Text(value).font(LocomateFont.title).monospacedDigit().foregroundStyle(colors.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
