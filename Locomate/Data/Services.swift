@@ -125,8 +125,13 @@ public final class LocomoteServices {
     /// A false result means the server succeeded but local erasure was partial.
     public func deletePrivacyData(preferences: Preferences) async throws -> Bool {
         // Stop the token observer before the server deletion can invalidate its session.
-        await liveActivity.end()
-        try await railService?.deletePrivacyData()
+        await liveActivity.beginPrivacyDeletion()
+        do {
+            try await railService?.deletePrivacyData()
+        } catch {
+            liveActivity.restoreAfterPrivacyDeletion()
+            throw error
+        }
         contribution.revoke()
         preferences.contributionsEnabled = false
         preferences.backgroundLocationEnabled = false

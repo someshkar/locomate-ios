@@ -20,8 +20,18 @@ public final class LiveActivityService {
     private var tokenActivityId: String?
     private var registrationState: JourneyActivityAttributes.ContentState?
     private var revision = 0
+    private var privacyDeletionPending = false
 
     public init() {}
+
+    public func beginPrivacyDeletion() async {
+        privacyDeletionPending = true
+        await end()
+    }
+
+    public func restoreAfterPrivacyDeletion() {
+        privacyDeletionPending = false
+    }
 
     public func isRunning(for runId: String) -> Bool {
         Activity<JourneyActivityAttributes>.activities.contains { $0.attributes.runId == runId }
@@ -35,6 +45,7 @@ public final class LiveActivityService {
         registerToken: ((String, JourneyActivityAttributes.ContentState) async -> Void)? = nil,
         unregisterRun: ((String) async -> Void)? = nil
     ) async -> Bool {
+        guard !privacyDeletionPending else { return false }
         revision += 1
         let syncRevision = revision
         // The product rule: a Live Activity requires a known, non-stale delay.
