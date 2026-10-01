@@ -57,7 +57,7 @@ struct SearchScreen: View {
             .padding(Spacing.units(4.5))
             .padding(.bottom, 140)
         }
-        .background(colors.canvas.ignoresSafeArea())
+        .background(colors.glass.ignoresSafeArea())
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: query) { _, _ in runSearch() }
         .onDisappear { searchTask?.cancel() }
@@ -65,15 +65,11 @@ struct SearchScreen: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
-            HStack(spacing: 8) {
-                Image(systemName: "tram.fill").foregroundStyle(colors.accentBase)
-                Text("SMART RAIL · INDIA").eyebrow(colors.textSecondary)
-            }
-            Text("Every journey\nstarts here.")
+            Text("Search")
                 .font(LocomateFont.display)
                 .tracking(-1.4)
                 .foregroundStyle(colors.textPrimary)
-            Text("Find your train. Make the journey yours.")
+            Text("Find trains by name or number")
                 .font(LocomateFont.body)
                 .foregroundStyle(colors.textSecondary)
         }
@@ -84,7 +80,7 @@ struct SearchScreen: View {
     private var searchField: some View {
         HStack(spacing: Spacing.units(2.5)) {
             Image(systemName: "magnifyingglass").foregroundStyle(colors.textTertiary)
-            TextField("Try 12137 or Punjab Mail", text: $query)
+            TextField("Train name or number", text: $query)
                 .focused($isFieldFocused)
                 .font(LocomateFont.body)
                 .foregroundStyle(colors.textPrimary)

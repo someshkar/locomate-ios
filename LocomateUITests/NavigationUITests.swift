@@ -64,6 +64,28 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testSearchSheetSelectsPreviewJourney() {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Find a train"].waitForExistence(timeout: 10))
+        app.buttons["Find a train"].tap()
+        let field = app.textFields["Search trains"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("12951")
+
+        let result = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "12951 ")).firstMatch
+        XCTAssertTrue(result.waitForExistence(timeout: 10))
+        result.tap()
+
+        let journey = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "12951 ·")).firstMatch
+        XCTAssertTrue(journey.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Timetable sample"].exists)
+        XCTAssertFalse(field.exists)
+    }
+
+    @MainActor
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
