@@ -78,7 +78,11 @@ public actor APIClient {
 
     /// Create or refresh a device session. Single-flight: concurrent callers
     /// await one refresh rather than stampeding the gateway.
-    private func validSession() async throws -> AuthSession {
+    private func validSession(allowPrivacyDeletion: Bool = false) async throws -> AuthSession {
+        guard allowPrivacyDeletion || !PrivacyDeletionLatch.isPending else {
+            throw APIError(status: 0, code: "privacy_deletion_pending", requestId: "", retryable: false,
+                message: "Data deletion is pending. Retry deletion in Settings before using the rail service.")
+        }
         if let existing = tokenStore.load(), !existing.isExpired { return existing }
         if let refreshTask { return try await refreshTask.value }
 
@@ -158,7 +162,7 @@ public actor APIClient {
     }
 
     public func delete(_ path: String, query: [String: String] = [:]) async throws {
-        let session = try await validSession()
+        let session = try await validSession(allowPrivacyDeletion: path == "/v1/privacy/installation")
         _ = try await performRequest(path: path, method: "DELETE", query: query, body: nil, token: session.accessToken)
     }
 

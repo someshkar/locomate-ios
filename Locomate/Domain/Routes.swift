@@ -16,7 +16,7 @@ public enum Routes {
         public let date: String
     }
 
-    private static let trainPattern = try! NSRegularExpression(pattern: "^\\d{5}$")
+    private static let trainPattern = try! NSRegularExpression(pattern: "^\\d{4,6}$")
     private static let datePattern = try! NSRegularExpression(
         pattern: "^(\\d{4})-(\\d{2})-(\\d{2})$"
     )
@@ -70,7 +70,7 @@ public enum Routes {
         case invalidDate
         public var errorDescription: String? {
             switch self {
-            case .invalidTrainNumber: return "Train number must contain exactly five digits."
+            case .invalidTrainNumber: return "Train number must contain four to six digits."
             case .invalidDate: return "Date must be a valid YYYY-MM-DD calendar date."
             }
         }

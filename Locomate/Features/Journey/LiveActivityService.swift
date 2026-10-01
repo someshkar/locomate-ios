@@ -45,7 +45,7 @@ public final class LiveActivityService {
         registerToken: ((String, JourneyActivityAttributes.ContentState) async -> Void)? = nil,
         unregisterRun: ((String) async -> Void)? = nil
     ) async -> Bool {
-        guard !privacyDeletionPending else { return false }
+        guard !privacyDeletionPending, !PrivacyDeletionLatch.isPending else { return false }
         revision += 1
         let syncRevision = revision
         // The product rule: a Live Activity requires a known, non-stale delay.

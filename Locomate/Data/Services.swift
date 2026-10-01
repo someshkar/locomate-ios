@@ -70,7 +70,7 @@ public final class LocomoteServices {
     }
 
     public func grantContributionConsent(preferences: Preferences) async throws {
-        guard let railService else { throw ContributionConsentError.gatewayRequired }
+        guard !PrivacyDeletionLatch.isPending, let railService else { throw ContributionConsentError.gatewayRequired }
         try await contribution.flushConsentEvidence(using: railService)
         try await railService.recordCommunityConsent(CommunityConsentEvidence(granted: true))
         preferences.contributionsEnabled = true
@@ -90,6 +90,7 @@ public final class LocomoteServices {
     }
 
     public func flushPendingConsentEvidence() async throws {
+        guard !PrivacyDeletionLatch.isPending else { return }
         try await contribution.flushConsentEvidence(using: railService)
     }
 
@@ -157,14 +158,14 @@ public final class LocomoteServices {
     /// scope and rotate the device identity. Appearance preferences are retained.
     /// A false result means the server succeeded but local erasure was partial.
     public func deletePrivacyData(preferences: Preferences) async throws -> Bool {
+        try PrivacyDeletionLatch.begin()
+        contribution.stop()
         // Stop the token observer before the server deletion can invalidate its session.
         await journeyAlerts.beginPrivacyDeletion()
         await liveActivity.beginPrivacyDeletion()
         do {
             try await railService?.deletePrivacyData()
         } catch {
-            journeyAlerts.restoreAfterPrivacyDeletion()
-            liveActivity.restoreAfterPrivacyDeletion()
             throw error
         }
         contribution.revoke()
@@ -185,7 +186,8 @@ public final class LocomoteServices {
         }
         let sessionsCleared = KeychainTokenStore.clearAllSessions()
         let identityCleared = InstallationIdentity.clear()
-        return complete && sessionsCleared && identityCleared
+        guard complete && sessionsCleared && identityCleared else { return false }
+        return PrivacyDeletionLatch.finish()
     }
 }
 

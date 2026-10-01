@@ -25,6 +25,7 @@ struct JourneyAlertsSummary: View {
     }
 
     private var summary: String {
+        if PrivacyDeletionLatch.isPending { return "Stopped while data deletion is pending." }
         if let subscription { return JourneyAlertPresentation.status(subscription) }
         return available
             ? "Choose updates for this train and date."
@@ -252,7 +253,7 @@ struct JourneyAlertsSheet: View {
 
     private var consentControls: some View {
         VStack(alignment: .leading, spacing: Spacing.units(3)) {
-            Text("By enabling alerts, you agree to share this device’s notification token, the train and origin date, and your alert choices with the rail service for push delivery. You can stop alerts here or in Settings. Updates depend on available railway data and iOS notification access.")
+            Text(JourneyAlertConsent.notice)
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textSecondary)
             LocomateButton(busy ? "Saving…" : (active ? "Agree and save choices" : "Agree and enable alerts"),

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import CryptoKit
 @testable import Locomate
 
 private actor AlertTestAPI: JourneyAlertAPI {
@@ -66,7 +67,8 @@ struct JourneyAlertTests {
         .init(runId: "12137:2026-10-01", trainNumber: "12137", serviceDate: "2026-10-01",
             channels: Set(JourneyAlertChannel.allCases), quietHours: nil,
             expiresAt: Date().addingTimeInterval(expired ? -1 : 3600), pending: pending,
-            enabled: true, revision: 1, targetFingerprint: nil)
+            enabled: true, revision: 1, targetFingerprint: nil,
+            consentVersion: JourneyAlertConsent.version, noticeHash: JourneyAlertConsent.noticeHash)
     }
     private func payload(revision: Int64 = 1, now: Date = Date()) -> [String: String] {
         ["type": "journey-alert", "version": "1", "eventId": "alert:abcdef", "runId": "12137:2026-10-01",
@@ -75,6 +77,25 @@ struct JourneyAlertTests {
          "expiresAt": String(Int64(now.addingTimeInterval(300).timeIntervalSince1970 * 1000)),
          "title": "Delay changed", "body": "12137 is now 10 minutes late.",
          "deepLink": "locomate://journeys/12137?date=2026-10-01"]
+    }
+
+    @Test("privacy deletion marker survives recreation until successful cleanup")
+    func privacyMarker() throws {
+        let account = "test-\(UUID().uuidString)"
+        let marker = PrivacyDeletionMarker(account: account)
+        defer { _ = marker.finish() }
+        #expect(!marker.isPending)
+        try marker.begin()
+        #expect(PrivacyDeletionMarker(account: account).isPending)
+        try marker.begin()
+        #expect(marker.finish())
+        #expect(!marker.isPending)
+    }
+
+    @Test("push consent evidence matches the exact visible notice")
+    func noticeHash() {
+        let hash = SHA256.hash(data: Data(JourneyAlertConsent.notice.utf8)).map { String(format: "%02x", $0) }.joined()
+        #expect(hash == JourneyAlertConsent.noticeHash)
     }
 
     @Test("offline withdrawal survives relaunch and retains its revision tombstone")
@@ -166,6 +187,20 @@ struct JourneyAlertTests {
         #expect(await api.registrations.count == 2)
     }
 
+    @Test("old alert choices without this notice never grant push consent automatically")
+    func oldNoticeRequiresExplicitConsent() async throws {
+        let directory = temporary(); defer { try? FileManager.default.removeItem(at: directory) }
+        let store = JourneyAlertStore(directory: directory, scope: "production")
+        var old = seed(); old.consentVersion = nil; old.noticeHash = nil
+        try store.save([old])
+        let api = AlertTestAPI()
+        let service = JourneyAlertService(api: api, scope: "production", directory: directory, push: AlertTestPush())
+        await service.refresh()
+        #expect(service.subscriptions.first?.enabled == false)
+        #expect(await api.registrations.isEmpty)
+        #expect(await api.deletions.count == 1)
+    }
+
     @Test("gateway scopes and unreadable storage cannot silently replace consent choices")
     func storage() async throws {
         let directory = temporary(); defer { try? FileManager.default.removeItem(at: directory) }
@@ -232,6 +267,8 @@ struct JourneyAlertTests {
         #expect(service.subscriptions.first?.pending == false)
         let request = try #require(await api.registrations.first)
         let json = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any])
+        #expect(json["consentVersion"] as? String == JourneyAlertConsent.version)
+        #expect(json["noticeHash"] as? String == JourneyAlertConsent.noticeHash)
         #expect((json["quietHours"] as? [String: String])?["start"] == "22:00")
         #expect((json["quietHours"] as? [String: String])?["timeZone"] == "Asia/Kolkata")
         let noQuiet = JourneyAlertRegistration(runId: request.runId, revision: request.revision,

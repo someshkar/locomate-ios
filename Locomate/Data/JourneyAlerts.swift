@@ -2,6 +2,12 @@ import Foundation
 import Observation
 import CryptoKit
 
+public enum JourneyAlertConsent {
+    public static let version = "journey-alerts-v1"
+    public static let noticeHash = "025a174cd8ee918c5bab69cf42d5d497128a0493a33631e5582b78dd361e2250"
+    public static let notice = "Journey alerts send this device's push token, selected train runs, alert channels, and quiet hours to Locomate's gateway. The gateway uses fresh rail updates to send notifications for those runs. You can turn alerts off at any time; turning them off stops future sends after the gateway receives the change. Alerts may appear on your Lock Screen."
+}
+
 public enum JourneyAlertChannel: String, Codable, CaseIterable, Sendable, Hashable {
     case position, delay, platform, departure, arrival
     public var label: String {
@@ -53,6 +59,8 @@ public struct JourneyAlertSubscription: Codable, Sendable, Identifiable, Equatab
     public var revision: Int64
     // Only a fingerprint is persisted. APNs tokens are requested anew every launch.
     var targetFingerprint: String?
+    var consentVersion: String?
+    var noticeHash: String?
 }
 
 public struct JourneyAlertRegistration: Encodable, Sendable {
@@ -71,9 +79,13 @@ public struct JourneyAlertRegistration: Encodable, Sendable {
     let target: Target
     let channels: [JourneyAlertChannel]
     let quietHours: QuietHours?
-    private enum CodingKeys: String, CodingKey { case runId, revision, target, channels, quietHours }
+    let consentVersion = JourneyAlertConsent.version
+    let noticeHash = JourneyAlertConsent.noticeHash
+    private enum CodingKeys: String, CodingKey { case runId, revision, target, channels, quietHours, consentVersion, noticeHash }
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(consentVersion, forKey: .consentVersion)
+        try container.encode(noticeHash, forKey: .noticeHash)
         try container.encode(runId, forKey: .runId)
         try container.encode(revision, forKey: .revision)
         try container.encode(target, forKey: .target)
@@ -185,10 +197,10 @@ public final class JourneyAlertService {
     }
 
     public func start() async {
-        guard !privacyDeletionPending else { return }
+        guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending else { return }
         if subscriptions.contains(where: { $0.enabled }) { push.register() }
         await refresh()
-        guard !privacyDeletionPending, retryTask == nil else { return }
+        guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending, retryTask == nil else { return }
         retryTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(30))
@@ -199,7 +211,7 @@ public final class JourneyAlertService {
     }
 
     public func enable(journey: Journey, channels: Set<JourneyAlertChannel>, quietHours: JourneyAlertQuietHours?) async throws {
-        guard api != nil, !privacyDeletionPending else { throw JourneyAlertError.unavailable }
+        guard api != nil, !privacyDeletionPending && !PrivacyDeletionLatch.isPending else { throw JourneyAlertError.unavailable }
         mutationEpoch += 1
         let epoch = mutationEpoch
         guard let identity = JourneyAlertIdentity.parse(journey.id), identity.trainNumber == journey.trainNumber,
@@ -215,20 +227,21 @@ public final class JourneyAlertService {
             if push.token != nil { break }
             try await Task.sleep(for: .milliseconds(200))
         }
-        guard !privacyDeletionPending, epoch == mutationEpoch, let token = push.token else { throw JourneyAlertError.registrationUnavailable }
+        guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending, epoch == mutationEpoch, let token = push.token else { throw JourneyAlertError.registrationUnavailable }
         let runId = JourneyAlertIdentity.normalize(journey.id)
         let previous = subscriptions.first { $0.runId == runId }
         let desired = JourneyAlertSubscription(runId: runId, trainNumber: identity.trainNumber, serviceDate: identity.date,
             channels: channels, quietHours: quietHours,
             expiresAt: min(schedule.endDate.addingTimeInterval(24 * 60 * 60), Date().addingTimeInterval(5 * 24 * 60 * 60)),
-            pending: true, enabled: true, revision: nextRevision(previous?.revision), targetFingerprint: fingerprint(token))
+            pending: true, enabled: true, revision: nextRevision(previous?.revision), targetFingerprint: fingerprint(token),
+            consentVersion: JourneyAlertConsent.version, noticeHash: JourneyAlertConsent.noticeHash)
         try replace(desired)
         try await synchronize()
     }
 
     public func disable(runId: String) async throws {
         mutationEpoch += 1
-        guard !privacyDeletionPending else { throw JourneyAlertError.unavailable }
+        guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending else { throw JourneyAlertError.unavailable }
         guard var current = subscriptions.first(where: { $0.runId == JourneyAlertIdentity.normalize(runId) }) else { return }
         current.enabled = false
         current.pending = true
@@ -239,7 +252,7 @@ public final class JourneyAlertService {
 
     public func disableAll() async throws {
         mutationEpoch += 1
-        guard !privacyDeletionPending else { throw JourneyAlertError.unavailable }
+        guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending else { throw JourneyAlertError.unavailable }
         var changed = subscriptions
         for index in changed.indices where changed[index].enabled {
             changed[index].enabled = false
@@ -251,15 +264,17 @@ public final class JourneyAlertService {
     }
 
     public func refresh() async {
-        guard api != nil, !privacyDeletionPending, storageReadable else { return }
+        guard api != nil, !privacyDeletionPending && !PrivacyDeletionLatch.isPending, storageReadable else { return }
         do {
             let epoch = mutationEpoch
             let denied = await push.isDenied()
-            guard !privacyDeletionPending, storageReadable, epoch == mutationEpoch else { return }
+            guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending, storageReadable, epoch == mutationEpoch else { return }
             var changed = subscriptions
             let targetFingerprint = push.token.map(fingerprint)
             for index in changed.indices where changed[index].enabled {
-                if denied || changed[index].expiresAt <= Date() {
+                if denied || changed[index].expiresAt <= Date() ||
+                    changed[index].consentVersion != JourneyAlertConsent.version ||
+                    changed[index].noticeHash != JourneyAlertConsent.noticeHash {
                     changed[index].enabled = false
                     changed[index].pending = true
                     changed[index].revision = nextRevision(changed[index].revision)
@@ -291,7 +306,7 @@ public final class JourneyAlertService {
 
     /// Used before presentation and tap routing. Server revision guards are also enforced at delivery.
     func accepts(_ payload: JourneyAlertPayload, presenting: Bool) -> Bool {
-        guard !privacyDeletionPending, payload.expiresAt > Date(),
+        guard !privacyDeletionPending && !PrivacyDeletionLatch.isPending, payload.expiresAt > Date(),
               let subscription = subscriptions.first(where: { $0.runId == payload.runId }),
               subscription.enabled, subscription.revision == payload.revision,
               subscription.expiresAt > Date(), subscription.channels.contains(payload.channel) else { return false }
@@ -328,14 +343,14 @@ public final class JourneyAlertService {
 
     private func synchronize() async throws {
         if let syncTask { return try await syncTask.value }
-        guard let api, !privacyDeletionPending else { return }
+        guard let api, !privacyDeletionPending && !PrivacyDeletionLatch.isPending else { return }
         isBusy = true
         let task = Task { @MainActor [weak self, api] in
             guard let self else { return }
             var conflictRecoveries = 0
             while let desired = self.subscriptions.first(where: { $0.pending && (!$0.enabled || self.push.token != nil) }) {
                 try Task.checkCancellation()
-                guard !self.privacyDeletionPending else { return }
+                guard !self.privacyDeletionPending && !PrivacyDeletionLatch.isPending else { return }
                 var acknowledged = desired
                 do {
                 if desired.enabled {
@@ -354,7 +369,7 @@ public final class JourneyAlertService {
                 }
                 } catch let error as APIError {
                     guard error.status == 409, let serverRevision = error.currentRevision,
-                          conflictRecoveries < 2, !self.privacyDeletionPending,
+                          conflictRecoveries < 2, !self.privacyDeletionPending && !PrivacyDeletionLatch.isPending,
                           let index = self.subscriptions.firstIndex(where: { $0.runId == desired.runId }) else { throw error }
                     // Recover only the latest desired state. A newer local disable remains a disable.
                     var changed = self.subscriptions

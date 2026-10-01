@@ -127,6 +127,7 @@ public final class ContributionService: NSObject {
     /// background updates and an ongoing-location session.
     public func start(runId: String, route: [RailCoordinate], background: Bool,
                       service: RailServiceProtocol? = nil, stopAt: Date? = nil) async {
+        guard !PrivacyDeletionLatch.isPending else { stop(); return }
         // Preview runs are never contributed.
         guard !ContributionObservation.isPreviewRunId(runId), route.count >= 2 else {
             state = .unavailable

@@ -509,8 +509,9 @@ struct RoutesTests {
     @Test("validates train numbers")
     func trainValidation() {
         #expect(Routes.isValidTrainNumber("12137"))
-        #expect(!Routes.isValidTrainNumber("1234"))
-        #expect(!Routes.isValidTrainNumber("123456"))
+        #expect(Routes.isValidTrainNumber("1234"))
+        #expect(Routes.isValidTrainNumber("123456"))
+        #expect(!Routes.isValidTrainNumber("1234567"))
         #expect(!Routes.isValidTrainNumber("12a37"))
     }
 

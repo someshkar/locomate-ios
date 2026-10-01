@@ -135,6 +135,11 @@ struct SettingsScreen: View {
     private var privacyDataRow: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
             Text("YOUR DATA").eyebrow(colors.textTertiary)
+            if PrivacyDeletionLatch.isPending {
+                Text("Data deletion is pending. Automatic uploads and alerts are stopped. Tap Delete my data to finish cleanup.")
+                    .font(LocomateFont.caption)
+                    .foregroundStyle(colors.textSecondary)
+            }
             Text("Export your gateway record and this device's saved journeys, pending observations, and cached runs across data sources. The file can contain location and session tokens; share it only with a destination you trust.")
                 .font(LocomateFont.caption)
                 .foregroundStyle(colors.textSecondary)
@@ -182,7 +187,7 @@ struct SettingsScreen: View {
             NotificationCenter.default.post(name: .locomotePrivacyReset, object: nil,
                                             userInfo: ["complete": complete])
         } catch {
-            privacyMessage = "Could not delete your data. Saved data remains on this device. Start the Live card again if needed."
+            privacyMessage = "Data deletion is pending. Automatic uploads and alerts remain stopped. Retry deletion here."
         }
     }
 }

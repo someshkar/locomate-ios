@@ -41,7 +41,7 @@ struct LocomateApp: App {
                 .alert("Data deletion needs attention", isPresented: $showPartialDeletionAlert) {
                     Button("OK", role: .cancel) {}
                 } message: {
-                    Text("The gateway record was deleted, but some device data could not be erased. Reinstall Locomate to remove any remaining local files.")
+                    Text("The gateway record was deleted, but some device data could not be erased. Automatic uploads and alerts remain stopped. Retry deletion in Settings; reinstall Locomate if local cleanup continues to fail.")
                 }
         }
     }
