@@ -7,77 +7,425 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		075D6250EC4938F52B92D313 /* GlassSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EE74908749A99919BEF5E2 /* GlassSheet.swift */; };
-		1D7FFCF5A015D3104EBEAFE5 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29FACF33D5A8B5F5A88028A9 /* SearchSheet.swift */; };
-		41CC329274EB8ED80EB82986 /* JourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FF6E051DBF775F3196AA37D /* JourneyView.swift */; };
-		4F2E4DF74E2CAF6AC16D5C80 /* CapsuleNavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95F1FED58AA69C09EE643836 /* CapsuleNavBar.swift */; };
-		645AB32AAAE69874D48EC319 /* LocomateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48794600C4F0A05ED32EE6EC /* LocomateApp.swift */; };
-		856B8860CEFB38AEE21CC6CA /* PassportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 926CD81F3B8CEAD82B91661A /* PassportView.swift */; };
-		8886B2E358D0A241E14DFED1 /* MapCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D59F9488A0D8BCE61A62483 /* MapCanvas.swift */; };
-		99D641B0FC186F4C0CCADA31 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1184EFAC25ED9309D42945 /* ExploreView.swift */; };
-		B2B5B2470A0F11893C5CC698 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 675DF30275ED00A229A71C16 /* Theme.swift */; };
+		01AB0C58380866B6BF56FC10 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56107DD18F4B0A96F1291FEC /* Glass.swift */; };
+		04ED91AFFD361C7A1B75A3BD /* JourneyCalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C3736C1E7E0AB23927A69A7 /* JourneyCalendarService.swift */; };
+		082B34188937EF0017CFB53F /* UIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520654B8BAB3C176F3FBEA4D /* UIKit.swift */; };
+		0A605D9A8E4A4D07F0E958D1 /* IndiaDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 061D048759544082BC0EFAD8 /* IndiaDate.swift */; };
+		0CAAD1BEE4C01C2D11ED6F94 /* JourneyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C71F03CCD1FFFD8F3C9C6480 /* JourneyStore.swift */; };
+		199CE718C0CC6E7C52059939 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011CC319CD366A283B75CFEA /* RootView.swift */; };
+		2552FDEFCBDDB06E71C5B161 /* RailMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2E0C7DEF27E3A528E5924B /* RailMapView.swift */; };
+		2D3FD787C843D31DD4480276 /* JourneyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F413F45BBC29EF3E713BB7 /* JourneyModel.swift */; };
+		2F42E2FD8A98DBDFEBD4B678 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E8E004BD00BA338A0AA0AC /* Preferences.swift */; };
+		32F0354407D667D5931F610F /* RouteGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AFF5E160E411983E693A628 /* RouteGeometry.swift */; };
+		362853C49DDA1F8678529F9E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C50427D18F4C7E60BCBD8F /* Typography.swift */; };
+		3EC29C8DAF72A18A6F9641C3 /* DataReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E411A21676A43F23B04DE31 /* DataReport.swift */; };
+		5510C910EB660195549A2108 /* DataSourceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 302118BD502B778928B2D4A0 /* DataSourceSheet.swift */; };
+		56734436EA551F5755619328 /* DomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE97A4E1410E4133B6E288E0 /* DomainTests.swift */; };
+		6043C73EF8C9062F1D014D34 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B4810BE4039C50CEC22F72 /* Theme.swift */; };
+		61E2B2A8CAFCDF923AF1AB88 /* MapDaylight.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */; };
+		63D33AD2E761023ED89F95B6 /* JourneySetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2C3F1013E3EB42C6E8D563F /* JourneySetupSheet.swift */; };
+		67ED51638DF6EE5626EDA37E /* Motion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B203974EC00159BD3B5137B /* Motion.swift */; };
+		7331AD302026897A04D4DA9B /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9764A28CB31A7EFF93F92590 /* Haptics.swift */; };
+		76A664B717A806810AE8971B /* ExploreScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBB78A3D8DA7E27791F98C16 /* ExploreScreen.swift */; };
+		77BAE3C7CCF47143B92EFBDC /* run-12137-2026-09-18.json in Resources */ = {isa = PBXBuildFile; fileRef = 3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */; };
+		7BE77F36FC438C8DF0A191B7 /* JourneyActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */; };
+		7C0B646A3C56CA1C98AB0E5A /* LocomateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73CC887AF73601484C4C90D2 /* LocomateApp.swift */; };
+		80F0EC525A2871B620DC7342 /* LocomateWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB694339FD14795C7B65C3DB /* LocomateWidgets.swift */; };
+		81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D753E598289063F4C2E948 /* SettingsScreen.swift */; };
+		8229E764776C63DF94ABC90B /* ObservationSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */; };
+		862F49FD3CACCE368CBDA990 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7734B47F77BD5FBB27E7F38 /* Models.swift */; };
+		890C95B9914FB52CC5A909D3 /* LocomateWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8A4FC173F01101E7AC947642 /* ContributionSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2187F43800723D7D343099 /* ContributionSettings.swift */; };
+		91E5898D427B239E94D77784 /* MapMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AF2F17C1BCEA6262649FA81 /* MapMatcher.swift */; };
+		93D381D1788D0F3A7667A8C6 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C739FB0ACAE431529F2E6A7E /* Palette.swift */; };
+		954123DAFDCFEB1BA8AE57DF /* StatusKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */; };
+		9711B90409F7FB8BBEC4180E /* RoutePacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742FF165A9FB065C0F1C37AE /* RoutePacks.swift */; };
+		9845D924330E1EA99C9EB7BB /* ContributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB823F613867BB964ED5B752 /* ContributionService.swift */; };
+		9ABFC199FAB05D62D2477CBE /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F49C02507D73869F00FBB7 /* APIClient.swift */; };
+		A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1543B7756311FD507CCE878 /* Services.swift */; };
+		AA0E0C5336DCB904B7DB0407 /* SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */; };
+		ADA14E893FF6611314BDD418 /* LiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9535CAEDF03E94741CBCEA42 /* LiveActivityService.swift */; };
+		B2D82BD205A4192CBC31D698 /* PressableScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF89F017C9B92B9BB62877B6 /* PressableScale.swift */; };
+		B2FC1F9CE589FCA867F45006 /* Routes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF8D8513F38692BB1E594A0 /* Routes.swift */; };
+		B43615A65548A38E05A804CB /* ForecastPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D6BC2610056C92E9F84EA6 /* ForecastPresentation.swift */; };
+		B4C06C5B212FCFD0F216505B /* ResizableSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E467C69EC422AB7BF48CBF /* ResizableSheet.swift */; };
+		C0459AAA2D30BB29D7288E49 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */; };
+		C7E76F9C45F2FC78490A3A51 /* JourneyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 598BBB6E36D75DD5CA402ADA /* JourneyComponents.swift */; };
+		CF374E14E2DCFB4D3446053E /* JourneyActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */; };
+		CF6E4DF2F32EC9D6DF182956 /* JourneyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */; };
+		D525888C2403AB89BB02BBD3 /* JourneyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3631B6854F32B3965C32036B /* JourneyPlan.swift */; };
+		D58B255030973F3BDDE62466 /* route-packs.json in Resources */ = {isa = PBXBuildFile; fileRef = 77D651A8F7C73C875F222ACD /* route-packs.json */; };
+		D5BAD8044F7E3398D0A5B501 /* PassportScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06E9E14840D47CCB6666C82 /* PassportScreen.swift */; };
+		D97719A0CB4808694014C829 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */; };
+		DFDD352BB7A5B3CFFBBB4ABD /* PassportStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */; };
+		E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C028E9C77E24D717A7837279 /* RailService.swift */; };
+		FB196DB12892DEA724331CCE /* BottomDock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE583CF262143B60198CA75E /* BottomDock.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		8A9CAC4817D7484308E748CE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2EA31F080ACC06A66756EEBE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D47CD51438638A348AC34E7;
+			remoteInfo = LocomateWidgets;
+		};
+		99866F9D5446821A4C822C3B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2EA31F080ACC06A66756EEBE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE046817ABACAE7D20A9C232;
+			remoteInfo = Locomate;
+		};
+		CDF14653CE35C9A6435B0D46 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2EA31F080ACC06A66756EEBE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE046817ABACAE7D20A9C232;
+			remoteInfo = Locomate;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1CCD9C89922048ED9A42DD23 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				890C95B9914FB52CC5A909D3 /* LocomateWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		05EE74908749A99919BEF5E2 /* GlassSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheet.swift; sourceTree = "<group>"; };
+		011CC319CD366A283B75CFEA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		01F49C02507D73869F00FBB7 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		03E467C69EC422AB7BF48CBF /* ResizableSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResizableSheet.swift; sourceTree = "<group>"; };
+		04E8E004BD00BA338A0AA0AC /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		061D048759544082BC0EFAD8 /* IndiaDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndiaDate.swift; sourceTree = "<group>"; };
+		0B203974EC00159BD3B5137B /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
+		0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
+		0E411A21676A43F23B04DE31 /* DataReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataReport.swift; sourceTree = "<group>"; };
 		17D0138F3195BF28F6B27F17 /* Locomate.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Locomate.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		29FACF33D5A8B5F5A88028A9 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
-		3D59F9488A0D8BCE61A62483 /* MapCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCanvas.swift; sourceTree = "<group>"; };
-		48794600C4F0A05ED32EE6EC /* LocomateApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocomateApp.swift; sourceTree = "<group>"; };
-		675DF30275ED00A229A71C16 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		6FF6E051DBF775F3196AA37D /* JourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyView.swift; sourceTree = "<group>"; };
-		926CD81F3B8CEAD82B91661A /* PassportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportView.swift; sourceTree = "<group>"; };
-		95F1FED58AA69C09EE643836 /* CapsuleNavBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleNavBar.swift; sourceTree = "<group>"; };
-		9A1184EFAC25ED9309D42945 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		2AF2F17C1BCEA6262649FA81 /* MapMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapMatcher.swift; sourceTree = "<group>"; };
+		2AFF5E160E411983E693A628 /* RouteGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteGeometry.swift; sourceTree = "<group>"; };
+		2B2187F43800723D7D343099 /* ContributionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionSettings.swift; sourceTree = "<group>"; };
+		2E2E0C7DEF27E3A528E5924B /* RailMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailMapView.swift; sourceTree = "<group>"; };
+		302118BD502B778928B2D4A0 /* DataSourceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourceSheet.swift; sourceTree = "<group>"; };
+		3631B6854F32B3965C32036B /* JourneyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyPlan.swift; sourceTree = "<group>"; };
+		3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "run-12137-2026-09-18.json"; sourceTree = "<group>"; };
+		4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchScreen.swift; sourceTree = "<group>"; };
+		4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
+		520654B8BAB3C176F3FBEA4D /* UIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKit.swift; sourceTree = "<group>"; };
+		56107DD18F4B0A96F1291FEC /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
+		598BBB6E36D75DD5CA402ADA /* JourneyComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyComponents.swift; sourceTree = "<group>"; };
+		5C3736C1E7E0AB23927A69A7 /* JourneyCalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyCalendarService.swift; sourceTree = "<group>"; };
+		6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = LocomateWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		6EF8D8513F38692BB1E594A0 /* Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routes.swift; sourceTree = "<group>"; };
+		71D6BC2610056C92E9F84EA6 /* ForecastPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastPresentation.swift; sourceTree = "<group>"; };
+		73CC887AF73601484C4C90D2 /* LocomateApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocomateApp.swift; sourceTree = "<group>"; };
+		742FF165A9FB065C0F1C37AE /* RoutePacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePacks.swift; sourceTree = "<group>"; };
+		77B4810BE4039C50CEC22F72 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		77D651A8F7C73C875F222ACD /* route-packs.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "route-packs.json"; sourceTree = "<group>"; };
+		88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportStats.swift; sourceTree = "<group>"; };
+		914FBB06275E4AE8F72242AA /* LocomateTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LocomateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9535CAEDF03E94741CBCEA42 /* LiveActivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityService.swift; sourceTree = "<group>"; };
+		9764A28CB31A7EFF93F92590 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		97C50427D18F4C7E60BCBD8F /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		AB823F613867BB964ED5B752 /* ContributionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionService.swift; sourceTree = "<group>"; };
+		BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDaylight.swift; sourceTree = "<group>"; };
+		BF89F017C9B92B9BB62877B6 /* PressableScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressableScale.swift; sourceTree = "<group>"; };
+		C028E9C77E24D717A7837279 /* RailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RailService.swift; sourceTree = "<group>"; };
+		C10C0EE449E2BE889F54ED4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationSync.swift; sourceTree = "<group>"; };
+		C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyActivityAttributes.swift; sourceTree = "<group>"; };
+		C71F03CCD1FFFD8F3C9C6480 /* JourneyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyStore.swift; sourceTree = "<group>"; };
+		C739FB0ACAE431529F2E6A7E /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
+		C7734B47F77BD5FBB27E7F38 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		C8005BC3E33D455B3C56A38E /* LocomateUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LocomateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE583CF262143B60198CA75E /* BottomDock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomDock.swift; sourceTree = "<group>"; };
+		D6F413F45BBC29EF3E713BB7 /* JourneyModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyModel.swift; sourceTree = "<group>"; };
+		DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyScreen.swift; sourceTree = "<group>"; };
+		E06E9E14840D47CCB6666C82 /* PassportScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportScreen.swift; sourceTree = "<group>"; };
+		E2C3F1013E3EB42C6E8D563F /* JourneySetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneySetupSheet.swift; sourceTree = "<group>"; };
+		E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusKind.swift; sourceTree = "<group>"; };
+		EE97A4E1410E4133B6E288E0 /* DomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainTests.swift; sourceTree = "<group>"; };
+		F1543B7756311FD507CCE878 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		F17BE4121785AC405A4936FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F9D753E598289063F4C2E948 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		FB694339FD14795C7B65C3DB /* LocomateWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocomateWidgets.swift; sourceTree = "<group>"; };
+		FBB78A3D8DA7E27791F98C16 /* ExploreScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		014D903D116ABE0CBD892AC9 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				4AFBAE97C068E8FEB16700FB /* SearchScreen.swift */,
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
+		21FACBE37946D233BB32FE88 /* Journey */ = {
+			isa = PBXGroup;
+			children = (
+				302118BD502B778928B2D4A0 /* DataSourceSheet.swift */,
+				5C3736C1E7E0AB23927A69A7 /* JourneyCalendarService.swift */,
+				598BBB6E36D75DD5CA402ADA /* JourneyComponents.swift */,
+				D6F413F45BBC29EF3E713BB7 /* JourneyModel.swift */,
+				DF7C626BE5D505C2C8B402CB /* JourneyScreen.swift */,
+				E2C3F1013E3EB42C6E8D563F /* JourneySetupSheet.swift */,
+				9535CAEDF03E94741CBCEA42 /* LiveActivityService.swift */,
+				03E467C69EC422AB7BF48CBF /* ResizableSheet.swift */,
+			);
+			path = Journey;
+			sourceTree = "<group>";
+		};
+		294BCA259A90C9334CE0BBD2 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				01F49C02507D73869F00FBB7 /* APIClient.swift */,
+				AB823F613867BB964ED5B752 /* ContributionService.swift */,
+				C71F03CCD1FFFD8F3C9C6480 /* JourneyStore.swift */,
+				4D4E317EFF56161010DE542A /* KeychainTokenStore.swift */,
+				C14F6F464AD72FCCEAF46737 /* ObservationSync.swift */,
+				C028E9C77E24D717A7837279 /* RailService.swift */,
+				742FF165A9FB065C0F1C37AE /* RoutePacks.swift */,
+				F1543B7756311FD507CCE878 /* Services.swift */,
+				A9A6CB58B1E32F89AD601FA0 /* Resources */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		4B6CB9301DA47B914921247B /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				56107DD18F4B0A96F1291FEC /* Glass.swift */,
+				9764A28CB31A7EFF93F92590 /* Haptics.swift */,
+				0B203974EC00159BD3B5137B /* Motion.swift */,
+				C739FB0ACAE431529F2E6A7E /* Palette.swift */,
+				BF89F017C9B92B9BB62877B6 /* PressableScale.swift */,
+				E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */,
+				77B4810BE4039C50CEC22F72 /* Theme.swift */,
+				97C50427D18F4C7E60BCBD8F /* Typography.swift */,
+				520654B8BAB3C176F3FBEA4D /* UIKit.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		59B59EFEDF8E8431F3B9F70C /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				0E411A21676A43F23B04DE31 /* DataReport.swift */,
+				71D6BC2610056C92E9F84EA6 /* ForecastPresentation.swift */,
+				061D048759544082BC0EFAD8 /* IndiaDate.swift */,
+				3631B6854F32B3965C32036B /* JourneyPlan.swift */,
+				BE86FCEAB5FFB850B46B0C8E /* MapDaylight.swift */,
+				2AF2F17C1BCEA6262649FA81 /* MapMatcher.swift */,
+				C7734B47F77BD5FBB27E7F38 /* Models.swift */,
+				88D6F8DC71845E0AFA8F5E86 /* PassportStats.swift */,
+				2AFF5E160E411983E693A628 /* RouteGeometry.swift */,
+				6EF8D8513F38692BB1E594A0 /* Routes.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
 		5DC5B6960E3C21A03CCF4627 = {
 			isa = PBXGroup;
 			children = (
 				68DDB9E9A38F8CB117910A84 /* Locomate */,
+				8AD92865ADA6863885CAB81D /* LocomateTests */,
+				7A435416E08127098606B9F9 /* LocomateUITests */,
+				92FBE8008C0894DEE433D8C7 /* LocomateWidgets */,
+				64385A590BEDAD965A19E6A6 /* Shared */,
 				848725AA08EFB9ADA6E22494 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		64385A590BEDAD965A19E6A6 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C6720FAFB4DB3ADFA257E3C4 /* JourneyActivityAttributes.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		68DDB9E9A38F8CB117910A84 /* Locomate */ = {
 			isa = PBXGroup;
 			children = (
-				95F1FED58AA69C09EE643836 /* CapsuleNavBar.swift */,
-				9A1184EFAC25ED9309D42945 /* ExploreView.swift */,
-				05EE74908749A99919BEF5E2 /* GlassSheet.swift */,
 				F17BE4121785AC405A4936FB /* Info.plist */,
-				6FF6E051DBF775F3196AA37D /* JourneyView.swift */,
-				48794600C4F0A05ED32EE6EC /* LocomateApp.swift */,
-				3D59F9488A0D8BCE61A62483 /* MapCanvas.swift */,
-				926CD81F3B8CEAD82B91661A /* PassportView.swift */,
-				29FACF33D5A8B5F5A88028A9 /* SearchSheet.swift */,
-				675DF30275ED00A229A71C16 /* Theme.swift */,
+				CCD289480B20B21CEC6E8683 /* App */,
+				294BCA259A90C9334CE0BBD2 /* Data */,
+				4B6CB9301DA47B914921247B /* DesignSystem */,
+				59B59EFEDF8E8431F3B9F70C /* Domain */,
+				F7E3EB584FACECC511C8CB81 /* Features */,
+				6CA7FFD8615043AAF76E51A3 /* Map */,
 			);
 			path = Locomate;
+			sourceTree = "<group>";
+		};
+		6CA7FFD8615043AAF76E51A3 /* Map */ = {
+			isa = PBXGroup;
+			children = (
+				2E2E0C7DEF27E3A528E5924B /* RailMapView.swift */,
+			);
+			path = Map;
+			sourceTree = "<group>";
+		};
+		7A435416E08127098606B9F9 /* LocomateUITests */ = {
+			isa = PBXGroup;
+			children = (
+				0C65C6E790D066A898B7C2F1 /* NavigationUITests.swift */,
+			);
+			path = LocomateUITests;
+			sourceTree = "<group>";
+		};
+		842CF2BB74C8AE547D27DC74 /* Explore */ = {
+			isa = PBXGroup;
+			children = (
+				FBB78A3D8DA7E27791F98C16 /* ExploreScreen.swift */,
+			);
+			path = Explore;
 			sourceTree = "<group>";
 		};
 		848725AA08EFB9ADA6E22494 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				17D0138F3195BF28F6B27F17 /* Locomate.app */,
+				914FBB06275E4AE8F72242AA /* LocomateTests.xctest */,
+				C8005BC3E33D455B3C56A38E /* LocomateUITests.xctest */,
+				6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8AD92865ADA6863885CAB81D /* LocomateTests */ = {
+			isa = PBXGroup;
+			children = (
+				EE97A4E1410E4133B6E288E0 /* DomainTests.swift */,
+				D457528F22290ED0F75A20DE /* Fixtures */,
+			);
+			path = LocomateTests;
+			sourceTree = "<group>";
+		};
+		92FBE8008C0894DEE433D8C7 /* LocomateWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				C10C0EE449E2BE889F54ED4A /* Info.plist */,
+				FB694339FD14795C7B65C3DB /* LocomateWidgets.swift */,
+			);
+			path = LocomateWidgets;
+			sourceTree = "<group>";
+		};
+		A9A6CB58B1E32F89AD601FA0 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				77D651A8F7C73C875F222ACD /* route-packs.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AA28E92D24798240C470E9EA /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2B2187F43800723D7D343099 /* ContributionSettings.swift */,
+				F9D753E598289063F4C2E948 /* SettingsScreen.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		CCD289480B20B21CEC6E8683 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				73CC887AF73601484C4C90D2 /* LocomateApp.swift */,
+				04E8E004BD00BA338A0AA0AC /* Preferences.swift */,
+				011CC319CD366A283B75CFEA /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		D457528F22290ED0F75A20DE /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				3DF7053002D9EFA160FF47B2 /* run-12137-2026-09-18.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		F7E3EB584FACECC511C8CB81 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				CE583CF262143B60198CA75E /* BottomDock.swift */,
+				842CF2BB74C8AE547D27DC74 /* Explore */,
+				21FACBE37946D233BB32FE88 /* Journey */,
+				FEAA7B5CFCF0AD4EC5CA96AE /* Passport */,
+				014D903D116ABE0CBD892AC9 /* Search */,
+				AA28E92D24798240C470E9EA /* Settings */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		FEAA7B5CFCF0AD4EC5CA96AE /* Passport */ = {
+			isa = PBXGroup;
+			children = (
+				E06E9E14840D47CCB6666C82 /* PassportScreen.swift */,
+			);
+			path = Passport;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		37ADA60E2F3FADB15F784A51 /* LocomateUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B7F90D3B0E35ACADC75C9A1 /* Build configuration list for PBXNativeTarget "LocomateUITests" */;
+			buildPhases = (
+				0EB8CC86D83559B2D5C1F6CF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5D374E90B8FD39E4F9CAD912 /* PBXTargetDependency */,
+			);
+			name = LocomateUITests;
+			packageProductDependencies = (
+			);
+			productName = LocomateUITests;
+			productReference = C8005BC3E33D455B3C56A38E /* LocomateUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		9D47CD51438638A348AC34E7 /* LocomateWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0EF2D6BE2AA636338166B8A0 /* Build configuration list for PBXNativeTarget "LocomateWidgets" */;
+			buildPhases = (
+				0DFF7893C55DE304F3BA8ACC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LocomateWidgets;
+			packageProductDependencies = (
+			);
+			productName = LocomateWidgets;
+			productReference = 6678A5C5175515F1EA9247AA /* LocomateWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		BE046817ABACAE7D20A9C232 /* Locomate */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5ADF9A78D66C6D65A203A73B /* Build configuration list for PBXNativeTarget "Locomate" */;
 			buildPhases = (
 				389E68CF6EA34D6F12105195 /* Sources */,
+				1ACB9D53F56FA54FF5E521A0 /* Resources */,
+				1CCD9C89922048ED9A42DD23 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				45EA2665B7906EFBCE3CB3E7 /* PBXTargetDependency */,
 			);
 			name = Locomate;
 			packageProductDependencies = (
@@ -85,6 +433,25 @@
 			productName = Locomate;
 			productReference = 17D0138F3195BF28F6B27F17 /* Locomate.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CB6C2B48B3C6865AA3AA4746 /* LocomateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EF0179055A89DB2D65F553AC /* Build configuration list for PBXNativeTarget "LocomateTests" */;
+			buildPhases = (
+				CCB8EDCAAB4A83964B1D01B7 /* Sources */,
+				3C6AA2B7B0D9BDFDF4CDEE5C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6AEF4D25DB4285415B14DC25 /* PBXTargetDependency */,
+			);
+			name = LocomateTests;
+			packageProductDependencies = (
+			);
+			productName = LocomateTests;
+			productReference = 914FBB06275E4AE8F72242AA /* LocomateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -95,6 +462,19 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					37ADA60E2F3FADB15F784A51 = {
+						DevelopmentTeam = "";
+						TestTargetID = BE046817ABACAE7D20A9C232;
+					};
+					9D47CD51438638A348AC34E7 = {
+						DevelopmentTeam = "";
+					};
+					BE046817ABACAE7D20A9C232 = {
+						DevelopmentTeam = "";
+					};
+					CB6C2B48B3C6865AA3AA4746 = {
+						DevelopmentTeam = "";
+					};
 				};
 			};
 			buildConfigurationList = 2C0C65A748B2970844F91353 /* Build configuration list for PBXProject "Locomate" */;
@@ -112,28 +492,130 @@
 			projectRoot = "";
 			targets = (
 				BE046817ABACAE7D20A9C232 /* Locomate */,
+				CB6C2B48B3C6865AA3AA4746 /* LocomateTests */,
+				37ADA60E2F3FADB15F784A51 /* LocomateUITests */,
+				9D47CD51438638A348AC34E7 /* LocomateWidgets */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		1ACB9D53F56FA54FF5E521A0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D58B255030973F3BDDE62466 /* route-packs.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3C6AA2B7B0D9BDFDF4CDEE5C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77BAE3C7CCF47143B92EFBDC /* run-12137-2026-09-18.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
+		0DFF7893C55DE304F3BA8ACC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF374E14E2DCFB4D3446053E /* JourneyActivityAttributes.swift in Sources */,
+				80F0EC525A2871B620DC7342 /* LocomateWidgets.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0EB8CC86D83559B2D5C1F6CF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D97719A0CB4808694014C829 /* NavigationUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		389E68CF6EA34D6F12105195 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4F2E4DF74E2CAF6AC16D5C80 /* CapsuleNavBar.swift in Sources */,
-				99D641B0FC186F4C0CCADA31 /* ExploreView.swift in Sources */,
-				075D6250EC4938F52B92D313 /* GlassSheet.swift in Sources */,
-				41CC329274EB8ED80EB82986 /* JourneyView.swift in Sources */,
-				645AB32AAAE69874D48EC319 /* LocomateApp.swift in Sources */,
-				8886B2E358D0A241E14DFED1 /* MapCanvas.swift in Sources */,
-				856B8860CEFB38AEE21CC6CA /* PassportView.swift in Sources */,
-				1D7FFCF5A015D3104EBEAFE5 /* SearchSheet.swift in Sources */,
-				B2B5B2470A0F11893C5CC698 /* Theme.swift in Sources */,
+				9ABFC199FAB05D62D2477CBE /* APIClient.swift in Sources */,
+				FB196DB12892DEA724331CCE /* BottomDock.swift in Sources */,
+				9845D924330E1EA99C9EB7BB /* ContributionService.swift in Sources */,
+				8A4FC173F01101E7AC947642 /* ContributionSettings.swift in Sources */,
+				3EC29C8DAF72A18A6F9641C3 /* DataReport.swift in Sources */,
+				5510C910EB660195549A2108 /* DataSourceSheet.swift in Sources */,
+				76A664B717A806810AE8971B /* ExploreScreen.swift in Sources */,
+				B43615A65548A38E05A804CB /* ForecastPresentation.swift in Sources */,
+				01AB0C58380866B6BF56FC10 /* Glass.swift in Sources */,
+				7331AD302026897A04D4DA9B /* Haptics.swift in Sources */,
+				0A605D9A8E4A4D07F0E958D1 /* IndiaDate.swift in Sources */,
+				7BE77F36FC438C8DF0A191B7 /* JourneyActivityAttributes.swift in Sources */,
+				04ED91AFFD361C7A1B75A3BD /* JourneyCalendarService.swift in Sources */,
+				C7E76F9C45F2FC78490A3A51 /* JourneyComponents.swift in Sources */,
+				2D3FD787C843D31DD4480276 /* JourneyModel.swift in Sources */,
+				D525888C2403AB89BB02BBD3 /* JourneyPlan.swift in Sources */,
+				CF6E4DF2F32EC9D6DF182956 /* JourneyScreen.swift in Sources */,
+				63D33AD2E761023ED89F95B6 /* JourneySetupSheet.swift in Sources */,
+				0CAAD1BEE4C01C2D11ED6F94 /* JourneyStore.swift in Sources */,
+				C0459AAA2D30BB29D7288E49 /* KeychainTokenStore.swift in Sources */,
+				ADA14E893FF6611314BDD418 /* LiveActivityService.swift in Sources */,
+				7C0B646A3C56CA1C98AB0E5A /* LocomateApp.swift in Sources */,
+				61E2B2A8CAFCDF923AF1AB88 /* MapDaylight.swift in Sources */,
+				91E5898D427B239E94D77784 /* MapMatcher.swift in Sources */,
+				862F49FD3CACCE368CBDA990 /* Models.swift in Sources */,
+				67ED51638DF6EE5626EDA37E /* Motion.swift in Sources */,
+				8229E764776C63DF94ABC90B /* ObservationSync.swift in Sources */,
+				93D381D1788D0F3A7667A8C6 /* Palette.swift in Sources */,
+				D5BAD8044F7E3398D0A5B501 /* PassportScreen.swift in Sources */,
+				DFDD352BB7A5B3CFFBBB4ABD /* PassportStats.swift in Sources */,
+				2F42E2FD8A98DBDFEBD4B678 /* Preferences.swift in Sources */,
+				B2D82BD205A4192CBC31D698 /* PressableScale.swift in Sources */,
+				2552FDEFCBDDB06E71C5B161 /* RailMapView.swift in Sources */,
+				E7009EC1DAA38A8A15AF699D /* RailService.swift in Sources */,
+				B4C06C5B212FCFD0F216505B /* ResizableSheet.swift in Sources */,
+				199CE718C0CC6E7C52059939 /* RootView.swift in Sources */,
+				32F0354407D667D5931F610F /* RouteGeometry.swift in Sources */,
+				9711B90409F7FB8BBEC4180E /* RoutePacks.swift in Sources */,
+				B2FC1F9CE589FCA867F45006 /* Routes.swift in Sources */,
+				AA0E0C5336DCB904B7DB0407 /* SearchScreen.swift in Sources */,
+				A29726CE7CE679FB39BA55C0 /* Services.swift in Sources */,
+				81053BD3C1176077C917E9C6 /* SettingsScreen.swift in Sources */,
+				954123DAFDCFEB1BA8AE57DF /* StatusKind.swift in Sources */,
+				6043C73EF8C9062F1D014D34 /* Theme.swift in Sources */,
+				362853C49DDA1F8678529F9E /* Typography.swift in Sources */,
+				082B34188937EF0017CFB53F /* UIKit.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CCB8EDCAAB4A83964B1D01B7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				56734436EA551F5755619328 /* DomainTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		45EA2665B7906EFBCE3CB3E7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D47CD51438638A348AC34E7 /* LocomateWidgets */;
+			targetProxy = 8A9CAC4817D7484308E748CE /* PBXContainerItemProxy */;
+		};
+		5D374E90B8FD39E4F9CAD912 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE046817ABACAE7D20A9C232 /* Locomate */;
+			targetProxy = 99866F9D5446821A4C822C3B /* PBXContainerItemProxy */;
+		};
+		6AEF4D25DB4285415B14DC25 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE046817ABACAE7D20A9C232 /* Locomate */;
+			targetProxy = CDF14653CE35C9A6435B0D46 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		06B9DCE6BBC1A256AADE0A7D /* Release */ = {
@@ -169,10 +651,13 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -181,13 +666,15 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCOMOTE_RAIL_API_URL = "";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -224,10 +711,13 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -242,6 +732,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCOMOTE_RAIL_API_URL = "";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -249,7 +741,77 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		6200DD9D7991A4081C34CE1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Locomate;
+			};
+			name = Debug;
+		};
+		758009F045235D15CCC596B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocomateWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		78DC58831846D84D4F4035BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Locomate.app/Locomate";
+			};
+			name = Release;
+		};
+		8498821733367FB49453FB13 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Locomate.app/Locomate";
 			};
 			name = Debug;
 		};
@@ -258,13 +820,58 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Locomate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Locomate;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.Locomate;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app;
 				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A82DC059FEA4C804D1A3BEEB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Locomate;
+			};
+			name = Release;
+		};
+		B8F0488F30F1EA2D54A608CB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocomateWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -274,12 +881,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Locomate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Locomate;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.Locomate;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.locomate.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -288,6 +904,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0EF2D6BE2AA636338166B8A0 /* Build configuration list for PBXNativeTarget "LocomateWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B8F0488F30F1EA2D54A608CB /* Debug */,
+				758009F045235D15CCC596B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1B7F90D3B0E35ACADC75C9A1 /* Build configuration list for PBXNativeTarget "LocomateUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6200DD9D7991A4081C34CE1E /* Debug */,
+				A82DC059FEA4C804D1A3BEEB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		2C0C65A748B2970844F91353 /* Build configuration list for PBXProject "Locomate" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -302,6 +936,15 @@
 			buildConfigurations = (
 				92B57A27A152B877CBA3AD75 /* Debug */,
 				E47A2393E774BFFBFB596FBE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EF0179055A89DB2D65F553AC /* Build configuration list for PBXNativeTarget "LocomateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8498821733367FB49453FB13 /* Debug */,
+				78DC58831846D84D4F4035BF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

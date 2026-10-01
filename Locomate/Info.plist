@@ -18,15 +18,36 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.locomate.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>locomate</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>UILaunchScreen_Generation</key>
+	<key>LocomoteRailAPIURL</key>
+	<string>$(LOCOMOTE_RAIL_API_URL)</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Locomate can add a journey you choose to your calendar.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Locomate can continue your explicitly enabled train contribution while the app is in the background.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Locomate uses your location only while you explicitly contribute an active train journey.</string>
+	<key>NSSupportsLiveActivities</key>
 	<true/>
-	<key>UIRequiresFullScreen</key>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
 	<true/>
-	<key>UISupportedInterfaceOrientations</key>
+	<key>UIBackgroundModes</key>
 	<array>
-		<string>UIInterfaceOrientationPortrait</string>
+		<string>location</string>
 	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
 </dict>
 </plist>

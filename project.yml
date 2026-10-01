@@ -1,16 +1,117 @@
 name: Locomate
 options:
   bundleIdPrefix: com.locomate
-  deploymentTarget: "17.0"
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # Empty by default -> the app runs in historical preview mode.
+    # Override on the command line or in a local xcconfig to target production:
+    #   xcodebuild ... LOCOMOTE_RAIL_API_URL=https://<gateway>.workers.dev
+    LOCOMOTE_RAIL_API_URL: ""
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGNING_ALLOWED: "NO"
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+
 targets:
   Locomate:
     type: application
     platform: iOS
-    sources: [Locomate]
+    sources:
+      - path: Locomate
+      - path: Shared
+    dependencies:
+      - target: LocomateWidgets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.locomate.app
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_CFBundleDisplayName: Locomate
+        GENERATE_INFOPLIST_FILE: "YES"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_NSSupportsLiveActivities: "YES"
+        INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates: "YES"
     info:
       path: Locomate/Info.plist
       properties:
-        UILaunchScreen_Generation: true
-        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        UIRequiresFullScreen: true
         CFBundleDisplayName: Locomate
+        LocomoteRailAPIURL: $(LOCOMOTE_RAIL_API_URL)
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
+        UIBackgroundModes:
+          - location
+        CFBundleURLTypes:
+          - CFBundleURLName: com.locomate.app
+            CFBundleURLSchemes:
+              - locomate
+        UILaunchScreen: {}
+        NSLocationWhenInUseUsageDescription: "Locomate uses your location only while you explicitly contribute an active train journey."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Locomate can continue your explicitly enabled train contribution while the app is in the background."
+        NSCalendarsWriteOnlyAccessUsageDescription: "Locomate can add a journey you choose to your calendar."
+
+  LocomateTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LocomateTests
+    dependencies:
+      - target: Locomate
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.locomate.app.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+
+  LocomateUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: LocomateUITests
+    dependencies:
+      - target: Locomate
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.locomate.app.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+
+  LocomateWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: LocomateWidgets
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.locomate.app.widgets
+        GENERATE_INFOPLIST_FILE: "YES"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: "YES"
+    info:
+      path: LocomateWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Locomate
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+schemes:
+  Locomate:
+    build:
+      targets:
+        Locomate: all
+        LocomateTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LocomateTests
+        - LocomateUITests

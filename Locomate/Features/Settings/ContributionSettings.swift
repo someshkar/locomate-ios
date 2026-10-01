@@ -1,0 +1,171 @@
+//
+//  ContributionSettings.swift
+//  Locomate
+//
+//  Community contribution consent — ported from SmartRail
+//  `src/components/ContributionSettings.tsx` + `src/privacy/consent.ts`.
+//
+//  Rules preserved: explicit versioned consent, foreground and background are
+//  separate choices, background requires foreground, and revocation wipes the
+//  local queue immediately.
+//
+
+import SwiftUI
+
+struct ContributionSettings: View {
+    @Environment(\.locomoteColors) private var colors
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(Preferences.self) private var preferences
+    @Environment(\.locomoteServices) private var services
+
+    @State private var showRevokeConfirm = false
+    @State private var message: String?
+
+    var body: some View {
+        @Bindable var preferences = preferences
+
+        VStack(alignment: .leading, spacing: Spacing.units(2.5)) {
+            HStack {
+                Text("Community contribution").eyebrow(colors.textTertiary)
+                Spacer()
+                Text("v\(Consent.version)")
+                    .font(LocomateFont.data)
+                    .foregroundStyle(colors.textTertiary)
+            }
+
+            ContributionToggle(
+                icon: "location.fill",
+                title: "Contribute while using the app",
+                meta: "Share a location observation only for a journey you explicitly start.",
+                isOn: $preferences.contributionsEnabled,
+                onChange: { enabled in
+                    if !enabled {
+                        preferences.backgroundLocationEnabled = false
+                        services.contribution.stop()
+                    }
+                    message = enabled
+                        ? "Contribution is on for journeys you start. Revoke any time."
+                        : "Contribution is off. Your local queue was cleared."
+                    enabled ? Haptics.success() : Haptics.warn()
+                }
+            )
+
+            ContributionToggle(
+                icon: "location.circle",
+                title: "Continue in the background",
+                meta: preferences.contributionsEnabled
+                    ? "Keep contributing while the app is in the background or the screen is off."
+                    : "Enable foreground contribution first.",
+                isOn: $preferences.backgroundLocationEnabled,
+                disabled: !preferences.contributionsEnabled,
+                onChange: { enabled in
+                    message = enabled
+                        ? "Background contribution is on while a journey is active."
+                        : "Background contribution is off."
+                }
+            )
+
+            Text("Locomate never collects your name, phone, PNR, coach or seat. Raw observations expire quickly, and a single contributor is always treated as low confidence until independent evidence corroborates it.")
+                .font(LocomateFont.caption)
+                .foregroundStyle(colors.textTertiary)
+
+            if preferences.contributionsEnabled {
+                ScaleButton(accessibilityLabel: "Revoke consent and delete local observations", action: {
+                    showRevokeConfirm = true
+                }) {
+                    Text("Revoke consent and delete local observations")
+                        .font(LocomateFont.bodyStrong)
+                        .foregroundStyle(colors.pair(for: .error).fg)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                            .fill(colors.pair(for: .error).bg))
+                }
+            }
+
+            if preferences.contributionsEnabled {
+                Text("\(services.contribution.queuedCount) observation(s) queued on this device")
+                    .font(LocomateFont.data)
+                    .foregroundStyle(colors.textTertiary)
+            }
+
+            if let message {
+                Text(message)
+                    .font(LocomateFont.caption)
+                    .foregroundStyle(colors.textSecondary)
+                    .accessibilityAddTraits(.isStaticText)
+            }
+        }
+        .padding(Spacing.units(4))
+        .background(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).fill(colors.elevated))
+        .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+            .strokeBorder(colors.borderSubtle, lineWidth: 0.75))
+        .confirmationDialog(
+            "Revoke consent?",
+            isPresented: $showRevokeConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Revoke and delete", role: .destructive) {
+                Haptics.warn()
+                withAnimation(Motion.animation(Motion.snappy, reduceMotion: reduceMotion)) {
+                    preferences.contributionsEnabled = false
+                    preferences.backgroundLocationEnabled = false
+                }
+                // Stop collection and erase the local queue immediately.
+                services.contribution.revoke()
+                message = "Consent revoked. Local observations were deleted."
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This immediately stops collection and erases queued observations from this device.")
+        }
+    }
+}
+
+private struct ContributionToggle: View {
+    @Environment(\.locomoteColors) private var colors
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let icon: String
+    let title: String
+    let meta: String
+    @Binding var isOn: Bool
+    var disabled = false
+    let onChange: (Bool) -> Void
+
+    var body: some View {
+        HStack(spacing: Spacing.units(3)) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(disabled ? colors.textTertiary : colors.accentBase)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(LocomateFont.bodyStrong)
+                    .foregroundStyle(disabled ? colors.textTertiary : colors.textPrimary)
+                Text(meta).font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+            }
+            Spacer(minLength: Spacing.units(2))
+            AnimatedSwitch(isOn: isOn)
+        }
+        .opacity(disabled ? 0.6 : 1)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !disabled else { return }
+            withAnimation(Motion.animation(Motion.snappy, reduceMotion: reduceMotion)) {
+                isOn.toggle()
+            }
+            onChange(isOn)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+/// Versioned consent, mirroring `src/privacy/consent.ts`.
+enum Consent {
+    static let version = 1
+    static let scope = "community_observations"
+}
