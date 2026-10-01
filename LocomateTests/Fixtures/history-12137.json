@@ -1,0 +1,15 @@
+{
+  "trainNumber": "12137",
+  "summary": {
+    "counts": {"early": 1, "onTime": 3, "late": 1, "cancelled": 1, "unknown": 2, "total": 8},
+    "denominator": 5,
+    "percentages": {"early": 20, "onTime": 60, "late": 20},
+    "coverage": {"from": "2026-09-10", "to": "2026-09-18"},
+    "lowSample": true
+  },
+  "policy": {"version": "destination-arrival-delay-v1", "earlyBelowMinutes": -5, "onTimeFromMinutes": -5, "onTimeThroughMinutes": 5, "lateAboveMinutes": 5},
+  "generatedAt": "2026-10-01T13:00:00.000Z",
+  "provenance": {"source": "canonical-intelligence-tables", "comprehensiveCoverage": false, "disclosure": "Derived only from runs and destination arrival revisions materialized in this gateway; coverage is partial and is not a comprehensive operating history."},
+  "runs": [{"runId": "12137:2026-09-18", "serviceDate": "2026-09-18", "status": "completed", "destination": {"code": "FZR", "name": "Firozpur Cantt Jn"}, "scheduledArrival": "2026-09-19T23:45:00.000Z", "actualArrival": "2026-09-19T23:46:30.000Z", "delayMinutes": 1.5, "classification": "on-time", "source": {"schedule": "canonical-intelligence-tables", "actual": {"source": "official", "provider": "test", "recordedAt": "2026-09-19T23:47:00.000Z"}}}],
+  "pagination": {"limit": 1, "nextCursor": "opaque-history-page"}
+}

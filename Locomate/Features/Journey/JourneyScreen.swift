@@ -500,16 +500,8 @@ struct JourneyScreen: View {
     }
 
     @ViewBuilder private func insightsPanel(model: JourneyModel, journey: Journey) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: Spacing.units(2)) {
-                Text("Reliability history").eyebrow(colors.textTertiary)
-                Text(model.isPreview
-                     ? "Reliability history requires a production journey. Preview data is never used to estimate real performance."
-                     : "Destination-arrival reliability appears here when the gateway has materialised history for this service.")
-                    .font(LocomateFont.caption)
-                    .foregroundStyle(colors.textSecondary)
-            }
-        }
+        ReliabilityHistoryCard(trainNumber: journey.trainNumber, originDate: model.originDate,
+                               preview: model.isPreview)
         RotationIntelligenceCard(
             operations: model.operations,
             trainNumber: journey.trainNumber,

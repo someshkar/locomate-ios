@@ -449,7 +449,7 @@ public struct HistoricalTrainRun: Codable, Sendable, Identifiable {
     public let destination: StationRef
     public let scheduledArrival: String?
     public let actualArrival: String?
-    public let delayMinutes: Int?
+    public let delayMinutes: Double?
     public let classification: TrainHistoryClassification
 }
 
@@ -475,9 +475,25 @@ public struct TrainHistorySummary: Codable, Sendable {
     public let lowSample: Bool
 }
 
+public struct TrainHistoryPolicy: Codable, Sendable {
+    public let version: String
+    public let earlyBelowMinutes: Int
+    public let onTimeFromMinutes: Int
+    public let onTimeThroughMinutes: Int
+    public let lateAboveMinutes: Int
+}
+
+public struct TrainHistoryProvenance: Codable, Sendable {
+    public let source: String
+    public let comprehensiveCoverage: Bool
+    public let disclosure: String
+}
+
 public struct TrainHistoryResponse: Codable, Sendable {
     public let trainNumber: String
     public let summary: TrainHistorySummary
+    public let policy: TrainHistoryPolicy
+    public let provenance: TrainHistoryProvenance
     public let generatedAt: String
     public let runs: [HistoricalTrainRun]
 }
