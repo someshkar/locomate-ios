@@ -25,9 +25,10 @@ struct ExploreScreen: View {
     private var markers: [NetworkMarker] { network.markers }
 
     var body: some View {
-        OverviewPage {
+        OverviewPage { viewport in
             NetworkMapView(
                 markers: markers,
+                viewportOnScreen: viewport,
                 onSelect: openJourney,
                 onInspectCluster: { trainList = .cluster($0) },
                 onBoundsChange: { newBounds in
@@ -227,6 +228,7 @@ struct ExploreNetworkOverlay: View {
 
 struct NetworkMapView: UIViewRepresentable {
     let markers: [NetworkMarker]
+    var viewportOnScreen: CGRect? = nil
     let onSelect: (NetworkMarker.ID) -> Void
     let onInspectCluster: ([NetworkMarker.ID]) -> Void
     let onBoundsChange: (NetworkBounds) -> Void
@@ -235,34 +237,39 @@ struct NetworkMapView: UIViewRepresentable {
         Coordinator(onBoundsChange: onBoundsChange, onSelect: onSelect, onInspectCluster: onInspectCluster)
     }
 
-    func makeUIView(context: Context) -> MKMapView {
-        let mapView = MKMapView(frame: .zero)
+    func makeUIView(context: Context) -> OverviewMapContainer {
+        let surface = OverviewMapContainer(frame: .zero)
+        let mapView = surface.mapView
         mapView.delegate = context.coordinator
-        mapView.mapType = .hybridFlyover
+        context.coordinator.surface = surface
+        mapView.preferredConfiguration = MKHybridMapConfiguration(elevationStyle: .flat)
         mapView.overrideUserInterfaceStyle = .dark
         mapView.showsCompass = false
         mapView.isRotateEnabled = false
         mapView.isPitchEnabled = false
-        mapView.setRegion(MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 22.6, longitude: 79.5),
-            span: MKCoordinateSpan(latitudeDelta: 6, longitudeDelta: 18)
-        ), animated: false)
-        return mapView
+        surface.viewportOnScreen = viewportOnScreen
+        surface.onViewportChange = { [weak coordinator = context.coordinator] surface in
+            coordinator?.publishBounds(surface)
+        }
+        return surface
     }
 
-    func updateUIView(_ mapView: MKMapView, context: Context) {
+    func updateUIView(_ surface: OverviewMapContainer, context: Context) {
+        surface.viewportOnScreen = viewportOnScreen
         context.coordinator.onSelect = onSelect
         context.coordinator.onInspectCluster = onInspectCluster
-        context.coordinator.update(mapView: mapView, markers: markers)
+        context.coordinator.update(mapView: surface.mapView, markers: markers)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         private let onBoundsChange: (NetworkBounds) -> Void
         var onSelect: (NetworkMarker.ID) -> Void
         var onInspectCluster: ([NetworkMarker.ID]) -> Void
+        weak var surface: OverviewMapContainer?
         private var annotations: [NetworkAnnotation] = []
         private var lastMarkers: [NetworkMarker] = []
         private var lastBounds = ""
+        private var boundsRevision = 0
 
         init(onBoundsChange: @escaping (NetworkBounds) -> Void,
              onSelect: @escaping (NetworkMarker.ID) -> Void,
@@ -283,17 +290,23 @@ struct NetworkMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-            let region = mapView.region
-            let west = max(-180, region.center.longitude - region.span.longitudeDelta / 2)
-            let east = min(180, region.center.longitude + region.span.longitudeDelta / 2)
-            let south = max(-90, region.center.latitude - region.span.latitudeDelta / 2)
-            let north = min(90, region.center.latitude + region.span.latitudeDelta / 2)
-            guard west < east, south < north else { return }
-            let bounds = NetworkBounds(west: west, south: south, east: east, north: north)
-            let key = String(format: "%.2f,%.2f,%.2f,%.2f", west, south, east, north)
-            guard key != lastBounds else { return }
-            lastBounds = key
-            onBoundsChange(bounds)
+            if let surface, surface.mapView === mapView { publishBounds(surface) }
+        }
+
+        func publishBounds(_ surface: OverviewMapContainer) {
+            boundsRevision += 1
+            let revision = boundsRevision
+            // Publish after the SwiftUI/native layout transaction, and read the
+            // current viewport so obsolete resize/pan callbacks cannot win.
+            DispatchQueue.main.async { [weak self, weak surface] in
+                guard let self, revision == self.boundsRevision,
+                      let surface, surface.window != nil,
+                      let bounds = surface.visibleNetworkBounds else { return }
+                let key = String(format: "%.5f,%.5f,%.5f,%.5f", bounds.west, bounds.south, bounds.east, bounds.north)
+                guard key != self.lastBounds else { return }
+                self.lastBounds = key
+                self.onBoundsChange(bounds)
+            }
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {

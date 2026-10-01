@@ -75,7 +75,6 @@ public struct RootView: View {
                 .padding(.horizontal, Spacing.units(5))
                 .padding(.vertical, Spacing.units(2))
                 .frame(maxWidth: .infinity)
-                .background(colors.canvas)
         }
         .environment(\.locomoteColors, colors)
         .animation(Motion.fadeNormal, value: preferences.dark)

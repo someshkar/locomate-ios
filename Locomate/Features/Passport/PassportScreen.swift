@@ -43,8 +43,8 @@ struct PassportScreen: View {
     }
 
     private var content: some View {
-        OverviewPage {
-            PassportMapBackdrop()
+        OverviewPage(sheetStyle: .passport) { viewport in
+            PassportMapBackdrop(viewportOnScreen: viewport)
         } sheet: {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.units(4)) {

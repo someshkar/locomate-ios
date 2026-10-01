@@ -55,37 +55,66 @@ public extension GlassSurface where S == RoundedRectangle {
     }
 }
 
-/// Keep the native map and its legal controls above one scrollable data sheet.
-/// Accessibility sizes reserve more room for the sheet without covering map credits.
+/// The native map fills the screen beneath one material sheet and the floating dock.
+/// Only the exposed strip supplies network bounds and receives map gestures.
 struct OverviewPage<MapContent: View, SheetContent: View>: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locomoteColors) private var colors
     var hidesMap = false
-    @ViewBuilder var map: () -> MapContent
+    var sheetStyle: OverviewSheetStyle = .standard
+    @ViewBuilder var map: (CGRect) -> MapContent
     @ViewBuilder var sheet: () -> SheetContent
 
     var body: some View {
         GeometryReader { geometry in
             let mapHeight: CGFloat = dynamicTypeSize.isAccessibilitySize
                 ? 96 : max(128, min(190, geometry.size.height * 0.24))
-            VStack(spacing: 0) {
-                map()
-                    .frame(height: hidesMap ? 0 : mapHeight + geometry.safeAreaInsets.top)
-                    .clipped()
-                    .padding(.top, hidesMap ? 0 : -geometry.safeAreaInsets.top)
+            let frame = geometry.frame(in: .global)
+            let viewport = CGRect(x: frame.minX, y: frame.minY,
+                                  width: frame.width, height: hidesMap ? 0 : mapHeight)
+            ZStack(alignment: .top) {
+                map(viewport)
+                    .ignoresSafeArea()
+                    .opacity(hidesMap ? 0 : 1)
                     .accessibilityHidden(hidesMap)
-                sheet()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background { OverviewSheetSurface() }
+                    .allowsHitTesting(!hidesMap)
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: hidesMap ? 0 : mapHeight)
+                        .allowsHitTesting(false)
+                    sheet()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background {
+                            OverviewSheetSurface(style: sheetStyle)
+                                .ignoresSafeArea(.container, edges: .bottom)
+                        }
+                }
             }
         }
         .background(colors.canvas)
     }
 }
 
+enum OverviewSheetStyle {
+    case standard, passport
+
+    var darkStops: [Gradient.Stop] {
+        switch self {
+        case .standard:
+            [ .init(color: Color(hex: 0x111119).opacity(0.50), location: 0),
+              .init(color: Color(hex: 0x0F0F16).opacity(0.88), location: 0.20),
+              .init(color: Color(hex: 0x0E0E15).opacity(0.98), location: 1) ]
+        case .passport:
+            [ .init(color: Color(hex: 0x0B0C16).opacity(0.55), location: 0),
+              .init(color: Color(hex: 0x0A0B14).opacity(0.94), location: 0.20),
+              .init(color: Color(hex: 0x090A12).opacity(0.99), location: 1) ]
+        }
+    }
+}
+
 struct OverviewSheetSurface: View {
     @Environment(\.locomoteColors) private var colors
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    var style: OverviewSheetStyle = .standard
 
     private let shape = UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28)
 
@@ -96,9 +125,9 @@ struct OverviewSheetSurface: View {
             } else {
                 shape.fill(.ultraThinMaterial)
                 shape.fill(LinearGradient(
-                    colors: colors.dark
-                        ? [Color(hex: 0x0B0C16).opacity(0.55), Color(hex: 0x090A12).opacity(0.98)]
-                        : [colors.elevated.opacity(0.75), colors.elevated],
+                    stops: colors.dark ? style.darkStops : [
+                        .init(color: colors.elevated.opacity(0.75), location: 0),
+                        .init(color: colors.elevated, location: 1)],
                     startPoint: .top, endPoint: .bottom))
             }
             shape.strokeBorder(colors.borderSubtle, lineWidth: 0.75)

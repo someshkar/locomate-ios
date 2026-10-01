@@ -35,8 +35,8 @@ struct SearchScreen: View {
     }
 
     var body: some View {
-        OverviewPage(hidesMap: isFieldFocused) {
-            PassportMapBackdrop()
+        OverviewPage(hidesMap: isFieldFocused) { viewport in
+            PassportMapBackdrop(viewportOnScreen: viewport)
         } sheet: {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.units(4)) {

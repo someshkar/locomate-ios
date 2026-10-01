@@ -3,23 +3,25 @@ import MapKit
 
 /// An unannotated native basemap. Saved summaries contain no verified route geometry.
 struct PassportMapBackdrop: UIViewRepresentable {
-    func makeUIView(context: Context) -> MKMapView {
-        let map = MKMapView(frame: .zero)
-        map.mapType = .hybridFlyover
+    var viewportOnScreen: CGRect? = nil
+
+    func makeUIView(context: Context) -> OverviewMapContainer {
+        let surface = OverviewMapContainer(frame: .zero)
+        let map = surface.mapView
+        map.preferredConfiguration = MKHybridMapConfiguration(elevationStyle: .flat)
         map.overrideUserInterfaceStyle = .dark
         map.showsCompass = false
         map.isScrollEnabled = false
         map.isZoomEnabled = false
         map.isRotateEnabled = false
         map.isPitchEnabled = false
-        map.setRegion(MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 22.6, longitude: 79.5),
-            span: MKCoordinateSpan(latitudeDelta: 6, longitudeDelta: 18)
-        ), animated: false)
-        return map
+        surface.viewportOnScreen = viewportOnScreen
+        return surface
     }
 
-    func updateUIView(_ map: MKMapView, context: Context) {}
+    func updateUIView(_ surface: OverviewMapContainer, context: Context) {
+        surface.viewportOnScreen = viewportOnScreen
+    }
 }
 
 struct MapStationMarker: Identifiable, Equatable {
