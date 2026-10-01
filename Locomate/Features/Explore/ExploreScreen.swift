@@ -157,8 +157,7 @@ struct ExploreNetworkOverlay: View {
         (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .center))) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Rail network")
-                    .font(LocomateFont.title)
-                    .tracking(-1.2)
+                    .pageHeading()
                     .foregroundStyle(colors.textPrimary)
                 Text("Pan, zoom and inspect active services")
                     .font(LocomateFont.caption)

@@ -91,17 +91,20 @@ public struct SectionHeader<Trailing: View>: View {
     @Environment(\.locomoteColors) private var colors
     public let eyebrow: String?
     public let title: String
+    public let pageHeading: PageHeadingStyle?
     public let meta: String?
     public let trailing: () -> Trailing
 
     public init(
         eyebrow: String? = nil,
         title: String,
+        pageHeading: PageHeadingStyle? = nil,
         meta: String? = nil,
         @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }
     ) {
         self.eyebrow = eyebrow
         self.title = title
+        self.pageHeading = pageHeading
         self.meta = meta
         self.trailing = trailing
     }
@@ -112,10 +115,16 @@ public struct SectionHeader<Trailing: View>: View {
                 if let eyebrow {
                     Text(eyebrow).eyebrow(colors.textTertiary)
                 }
-                Text(title)
-                    .font(LocomateFont.title)
-                    .tracking(-1.2)
-                    .foregroundStyle(colors.textPrimary)
+                if let pageHeading {
+                    Text(title).pageHeading(pageHeading)
+                        .foregroundStyle(colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(title)
+                        .font(LocomateFont.title)
+                        .tracking(-1.2)
+                        .foregroundStyle(colors.textPrimary)
+                }
                 if let meta {
                     Text(meta)
                         .font(LocomateFont.caption)

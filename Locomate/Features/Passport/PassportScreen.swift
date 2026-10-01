@@ -48,6 +48,7 @@ struct PassportScreen: View {
                 SectionHeader(
                     eyebrow: "THE PLACES YOU GO",
                     title: "Passport",
+                    pageHeading: .passport,
                     meta: "Saved rail runs, private on this device."
                 ) {
                     iconButton("gearshape", label: "Open settings") { showSettings = true }
@@ -223,7 +224,7 @@ struct PassportHeroCard: View {
             Text("SAVED RUNS · \(periodLabel)").eyebrow(colors.textTertiary)
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(Int(stats.distanceKm.rounded()).formatted())
-                    .font(.system(.largeTitle, design: .rounded, weight: .semibold))
+                    .font(.system(.largeTitle, weight: .heavy))
                     .monospacedDigit()
                 Text("km")
                     .font(LocomateFont.title)

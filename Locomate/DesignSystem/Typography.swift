@@ -28,6 +28,34 @@ public enum LocomateFont {
     public static let micro = Font.system(.caption, design: .monospaced, weight: .semibold)
 }
 
+/// Main-screen headings follow the approved canvas's native sans-serif fallback.
+/// Their base sizes scale with Large Title, including accessibility categories.
+public enum PageHeadingStyle {
+    case standard, passport
+}
+
+public struct PageHeadingModifier: ViewModifier {
+    @ScaledMetric(relativeTo: .largeTitle) private var pointSize: CGFloat = 32
+    private let tracking: CGFloat
+
+    public init(_ style: PageHeadingStyle = .standard) {
+        _pointSize = ScaledMetric(wrappedValue: style == .passport ? 34 : 32, relativeTo: .largeTitle)
+        tracking = style == .passport ? -1.3 : -1.2
+    }
+
+    public func body(content: Content) -> some View {
+        content
+            .font(.system(size: pointSize, weight: .heavy, design: .default))
+            .tracking(tracking)
+    }
+}
+
+public extension View {
+    func pageHeading(_ style: PageHeadingStyle = .standard) -> some View {
+        modifier(PageHeadingModifier(style))
+    }
+}
+
 /// Text styles pairing a font with the tracking from `typography.ts`.
 public enum LocomateText {
     public static func displayXL(_ text: String) -> Text {

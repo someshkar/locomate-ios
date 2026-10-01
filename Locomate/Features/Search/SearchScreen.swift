@@ -67,8 +67,7 @@ struct SearchScreen: View {
     private var intro: some View {
         VStack(alignment: .leading, spacing: Spacing.units(2)) {
             Text("Search")
-                .font(LocomateFont.display)
-                .tracking(-1.4)
+                .pageHeading()
                 .foregroundStyle(colors.textPrimary)
             Text("Find trains by name or number")
                 .font(LocomateFont.body)

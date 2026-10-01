@@ -270,8 +270,7 @@ struct JourneyScreen: View {
     private var emptyHeader: some View {
         HStack {
             Text("My Journeys")
-                .font(.system(.title, design: .rounded, weight: .bold))
-                .tracking(-1)
+                .pageHeading()
                 .foregroundStyle(colors.textPrimary)
             Spacer()
         }
@@ -385,10 +384,10 @@ struct JourneyScreen: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
             : AnyLayout(HStackLayout(spacing: Spacing.units(3)))) {
             Text("My Journeys")
-                .font(.system(.title, design: .rounded, weight: .bold))
-                .tracking(-1)
+                .pageHeading()
                 .foregroundStyle(colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             HStack(spacing: Spacing.units(3)) {
                 Spacer(minLength: 0)
                 iconButton(detentIndex == 0 ? "chevron.up" : "chevron.down",

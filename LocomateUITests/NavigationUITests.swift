@@ -150,6 +150,7 @@ final class NavigationUITests: XCTestCase {
     @MainActor
     func testPrimarySurfacesOpenOnSimulator() {
         let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["My Journeys"].waitForExistence(timeout: 10))
@@ -280,6 +281,9 @@ final class NavigationUITests: XCTestCase {
         }
         capture(app, "Journey largest text")
         app.buttons["Journey"].press(forDuration: 4)
+        app.buttons["Explore"].tap()
+        XCTAssertTrue(app.staticTexts["Rail network"].waitForExistence(timeout: 5))
+        capture(app, "Explore largest text")
         app.buttons["Passport"].tap()
         XCTAssertTrue(app.buttons["Open settings"].waitForExistence(timeout: 5))
         capture(app, "Passport largest text")
