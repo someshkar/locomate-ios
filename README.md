@@ -16,7 +16,7 @@ xcodebuild -project Locomate.xcodeproj -scheme Locomate \
   test CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
 ```
 
-The 89 routine Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, source isolation, Passport calculations, and device-only Keychain migration. Two routine UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
+The 91 routine Swift tests cover gateway decoding, route geometry, forecasts, date handling, journey plans, Live Activity attributes, source isolation, Passport calculations, and device-only Keychain migration. Two routine UI tests cover primary navigation and a fresh production launch without sample data. Simulator builds use ad hoc signing so Keychain access is available.
 
 To exercise current public rail data without changing the deployed gateway, start the SmartRail gateway locally with its development secrets and D1 migrations, then run:
 

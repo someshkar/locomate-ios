@@ -39,10 +39,13 @@ public struct JourneyActivityAttributes: ActivityAttributes {
     public var trainNumber: String
     public var trainName: String
     public var destinationCode: String
+    /// Optional so activities created by earlier builds can still be decoded and ended.
+    public var runId: String?
 
-    public init(trainNumber: String, trainName: String, destinationCode: String) {
+    public init(trainNumber: String, trainName: String, destinationCode: String, runId: String? = nil) {
         self.trainNumber = trainNumber
         self.trainName = trainName
         self.destinationCode = destinationCode
+        self.runId = runId
     }
 }

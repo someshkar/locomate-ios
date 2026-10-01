@@ -77,24 +77,35 @@ public final class JourneyModel {
     // MARK: Loading
 
     public func load() async {
+        let requestedTrainNumber = trainNumber
+        let requestedOriginDate = originDate
         // Preview packs are always available, even offline.
-        let pack = RoutePackStore.pack(trainNumber)
+        let pack = RoutePackStore.pack(requestedTrainNumber)
 
         if let service {
             phase = .loading
             do {
-                let loaded = try await service.journey(trainNumber: trainNumber, originDate: originDate)
+                let loaded = try await service.journey(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
+                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
                 isPreview = false
                 isCached = false
                 cachedAt = nil
                 phase = .loaded(loaded)
-                await cache.saveJourney(loaded, originDate: originDate)
-                operations = try? await service.operationalChain(trainNumber: trainNumber, originDate: originDate)
+                await cache.saveJourney(loaded, originDate: requestedOriginDate)
+                let loadedOperations = try? await service.operationalChain(
+                    trainNumber: requestedTrainNumber, originDate: requestedOriginDate
+                )
+                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+                operations = loadedOperations
                 // Keep the Live Activity / Dynamic Island in step with the run.
-                await liveActivity.sync(journey: loaded, registerToken: tokenRegistrar)
+                await liveActivity.sync(journey: loaded, registerToken: tokenRegistrar(for: loaded.id))
             } catch {
+                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+                await liveActivity.end()
+                guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
                 // Retain the last good journey rather than falling through to fixtures.
-                if let cached = await cache.loadJourney(trainNumber: trainNumber, originDate: originDate) {
+                if let cached = await cache.loadJourney(trainNumber: requestedTrainNumber, originDate: requestedOriginDate) {
+                    guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
                     isPreview = false
                     isCached = true
                     cachedAt = cached.cachedAt
@@ -104,34 +115,35 @@ public final class JourneyModel {
                     isCached = false
                     cachedAt = nil
                     operations = nil
-                    await liveActivity.end()
                     phase = .failed(error.localizedDescription)
                 }
             }
         } else if let pack {
+            await liveActivity.end()
+            guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
             presentPreview(pack)
         } else {
-            phase = .failed("No route pack is bundled for \(trainNumber).")
+            await liveActivity.end()
+            guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+            phase = .failed("No route pack is bundled for \(requestedTrainNumber).")
         }
 
-        plan = await cache.loadPlan(trainNumber: trainNumber, originDate: originDate)
+        let loadedPlan = await cache.loadPlan(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
+        guard trainNumber == requestedTrainNumber, originDate == requestedOriginDate else { return }
+        plan = loadedPlan
     }
 
     /// Registers a push-to-update token with the gateway for server-driven ETA.
-    private var tokenRegistrar: ((String) async -> Void)? {
+    private func tokenRegistrar(for runId: String) -> ((String) async -> Void)? {
         guard let service else { return nil }
         return { token in
             // Best-effort: a failed registration must not break the journey.
-            _ = try? await (service as? RailService)?.registerLiveActivityToken(
-                runId: self.trainNumber, token: token
-            )
+            _ = try? await service.registerLiveActivityToken(runId: runId, token: token)
         }
     }
 
     private func presentPreview(_ pack: OpenRoutePack) {
         isPreview = true
-        // Preview is never live, so any existing activity must end.
-        Task { await liveActivity.end() }
         isCached = false
         cachedAt = nil
         let journey = PreviewData.journey(from: pack, originDate: originDate)
@@ -157,8 +169,12 @@ public final class JourneyModel {
     }
 
     public func update(trainNumber: String, originDate: String) async {
+        let changedRun = self.trainNumber != trainNumber || self.originDate != originDate
         self.trainNumber = trainNumber
         self.originDate = originDate
+        if changedRun {
+            await liveActivity.end()
+        }
         await load()
     }
 

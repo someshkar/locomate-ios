@@ -12,6 +12,27 @@ import Foundation
 import Security
 @testable import Locomate
 
+@Suite("Live Activity attributes")
+struct LiveActivityAttributeTests {
+    @Test("activities created before run IDs were stored remain decodable")
+    func legacyAttributesDecode() throws {
+        let legacy = Data(#"{"trainNumber":"12137","trainName":"Punjab Mail","destinationCode":"FZR"}"#.utf8)
+        let attributes = try JSONDecoder().decode(JourneyActivityAttributes.self, from: legacy)
+        #expect(attributes.trainNumber == "12137")
+        #expect(attributes.runId == nil)
+    }
+
+    @Test("new activities retain their canonical dated run ID")
+    func runIdRoundTrips() throws {
+        let runId = "run:12137:2026-10-01"
+        let attributes = JourneyActivityAttributes(
+            trainNumber: "12137", trainName: "Punjab Mail", destinationCode: "FZR", runId: runId
+        )
+        let decoded = try JSONDecoder().decode(JourneyActivityAttributes.self, from: JSONEncoder().encode(attributes))
+        #expect(decoded.runId == runId)
+    }
+}
+
 @Suite("Rail storage scopes")
 struct RailStorageScopeTests {
     @Test("development and production gateway data cannot share a scope")

@@ -17,17 +17,20 @@ import Foundation
 
 @MainActor
 public final class LiveActivityService {
-    private var activity: Activity<JourneyActivityAttributes>?
     private var tokenTask: Task<Void, Never>?
+    private var tokenActivityId: String?
+    private var revision = 0
 
     public init() {}
 
-    public var isRunning: Bool { activity != nil }
+    public var isRunning: Bool { !Activity<JourneyActivityAttributes>.activities.isEmpty }
 
     /// Sync the Live Activity to the current journey state.
     /// Returns false when no activity should be running.
     @discardableResult
     public func sync(journey: Journey, registerToken: ((String) async -> Void)? = nil) async -> Bool {
+        revision += 1
+        let syncRevision = revision
         // The product rule: a Live Activity requires a known, non-stale delay.
         let delayStatus = journey.prediction.delayStatus
         guard journey.prediction.delayMinutes != nil,
@@ -51,8 +54,27 @@ public final class LiveActivityService {
             confidence: journey.prediction.confidence.rawValue.uppercased()
         )
 
-        if let activity {
-            await activity.update(ActivityContent(state: state, staleDate: nil))
+        let active = Activity<JourneyActivityAttributes>.activities
+        let matching = active.first { $0.attributes.runId == journey.id }
+        if tokenActivityId != matching?.id {
+            tokenTask?.cancel()
+            tokenTask = nil
+            tokenActivityId = nil
+        }
+        for existing in active where existing.attributes.runId != journey.id {
+            await existing.end(nil, dismissalPolicy: .immediate)
+            guard revision == syncRevision else { return false }
+        }
+        for duplicate in active where duplicate.attributes.runId == journey.id && duplicate.id != matching?.id {
+            await duplicate.end(nil, dismissalPolicy: .immediate)
+            guard revision == syncRevision else { return false }
+        }
+        if let matching {
+            await matching.update(ActivityContent(state: state, staleDate: nil))
+            guard revision == syncRevision else { return false }
+            if let registerToken, tokenTask == nil {
+                observePushToken(matching, register: registerToken)
+            }
             return true
         }
 
@@ -60,7 +82,8 @@ public final class LiveActivityService {
         let attributes = JourneyActivityAttributes(
             trainNumber: journey.trainNumber,
             trainName: journey.trainName,
-            destinationCode: journey.destinationCode
+            destinationCode: journey.destinationCode,
+            runId: journey.id
         )
         do {
             let created = try Activity.request(
@@ -68,7 +91,6 @@ public final class LiveActivityService {
                 content: ActivityContent(state: state, staleDate: nil),
                 pushType: registerToken == nil ? nil : .token
             )
-            activity = created
             if let registerToken {
                 observePushToken(created, register: registerToken)
             }
@@ -79,11 +101,13 @@ public final class LiveActivityService {
     }
 
     public func end() async {
+        revision += 1
         tokenTask?.cancel()
         tokenTask = nil
-        guard let activity else { return }
-        await activity.end(nil, dismissalPolicy: .immediate)
-        self.activity = nil
+        tokenActivityId = nil
+        for existing in Activity<JourneyActivityAttributes>.activities {
+            await existing.end(nil, dismissalPolicy: .immediate)
+        }
     }
 
     /// Observe the push-to-update token and forward it to the gateway.
@@ -91,8 +115,13 @@ public final class LiveActivityService {
         _ activity: Activity<JourneyActivityAttributes>,
         register: @escaping (String) async -> Void
     ) {
+        tokenTask?.cancel()
+        tokenActivityId = activity.id
         let updates = activity.pushTokenUpdates
         tokenTask = Task { [register] in
+            if let token = activity.pushToken {
+                await register(token.map { String(format: "%02x", $0) }.joined())
+            }
             for await token in updates {
                 let hex = token.map { String(format: "%02x", $0) }.joined()
                 await register(hex)
