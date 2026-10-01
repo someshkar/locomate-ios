@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Security
 
 @MainActor
 public final class LocomoteServices {
@@ -57,19 +58,42 @@ public final class LocomoteServices {
     }
 }
 
-/// Stable per-install identifier (hashed by the gateway, never sent raw as PII).
+/// Stable on this device. A restored backup starts a new gateway installation.
 enum InstallationIdentity {
-    private static let key = "locomote.installationId"
+    private static let fallback = UUID().uuidString
+    private static var baseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.locomate.app.installation",
+            kSecAttrAccount as String: "installation-id",
+        ]
+    }
 
     static func current() -> String {
-        if let existing = UserDefaults.standard.string(forKey: key) { return existing }
+        // Earlier builds used backed-up preferences. Do not carry that value
+        // into the installation's device-only identity.
+        UserDefaults.standard.removeObject(forKey: "locomote.installationId")
+        if let existing = load() { return existing }
         let generated = UUID().uuidString
-        UserDefaults.standard.set(generated, forKey: key)
-        return generated
+        var query = baseQuery
+        query[kSecValueData as String] = Data(generated.utf8)
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        if SecItemAdd(query as CFDictionary, nil) == errSecSuccess { return generated }
+        return load() ?? fallback
+    }
+
+    private static func load() -> String? {
+        var query = baseQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 }
 
-private struct LocomoteServicesKey: @preconcurrency EnvironmentKey {
+private struct LocomoteServicesKey: EnvironmentKey {
     static var defaultValue: LocomoteServices {
         MainActor.assumeIsolated { LocomoteServices.live() }
     }

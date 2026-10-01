@@ -21,6 +21,18 @@ struct RailStorageScopeTests {
     }
 }
 
+@Suite("Installation identity")
+struct InstallationIdentityTests {
+    @Test("legacy backed-up identifier is discarded")
+    func deviceOnlyIdentity() {
+        UserDefaults.standard.set("old-backed-up-id", forKey: "locomote.installationId")
+        let identity = InstallationIdentity.current()
+        #expect(identity != "old-backed-up-id")
+        #expect(identity == InstallationIdentity.current())
+        #expect(UserDefaults.standard.string(forKey: "locomote.installationId") == nil)
+    }
+}
+
 // MARK: - IndiaDate
 
 @Suite("India origin dates")
@@ -849,6 +861,27 @@ struct ObservationQueueTests {
         let reopened = ObservationQueue(directory: dir)
         #expect(reopened.count() == 1)
         #expect(reopened.peek(limit: 1).first?.timestamp == 42)
+    }
+
+    @Test("pending observations are excluded from device backups")
+    func localOnly() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let queue = ObservationQueue(directory: dir)
+        queue.append(observation(42))
+        let file = dir.appendingPathComponent("locomote/observations.json")
+        #expect(try file.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true)
+    }
+}
+
+@Suite("Passport storage")
+struct PassportStorageTests {
+    @Test("saved Passport data is excluded from device backups")
+    func localOnly() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let passport = PassportRepository(directory: dir)
+        await passport.save([])
+        let file = dir.appendingPathComponent("locomote/passport.json")
+        #expect(try file.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true)
     }
 }
 

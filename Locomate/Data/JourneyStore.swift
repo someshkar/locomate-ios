@@ -10,6 +10,16 @@
 import Foundation
 import Observation
 
+/// Passport and pending observations belong to this installation, not a
+/// restored copy on another device. Atomic writes can reset this flag, so
+/// callers also apply it to each newly written file.
+func excludeFromBackup(_ location: URL) {
+    var url = location
+    var values = URLResourceValues()
+    values.isExcludedFromBackup = true
+    try? url.setResourceValues(values)
+}
+
 public actor JourneyCache {
     private let directory: URL
 
@@ -61,7 +71,11 @@ public actor PassportRepository {
         let root = base.appendingPathComponent("locomote", isDirectory: true)
         let folder = scope.map { root.appendingPathComponent($0, isDirectory: true) } ?? root
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        excludeFromBackup(folder)
         self.url = folder.appendingPathComponent("passport.json")
+        if FileManager.default.fileExists(atPath: self.url.path) {
+            excludeFromBackup(self.url)
+        }
     }
 
     public func load() -> [SavedJourney] {
@@ -71,7 +85,9 @@ public actor PassportRepository {
 
     public func save(_ journeys: [SavedJourney]) {
         guard let data = try? JSONEncoder.locomote.encode(journeys) else { return }
-        try? data.write(to: url, options: .atomic)
+        if (try? data.write(to: url, options: .atomic)) != nil {
+            excludeFromBackup(url)
+        }
     }
 }
 

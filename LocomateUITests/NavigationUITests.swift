@@ -1,6 +1,7 @@
 import XCTest
 
 final class NavigationUITests: XCTestCase {
+    @MainActor
     func testProductionStartsWithoutSampleTrain() {
         let app = XCUIApplication()
         app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = "https://example.invalid"
@@ -12,6 +13,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.textFields["Search trains"].waitForExistence(timeout: 5))
     }
 
+    @MainActor
     func testPrimarySurfacesOpenOnSimulator() {
         let app = XCUIApplication()
         app.launch()
@@ -32,6 +34,7 @@ final class NavigationUITests: XCTestCase {
         capture(app, "Search")
     }
 
+    @MainActor
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

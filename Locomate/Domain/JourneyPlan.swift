@@ -62,7 +62,7 @@ public enum JourneyPlanLogic {
             ? plan.boarding.index
             : journey.stops.firstIndex { $0.code == plan.boarding.code } ?? -1
 
-        var alightingIndex = journey.stops.indices.contains(plan.alighting.index)
+        let alightingIndex = journey.stops.indices.contains(plan.alighting.index)
             && journey.stops[plan.alighting.index].code == plan.alighting.code
             ? plan.alighting.index
             : (journey.stops.enumerated().first { $1.code == plan.alighting.code && $0 > boardingIndex }?.offset ?? -1)

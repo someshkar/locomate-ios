@@ -39,7 +39,7 @@ struct RailMapView: UIViewRepresentable {
                                    sheetVisibleHeight: sheetVisibleHeight)
     }
 
-    @MainActor final class Coordinator: NSObject, @preconcurrency MKMapViewDelegate {
+    @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         private var previousRoute: [RailCoordinate] = []
         private var glow: MKPolyline?
         private var line: MKPolyline?

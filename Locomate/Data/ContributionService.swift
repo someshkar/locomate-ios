@@ -158,7 +158,11 @@ public final class ObservationQueue: @unchecked Sendable {
         let base = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let folder = base.appendingPathComponent("locomote", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        excludeFromBackup(folder)
         self.url = folder.appendingPathComponent("observations.json")
+        if FileManager.default.fileExists(atPath: self.url.path) {
+            excludeFromBackup(self.url)
+        }
     }
 
     private func read() -> [CompactObservation] {
@@ -168,7 +172,9 @@ public final class ObservationQueue: @unchecked Sendable {
 
     private func write(_ items: [CompactObservation]) {
         guard let data = try? JSONEncoder().encode(items) else { return }
-        try? data.write(to: url, options: .atomic)
+        if (try? data.write(to: url, options: .atomic)) != nil {
+            excludeFromBackup(url)
+        }
     }
 
     public func append(_ observation: CompactObservation) {
