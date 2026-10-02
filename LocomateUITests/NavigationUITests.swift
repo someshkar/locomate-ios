@@ -495,6 +495,8 @@ final class AccessibilityUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Expand journey details"].waitForExistence(timeout: 10))
         try audit(app, screen: "Journey map and summary")
         app.buttons["Expand journey details"].tap()
+        XCTAssertTrue(app.buttons["Show more map"].waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.2) // Audit the settled spring position and newly mounted detail content.
         try audit(app, screen: "Journey details")
     }
 
