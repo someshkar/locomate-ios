@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "PassportNightMap.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
