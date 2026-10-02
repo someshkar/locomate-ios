@@ -117,14 +117,18 @@ final class NavigationUITests: XCTestCase {
         app.launchEnvironment["LOCOMOTE_RAIL_API_URL"] = gateway
         app.launch()
 
-        XCTAssertTrue(app.buttons["Find your train"].waitForExistence(timeout: 10))
-        app.buttons["Find your train"].tap()
+        let searchAction = app.buttons["Find a train"]
+        XCTAssertTrue(searchAction.waitForExistence(timeout: 10))
+        searchAction.tap()
         let field = app.textFields["Search trains"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("12137")
         let result = app.buttons["12137 Punjab Mail"]
-        XCTAssertTrue(result.waitForExistence(timeout: 20))
+        guard result.waitForExistence(timeout: 20) else {
+            XCTFail("Local gateway search result missing. Visible text: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
+            return
+        }
         result.tap()
 
         XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 25))
