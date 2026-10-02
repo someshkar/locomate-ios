@@ -51,8 +51,8 @@ struct PassportScreen: View {
     }
 
     private var content: some View {
-        OverviewPage(sheetStyle: .passport) { viewport in
-            PassportMapBackdrop(viewportOnScreen: viewport)
+        OverviewPage(sheetStyle: .passport) { _ in
+            PassportNightBackdrop()
         } sheet: {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.units(4)) {
@@ -194,6 +194,47 @@ struct PassportScreen: View {
         current.removeAll { $0.id == journey.id }
         await services.passport.save(current)
         withAnimation(Motion.card) { journeys = current }
+    }
+}
+
+/// The Passport summary has no verified route geometry; its canvas uses an illustrative
+/// night view of India rather than a live, tappable map.
+private struct PassportNightBackdrop: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Image("PassportNightMap")
+                .resizable()
+                .scaledToFill()
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+                .overlay {
+                    LinearGradient(
+                        colors: [Color(hex: 0x05060C).opacity(0.05),
+                                 Color(hex: 0x06070E).opacity(0.60),
+                                 Color(hex: 0x080912).opacity(0.99)],
+                        startPoint: .top, endPoint: .bottom)
+                }
+                .overlay {
+                    Canvas { context, size in
+                        let x = size.width / 390
+                        let y = size.height / 844
+                        var orbit = Path()
+                        orbit.move(to: CGPoint(x: 110 * x, y: 110 * y))
+                        orbit.addQuadCurve(to: CGPoint(x: 300 * x, y: 130 * y),
+                                           control: CGPoint(x: 210 * x, y: 60 * y))
+                        context.stroke(orbit, with: .color(Color(hex: 0xAFA0FF).opacity(0.35)), lineWidth: 1)
+                        let hub = CGPoint(x: 205 * x, y: 170 * y)
+                        context.fill(Path(ellipseIn: CGRect(x: hub.x - 8, y: hub.y - 8,
+                                                           width: 16, height: 16)),
+                                     with: .color(Color(hex: 0xAFA0FF).opacity(0.5)))
+                        context.stroke(Path(ellipseIn: CGRect(x: hub.x - 16, y: hub.y - 16,
+                                                             width: 32, height: 32)),
+                                       with: .color(Color(hex: 0xAFA0FF).opacity(0.25)), lineWidth: 1)
+                    }
+                }
+        }
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
 }
 

@@ -37,6 +37,7 @@ final class TimetablePassportUITests: XCTestCase {
             let allTime = app.buttons["passport.period.All-Time"]
             XCTAssertTrue(allTime.waitForExistence(timeout: 10))
             XCTAssertTrue(app.staticTexts["Train origin year"].exists)
+            capture(app, "Passport saved summary \(category)")
             let currentYear = app.buttons["passport.period.\(gateway.year)"]
             let periods = app.scrollViews["passport.periods"]
             var indiaCalendar = Calendar(identifier: .gregorian)
