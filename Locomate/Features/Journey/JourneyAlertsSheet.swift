@@ -67,6 +67,17 @@ struct JourneyAlertsSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.units(4)) {
+                    HStack {
+                        Spacer(minLength: 0)
+                        Button { dismiss() } label: {
+                            Text("Done")
+                                .font(LocomateFont.bodyStrong)
+                                .foregroundStyle(colors.onAccent)
+                                .frame(minWidth: 64, minHeight: 44)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(colors.accentBase)
+                    }
                     introduction
                     if let subscription {
                         statusCard(subscription)
@@ -105,15 +116,6 @@ struct JourneyAlertsSheet: View {
             .navigationTitle("Journey alerts")
             .navigationBarTitleDisplayMode(.inline)
             .tint(colors.accentBase)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .font(LocomateFont.bodyStrong)
-                        .foregroundStyle(colors.onAccent)
-                        .buttonStyle(.borderedProminent)
-                        .tint(colors.accentBase)
-                }
-            }
         }
         .task {
             if let subscription {

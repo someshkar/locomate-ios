@@ -244,6 +244,32 @@ final class NavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testJourneyAlertsDoneAtLargestTextSize() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        let expand = app.buttons["Expand journey details"]
+        XCTAssertTrue(expand.waitForExistence(timeout: 10))
+        expand.tap()
+        let alerts = app.buttons["journeyAlerts.open"]
+        for _ in 0..<8 where !alerts.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        XCTAssertTrue(alerts.isHittable)
+        alerts.tap()
+
+        XCTAssertTrue(app.navigationBars["Journey alerts"].waitForExistence(timeout: 5))
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        XCTAssertTrue(done.isHittable)
+        XCTAssertGreaterThanOrEqual(done.frame.width, 44 - 0.001)
+        XCTAssertGreaterThanOrEqual(done.frame.height, 44 - 0.001)
+        XCTAssertTrue(app.frame.contains(done.frame), "Done must fit inside the visible screen.")
+        capture(app, "Journey alerts at largest text size")
+        done.tap()
+        XCTAssertFalse(app.navigationBars["Journey alerts"].exists)
+    }
+
+    @MainActor
     func testJourneyMapActionsAndQuietSourceDetailsAtBothTextSizes() {
         for category in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
             let app = XCUIApplication()
