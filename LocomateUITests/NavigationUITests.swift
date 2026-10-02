@@ -125,10 +125,7 @@ final class NavigationUITests: XCTestCase {
         field.tap()
         field.typeText("12137")
         let result = app.buttons["12137 Punjab Mail"]
-        guard result.waitForExistence(timeout: 20) else {
-            XCTFail("Local gateway search result missing. Visible text: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
-            return
-        }
+        XCTAssertTrue(result.waitForExistence(timeout: 20))
         result.tap()
 
         XCTAssertTrue(app.staticTexts["12137 · Punjab Mail"].waitForExistence(timeout: 25))
