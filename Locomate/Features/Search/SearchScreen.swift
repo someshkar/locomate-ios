@@ -133,9 +133,7 @@ struct SearchScreen: View {
     private var searchField: some View {
         HStack(spacing: 12) {
             NavigationGlyph(tab: .search, side: 20).foregroundStyle(colors.textTertiary)
-            TextField("", text: Binding(get: { query }, set: { query = $0; selectedStation = nil }),
-                      prompt: Text(dynamicTypeSize.isAccessibilitySize ? "Train or station" : "Train no. or station")
-                        .foregroundColor(colors.textSecondary))
+            TextField("", text: Binding(get: { query }, set: { query = $0; selectedStation = nil }))
                 .focused($isFieldFocused)
                 .font(.system(size: fieldSize, weight: .medium))
                 .foregroundStyle(colors.textPrimary)
@@ -144,6 +142,15 @@ struct SearchScreen: View {
                 .submitLabel(.search)
                 .accessibilityLabel("Search trains")
                 .onSubmit { isFieldFocused = false }
+                .overlay(alignment: .leading) {
+                    if query.isEmpty {
+                        Text(dynamicTypeSize.isAccessibilitySize ? "Train or station" : "Train no. or station")
+                            .font(.system(size: fieldSize, weight: .medium))
+                            .foregroundStyle(colors.textSecondary)
+                            .lineLimit(1)
+                            .allowsHitTesting(false)
+                    }
+                }
             if loading || stationLoading {
                 ProgressView().controlSize(.small).tint(colors.accentBase)
             }
