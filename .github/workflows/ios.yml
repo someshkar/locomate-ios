@@ -29,6 +29,7 @@ jobs:
           -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
           -parallel-testing-enabled NO
           -collect-test-diagnostics never
+          -resultBundlePath functional.xcresult
           CODE_SIGNING_ALLOWED=YES
           CODE_SIGN_IDENTITY=-
           test
@@ -42,3 +43,34 @@ jobs:
           CODE_SIGNING_ALLOWED=YES
           CODE_SIGN_IDENTITY=-
           build
+
+      - name: Upload functional test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-functional-results
+          path: functional.xcresult
+
+  accessibility-release-gate:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Boot iPhone simulator
+        run: |
+          xcrun simctl boot 'iPhone 18 Pro'
+          xcrun simctl bootstatus 'iPhone 18 Pro' -b
+      - name: Run the complete unfiltered accessibility audit
+        run: >-
+          xcodebuild -project Locomate.xcodeproj -scheme Locomate
+          -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
+          -parallel-testing-enabled NO -only-testing:LocomateUITests/AccessibilityUITests
+          -resultBundlePath accessibility.xcresult
+          LOCOMATE_RUN_ACCESSIBILITY_AUDITS=1
+          CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
+      - name: Upload accessibility evidence even when the gate fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-accessibility-results
+          path: accessibility.xcresult

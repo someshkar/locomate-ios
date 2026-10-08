@@ -71,6 +71,7 @@ public final class LocomoteServices {
                 cache: JourneyCache(scope: scope),
                 passport: PassportRepository(scope: scope),
                 contribution: ContributionService(scope: scope),
+                liveActivity: LiveActivityService(scope: scope),
                 mode: mode
             )
         }
@@ -100,6 +101,7 @@ public final class LocomoteServices {
     public func flushPendingConsentEvidence() async throws {
         guard !PrivacyDeletionLatch.isPending else { return }
         try await contribution.flushConsentEvidence(using: railService)
+        liveActivity.resumeWithdrawals(using: railService)
     }
 
     /// The export keeps the gateway's exact schema and every local data-source

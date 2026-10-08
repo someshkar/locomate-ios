@@ -93,7 +93,7 @@ struct JourneyStopProjection {
 
         // Arrival forecasts cannot supply a departure delay. Actual event delays
         // likewise come from that event, rather than a journey-wide estimate.
-        let delay: Int? = {
+        let delay: Double? = {
             guard !preview else { return nil }
             if departure { return actual == nil ? nil : stop.departureDelayMinutes }
             if actual != nil { return stop.arrivalDelayMinutes }

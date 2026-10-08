@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "contract": "rail-api",
+  "clock": "2026-08-24T18:45:00.000Z",
+  "journeyIdentity": "run:TRAIN:ORIGIN_DATE",
+  "notificationRunIdentity": "TRAIN:ORIGIN_DATE",
+  "cases": [
+    {
+      "file": "journey-valid.json",
+      "sha256": "1cab4791003008e22528eaa4edad6db57bca2a60480c33a24bcf5142e87b5e17",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": true,
+      "reason": "canonical identity and midnight timetable"
+    },
+    {
+      "file": "journey-fractional.json",
+      "sha256": "2df2d1076071e113304a43aebef57ef168695ecdf5faa8fe2d943a3e380e18b1",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": true,
+      "reason": "finite fractional timing values must survive decoding"
+    },
+    {
+      "file": "journey-unknown-delay.json",
+      "sha256": "123c00bb653aebb317e41780ea16617cc245a16a3754206b0b683b7c928bd0d4",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": true,
+      "reason": "null delay is unknown, not zero"
+    },
+    {
+      "file": "journey-wrong-train.json",
+      "sha256": "d927a104453c38615e12bbae8b8ccbcc857db2782cca88ca6fcc90c6fdb1e41a",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": false,
+      "reason": "requested dated-run identity mismatch"
+    },
+    {
+      "file": "journey-wrong-date.json",
+      "sha256": "6222cc7b397f92df1f0445b2113743a63e22c9ee85c04ad414fb6f44839da43d",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": false,
+      "reason": "requested dated-run identity mismatch"
+    },
+    {
+      "file": "journey-wrong-id.json",
+      "sha256": "fdcca0fe30f6294fce97d1703c466356300dd45b5c31ce7ffce99be59e429906",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": false,
+      "reason": "requested dated-run identity mismatch"
+    },
+    {
+      "file": "journey-legacy-id.json",
+      "sha256": "870fa8dd5bfe6e5325b89aa47bd9afbf083c27a582aa4b3ed0e8fb1c0957d75c",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": false,
+      "reason": "requested dated-run identity mismatch"
+    },
+    {
+      "file": "journey-enriched.json",
+      "sha256": "bac6483fd08f9cbc47bc19b61181fe59ad8f7a3b42af513b007ffc7f78151ba8",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": true,
+      "reason": "forecast enrichment with observed, baseline and midnight quantiles"
+    },
+    {
+      "file": "journey-scheduled-outage.json",
+      "sha256": "0e2cd58db93069ae1dda1164dba6038130615d6f769decb2bed8fa267e563ef7",
+      "request": {
+        "trainNumber": "12345",
+        "originDate": "2026-08-24"
+      },
+      "accepted": true,
+      "reason": "published timetable during live outage; no location, delay, actual event or arrival forecast evidence"
+    }
+  ]
+}

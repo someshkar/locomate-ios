@@ -42,9 +42,9 @@ public protocol RailServiceProtocol: JourneyAlertAPI {
     func exportPrivacyData() async throws -> Data
     func deletePrivacyData() async throws
     func registerLiveActivityToken(
-        runId: String, token: String, state: JourneyActivityAttributes.ContentState
+        runId: String, token: String, state: JourneyActivityAttributes.ContentState, revision: Int64
     ) async throws
-    func unregisterLiveActivity(runId: String) async throws
+    func unregisterLiveActivity(runId: String, revision: Int64) async throws
     func uploadObservations(_ batch: [CompactObservation]) async throws -> [String]
     func searchTrains(_ query: String) async throws -> [TrainSearchResult]
     func searchStations(_ query: String) async throws -> [StationSearchResult]
@@ -52,6 +52,8 @@ public protocol RailServiceProtocol: JourneyAlertAPI {
     func trainsBetween(from: String, to: String, travelDate: String) async throws -> BetweenStationsResult
     func journey(trainNumber: String, originDate: String) async throws -> Journey
     func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse
+    func physicalChain(trainNumber: String, originDate: String) async throws -> PhysicalChainResponse
+    func submitPhysicalSightings(trainNumber: String, originDate: String, request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse
     func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse
     func trainHistory(trainNumber: String, limit: Int) async throws -> TrainHistoryResponse
 }
@@ -94,17 +96,19 @@ public struct RailService: RailServiceProtocol {
     /// Register a Live Activity push-to-update token so the gateway can refresh
     /// the ETA without the app polling. Mirrors the SmartRail subscription call.
     public func registerLiveActivityToken(
-        runId: String, token: String, state: JourneyActivityAttributes.ContentState
+        runId: String, token: String, state: JourneyActivityAttributes.ContentState, revision: Int64
     ) async throws {
-        struct Ack: Decodable { let accepted: Bool? }
-        let _: Ack = try await client.post(
+        struct Ack: Decodable { let stored: Bool }
+        let ack: Ack = try await client.post(
             "/v1/live-activities/subscriptions",
             body: [
                 "runId": runId,
+                "revision": revision,
                 "pushToken": token,
                 "contentState": [
                     "nextStation": state.nextStation,
                     "eta": state.eta,
+                    "etaLabel": state.etaLabel ?? "Arrival",
                     "delayMinutes": state.delayMinutes.map { $0 as Any } ?? NSNull(),
                     "delayLabel": state.delayLabel,
                     "distanceToNextKm": state.distanceToNextKm,
@@ -114,11 +118,12 @@ public struct RailService: RailServiceProtocol {
             ],
             idempotencyKey: "live-activity-\(runId)"
         )
+        guard ack.stored else { throw URLError(.badServerResponse) }
     }
 
-    public func unregisterLiveActivity(runId: String) async throws {
+    public func unregisterLiveActivity(runId: String, revision: Int64) async throws {
         guard runId.range(of: "^[A-Za-z0-9:._-]{1,128}$", options: .regularExpression) != nil else { return }
-        try await client.delete("/v1/live-activities/subscriptions/\(runId)")
+        try await client.delete("/v1/live-activities/subscriptions/\(runId)", query: ["revision": String(revision)])
     }
 
     /// Upload a consented observation batch. Returns the accepted local IDs.
@@ -177,6 +182,7 @@ public struct RailService: RailServiceProtocol {
 
     public func journey(trainNumber: String, originDate: String) async throws -> Journey {
         let response: JourneyResponse = try await client.get("/v1/runs/\(trainNumber)/\(originDate)")
+        try JourneyIdentity.validate(response.journey, trainNumber: trainNumber, originDate: originDate)
         return response.journey
     }
 
@@ -185,6 +191,17 @@ public struct RailService: RailServiceProtocol {
             "/v1/runs/\(trainNumber)/\(originDate)/rake-working",
             query: ["include": "geometry"]
         )
+    }
+
+
+    public func physicalChain(trainNumber: String, originDate: String) async throws -> PhysicalChainResponse {
+        let result: PhysicalChainResponse = try await client.get("/v1/runs/\(trainNumber)/\(originDate)/physical-chain")
+        guard result.runId == "run:\(trainNumber):\(originDate)" else { throw JourneyIdentity.ValidationError.mismatchedResponse }
+        return result
+    }
+    public func submitPhysicalSightings(trainNumber: String, originDate: String, request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse {
+        try await client.postData("/v1/runs/\(trainNumber)/\(originDate)/physical-sightings",
+            bodyData: JSONEncoder().encode(request), idempotencyKey: "physical-\(request.consent.evidenceId)")
     }
 
     public func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse {
@@ -306,4 +323,9 @@ public enum RailDataMode: Sendable {
         if case .production = self { return true }
         return false
     }
+}
+
+public extension RailServiceProtocol {
+    func physicalChain(trainNumber: String, originDate: String) async throws -> PhysicalChainResponse { throw URLError(.unsupportedURL) }
+    func submitPhysicalSightings(trainNumber: String, originDate: String, request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse { throw URLError(.unsupportedURL) }
 }

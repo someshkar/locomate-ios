@@ -10,11 +10,12 @@
 //
 
 import Foundation
+import Observation
 // ActivityKit's `Activity` is not Sendable; the service confines all use to
 // the main actor, so the pre-concurrency import is accurate here.
 @preconcurrency import ActivityKit
 
-@MainActor
+@MainActor @Observable
 public final class LiveActivityService {
     private var tokenTask: Task<Void, Never>?
     private var tokenActivityId: String?
@@ -22,10 +23,18 @@ public final class LiveActivityService {
     private var revision = 0
     private var privacyDeletionPending = false
 
-    public init() {}
+    public let registration: LiveActivityRegistration
+    public init(scope: String = "preview") { registration = LiveActivityRegistration(scope: scope) }
+    public var registrationMessage: String? { registration.status.message }
+
+    public func resumeWithdrawals(using service: RailServiceProtocol?) {
+        guard let service, !privacyDeletionPending else { return }
+        registration.resumeWithdrawals { try await service.unregisterLiveActivity(runId: $0, revision: $1) }
+    }
 
     public func beginPrivacyDeletion() async {
         privacyDeletionPending = true
+        registration.erase()
         await end()
     }
 
@@ -42,34 +51,17 @@ public final class LiveActivityService {
     @discardableResult
     public func sync(
         journey: Journey,
-        registerToken: ((String, JourneyActivityAttributes.ContentState) async -> Void)? = nil,
-        unregisterRun: ((String) async -> Void)? = nil
+        registerToken: (@MainActor (String, JourneyActivityAttributes.ContentState, Int64) async throws -> Void)? = nil,
+        unregisterRun: (@MainActor (String, Int64) async throws -> Void)? = nil
     ) async -> Bool {
         guard !privacyDeletionPending, !PrivacyDeletionLatch.isPending else { return false }
         revision += 1
         let syncRevision = revision
-        // The product rule: a Live Activity requires a known, non-stale delay.
-        let delayStatus = journey.prediction.delayStatus
-        guard journey.prediction.delayMinutes != nil,
-              delayStatus != .unavailable,
-              delayStatus != .stale,
-              delayStatus != .estimated else {
+        guard let state = LiveActivityProjection.state(journey: journey) else {
             await end(unregisterRun: unregisterRun)
             return false
         }
-
-        let state = JourneyActivityAttributes.ContentState(
-            nextStation: journey.position.nextStation,
-            eta: RailTime.format(journey.prediction.expectedTime ?? journey.scheduledArrival),
-            delayMinutes: journey.prediction.delayMinutes,
-            delayLabel: StatusMapping.delayStatusLabel(
-                delayMinutes: journey.prediction.delayMinutes,
-                delayStatus: delayStatus,
-                predictionSource: journey.prediction.source
-            ),
-            distanceToNextKm: journey.position.distanceToNextKm,
-            confidence: journey.prediction.confidence.rawValue.uppercased()
-        )
+        if let unregisterRun { registration.resumeWithdrawals(send: unregisterRun) }
         let content = ActivityContent(state: state, staleDate: state.updatedAt.addingTimeInterval(10 * 60))
         registrationState = state
 
@@ -79,6 +71,7 @@ public final class LiveActivityService {
             tokenTask?.cancel()
             tokenTask = nil
             tokenActivityId = nil
+            registration.cancelRegistration()
         }
         var endedRunIds = Set<String>()
         for existing in active where existing.attributes.runId != journey.id {
@@ -86,7 +79,7 @@ public final class LiveActivityService {
             if let runId = existing.attributes.runId,
                !isRunning(for: runId),
                endedRunIds.insert(runId).inserted {
-                await unregisterRun?(runId)
+                if let unregisterRun { registration.withdraw(runId, send: unregisterRun) }
             }
             guard revision == syncRevision else { return false }
         }
@@ -125,26 +118,27 @@ public final class LiveActivityService {
         }
     }
 
-    public func end(unregisterRun: ((String) async -> Void)? = nil) async {
+    public func end(unregisterRun: (@MainActor (String, Int64) async throws -> Void)? = nil) async {
         revision += 1
         tokenTask?.cancel()
         tokenTask = nil
         tokenActivityId = nil
         registrationState = nil
+        registration.cancelRegistration()
         let active = Activity<JourneyActivityAttributes>.activities
         let runIds = Set(active.compactMap { $0.attributes.runId })
         for existing in active {
             await existing.end(nil, dismissalPolicy: .immediate)
         }
         if let unregisterRun {
-            for runId in runIds where !isRunning(for: runId) { await unregisterRun(runId) }
+            for runId in runIds where !isRunning(for: runId) { registration.withdraw(runId, send: unregisterRun) }
         }
     }
 
     /// Observe the push-to-update token and forward it to the gateway.
     private func observePushToken(
         _ activity: Activity<JourneyActivityAttributes>,
-        register: @escaping (String, JourneyActivityAttributes.ContentState) async -> Void
+        register: @escaping @MainActor (String, JourneyActivityAttributes.ContentState, Int64) async throws -> Void
     ) {
         tokenTask?.cancel()
         tokenActivityId = activity.id
@@ -152,12 +146,13 @@ public final class LiveActivityService {
         tokenTask = Task { [weak self, register] in
             if let token = activity.pushToken {
                 guard let state = self?.registrationState else { return }
-                await register(token.map { String(format: "%02x", $0) }.joined(), state)
+                let hex = token.map { String(format: "%02x", $0) }.joined()
+                self?.registration.register(runId: activity.attributes.runId ?? "") { try await register(hex, state, $0) }
             }
             for await token in updates {
                 guard let state = self?.registrationState else { break }
                 let hex = token.map { String(format: "%02x", $0) }.joined()
-                await register(hex, state)
+                self?.registration.register(runId: activity.attributes.runId ?? "") { try await register(hex, state, $0) }
             }
         }
     }

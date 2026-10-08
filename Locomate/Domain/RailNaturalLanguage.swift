@@ -2,14 +2,14 @@ import Foundation
 
 /// Human time copy shared by the Journey card and its provenance-aware delay label.
 enum RailNaturalLanguage {
-    static func delay(minutes: Int?, status: DelayStatus?, source: DataSource? = nil) -> String {
-        guard let minutes, status != .unavailable else { return "Delay unavailable" }
+    static func delay(minutes: Double?, status: DelayStatus?, source: DataSource? = nil) -> String {
+        guard let minutes, minutes.isFinite, status != .unavailable else { return "Delay unavailable" }
         let qualifier: String
         if status == .stale { qualifier = " · stale" }
         else if status == .estimated || source == .predicted { qualifier = " · estimated" }
         else { qualifier = "" }
-        if minutes > 0 { return "\(unit(minutes.magnitude, "minute")) late\(qualifier)" }
-        if minutes < 0 { return "\(unit(minutes.magnitude, "minute")) early\(qualifier)" }
+        if minutes > 0 { return "\(minuteLabel(minutes.magnitude)) late\(qualifier)" }
+        if minutes < 0 { return "\(minuteLabel(minutes.magnitude)) early\(qualifier)" }
         return "\(status == .scheduled || status == nil ? "Scheduled" : "On time")\(qualifier)"
     }
 
@@ -98,6 +98,11 @@ enum RailNaturalLanguage {
             while instant < previous { instant = instant.addingTimeInterval(86_400) }
         }
         return instant
+    }
+
+    private static func minuteLabel(_ value: Double) -> String {
+        let text = value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "en_US")))
+        return "\(text) minute\(value == 1 ? "" : "s")"
     }
 
     private static func unit(_ value: UInt, _ noun: String) -> String { "\(value) \(noun)\(value == 1 ? "" : "s")" }

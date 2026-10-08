@@ -17,6 +17,8 @@ struct JourneySetupSheet: View {
     let initial: JourneyPlan?
     let onConfirm: (JourneyPlan) -> Void
 
+    @State private var coach = ""
+    @State private var seat = ""
     @State private var boardingIndex = 0
     @State private var alightingIndex = 0
 
@@ -32,6 +34,15 @@ struct JourneySetupSheet: View {
 
                     stopPicker("Boarding", selection: $boardingIndex, upperBound: alightingIndex - 1 < 0 ? 0 : alightingIndex - 1)
                     stopPicker("Drop-off", selection: $alightingIndex, lowerBound: boardingIndex + 1)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Your coach and seat (optional)").eyebrow(colors.textTertiary)
+                        TextField("Coach", text: $coach).accessibilityIdentifier("journey.plan.coach")
+                        TextField("Seat or berth", text: $seat).accessibilityIdentifier("journey.plan.seat")
+                        Text("These personal details stay on this device. They are separate from a public coach plate sighting.")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }.textFieldStyle(.roundedBorder).autocorrectionDisabled()
+                        .textInputAutocapitalization(.characters)
                 }
                 .padding(Spacing.units(4))
             }
@@ -46,7 +57,7 @@ struct JourneySetupSheet: View {
                     Button("Save") {
                         if let plan = try? JourneyPlanLogic.create(
                             journey: journey, originDate: originDate,
-                            boardingIndex: boardingIndex, alightingIndex: alightingIndex
+                            boardingIndex: boardingIndex, alightingIndex: alightingIndex, coach: coach, seat: seat
                         ) {
                             onConfirm(plan)
                             dismiss()
@@ -59,6 +70,8 @@ struct JourneySetupSheet: View {
         .onAppear {
             let resolved = JourneyPlanLogic.resolve(journey: journey, plan: initial)
                 ?? JourneyPlanLogic.default(journey: journey, originDate: originDate)
+            coach = resolved.coach ?? ""
+            seat = resolved.seat ?? ""
             boardingIndex = resolved.boarding.index
             alightingIndex = resolved.alighting.index
         }

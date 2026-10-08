@@ -1,0 +1,106 @@
+{
+  "journey": {
+    "id": "run:12345:2026-08-24",
+    "trainNumber": "12345",
+    "trainName": "Midnight Express",
+    "originCode": "AAA",
+    "originName": "Alpha",
+    "destinationCode": "CCC",
+    "destinationName": "Charlie",
+    "departureTime": "23:50",
+    "scheduledArrival": "01:10",
+    "predictedArrival": "01:20",
+    "coach": "",
+    "seat": "",
+    "travelDate": "2026-08-24",
+    "distanceKm": 120,
+    "scheduledDurationMinutes": 80,
+    "routeCoordinates": [
+      {
+        "latitude": 19,
+        "longitude": 72
+      },
+      {
+        "latitude": 20,
+        "longitude": 73
+      }
+    ],
+    "completion": 0.4,
+    "stops": [
+      {
+        "code": "AAA",
+        "name": "Alpha",
+        "distanceKm": 0,
+        "scheduledArrival": "23:45",
+        "scheduledDeparture": "23:50",
+        "predictedArrival": "23:45",
+        "actualDeparture": "23:58",
+        "delayMinutes": 8,
+        "arrivalDelayMinutes": null,
+        "departureDelayMinutes": 8,
+        "delayStatus": "observed",
+        "timingSource": "official",
+        "observedAt": "2026-08-24T18:29:00.000Z",
+        "state": "passed",
+        "progress": 0
+      },
+      {
+        "code": "BBB",
+        "name": "Bravo",
+        "distanceKm": 60,
+        "scheduledArrival": "00:10",
+        "scheduledDeparture": "00:12",
+        "predictedArrival": "00:20",
+        "delayMinutes": 10,
+        "arrivalDelayMinutes": 10,
+        "departureDelayMinutes": 10,
+        "delayStatus": "estimated",
+        "timingSource": "predicted",
+        "state": "current",
+        "progress": 0.5
+      },
+      {
+        "code": "CCC",
+        "name": "Charlie",
+        "distanceKm": 120,
+        "scheduledArrival": "01:10",
+        "predictedArrival": "01:20",
+        "delayMinutes": 10,
+        "arrivalDelayMinutes": 10,
+        "departureDelayMinutes": null,
+        "delayStatus": "estimated",
+        "timingSource": "predicted",
+        "state": "upcoming",
+        "progress": 1
+      }
+    ],
+    "prediction": {
+      "expectedTime": "01:20",
+      "lowerBound": "01:15",
+      "upperBound": "01:30",
+      "confidence": "medium",
+      "confidenceScore": 50,
+      "modelVersion": "provider-v1",
+      "delayMinutes": 10,
+      "delayStatus": "estimated",
+      "leadMinutes": 60,
+      "reasons": [
+        "provider"
+      ],
+      "source": "official",
+      "updatedSecondsAgo": 30
+    },
+    "position": {
+      "progress": 0.4,
+      "speedKph": 70,
+      "phase": "running",
+      "previousStation": "AAA",
+      "nextStation": "BBB",
+      "distanceToNextKm": 10,
+      "observedAt": 1787597099000,
+      "source": "official",
+      "confidence": "high"
+    },
+    "nearbyTrains": []
+  }
+}

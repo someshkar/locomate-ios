@@ -185,7 +185,22 @@ final class NavigationUITests: XCTestCase {
         capture(app, "Search page with navigation")
         field.tap()
         field.typeText("12951")
-        XCTAssertTrue(app.keyboards.firstMatch.exists)
+        // Fresh iPad runtimes may present first-use system keyboard onboarding.
+        let onboarding = app.buttons["Continue"]
+        if !app.keyboards.firstMatch.exists, onboarding.waitForExistence(timeout: 2) { onboarding.tap() }
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        // Accessibility frames arrive after the keyboard animation. Wait for the
+        // same bounds assertion we subsequently evaluate, rather than sleeping.
+        let keyboardAboveDock = NSPredicate { _, _ in
+            let keyboard = app.keyboards.firstMatch
+            guard keyboard.exists else { return false }
+            return ["Journey", "Explore", "Passport", "Find a train"].allSatisfy {
+                let control = app.buttons[$0]
+                return control.isHittable && control.frame.maxY <= keyboard.frame.minY
+            }
+        }
+        let settled = XCTNSPredicateExpectation(predicate: keyboardAboveDock, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed)
         for label in ["Journey", "Explore", "Passport", "Find a train"] {
             let control = app.buttons[label]
             XCTAssertTrue(control.isHittable)

@@ -27,7 +27,7 @@ private enum WidgetPalette {
 
 private struct DelayBadge: View {
     let label: String
-    let minutes: Int?
+    let minutes: Double?
 
     private var color: Color {
         guard let minutes else { return WidgetPalette.secondary }
@@ -68,7 +68,7 @@ struct LocomateLiveActivity: Widget {
                     Text(context.state.eta)
                         .font(.system(size: 30, weight: .medium, design: .monospaced))
                         .foregroundStyle(.white)
-                    Text(context.isStale ? "LAST ETA" : "ETA")
+                    Text(context.isStale ? "Last known arrival" : (context.state.etaLabel ?? "Arrival"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(WidgetPalette.secondary)
                 }
@@ -92,7 +92,7 @@ struct LocomateLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(context.isStale ? "LAST ETA" : "ETA")
+                        Text(context.isStale ? "Last known arrival" : (context.state.etaLabel ?? "Arrival"))
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(WidgetPalette.secondary)
                         Text(context.state.eta)

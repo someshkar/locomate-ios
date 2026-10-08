@@ -25,7 +25,7 @@ public struct GlassSurface<S: InsettableShape>: View {
 
     private var tint: Color {
         colors.dark
-            ? Color(rgba: 17, 21, 28, heavy ? 0.94 : 0.90)
+            ? Color(rgba: 17, 21, 28, heavy ? 0.98 : 0.96)
             : Color(rgba: 250, 252, 255, heavy ? 0.97 : 0.94)
     }
 
@@ -100,11 +100,11 @@ enum OverviewSheetStyle {
     var darkStops: [Gradient.Stop] {
         switch self {
         case .standard:
-            [ .init(color: Color(hex: 0x111119).opacity(0.50), location: 0),
+            [ .init(color: Color(hex: 0x111119).opacity(0.96), location: 0),
               .init(color: Color(hex: 0x0F0F16).opacity(0.88), location: 0.20),
               .init(color: Color(hex: 0x0E0E15).opacity(0.98), location: 1) ]
         case .passport:
-            [ .init(color: Color(hex: 0x0B0C16).opacity(0.55), location: 0),
+            [ .init(color: Color(hex: 0x0B0C16).opacity(0.96), location: 0),
               .init(color: Color(hex: 0x0A0B14).opacity(0.94), location: 0.20),
               .init(color: Color(hex: 0x090A12).opacity(0.99), location: 1) ]
         }
@@ -126,7 +126,7 @@ struct OverviewSheetSurface: View {
                 shape.fill(.ultraThinMaterial)
                 shape.fill(LinearGradient(
                     stops: colors.dark ? style.darkStops : [
-                        .init(color: colors.elevated.opacity(0.75), location: 0),
+                        .init(color: colors.elevated.opacity(0.97), location: 0),
                         .init(color: colors.elevated, location: 1)],
                     startPoint: .top, endPoint: .bottom))
             }

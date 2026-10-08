@@ -20,6 +20,8 @@ public struct JourneyPlan: Codable, Sendable, Equatable {
     public let boarding: JourneyPlanStop
     public let alighting: JourneyPlanStop
     public let updatedAt: String
+    public var coach: String? = nil
+    public var seat: String? = nil
 }
 
 public enum JourneyPlanLogic {
@@ -28,7 +30,8 @@ public enum JourneyPlanLogic {
         originDate: String,
         boardingIndex: Int,
         alightingIndex: Int,
-        updatedAt: String = ISO8601DateFormatter.locomote.string(from: Date())
+        updatedAt: String = ISO8601DateFormatter.locomote.string(from: Date()),
+        coach: String? = nil, seat: String? = nil
     ) throws -> JourneyPlan {
         guard boardingIndex >= 0,
               alightingIndex < journey.stops.count,
@@ -42,7 +45,7 @@ public enum JourneyPlanLogic {
             originDate: originDate,
             boarding: JourneyPlanStop(index: boardingIndex, code: boarding.code, name: boarding.name),
             alighting: JourneyPlanStop(index: alightingIndex, code: alighting.code, name: alighting.name),
-            updatedAt: updatedAt
+            updatedAt: updatedAt, coach: privateLabel(coach), seat: privateLabel(seat)
         )
     }
 
@@ -55,7 +58,7 @@ public enum JourneyPlanLogic {
     /// Resolve a stored plan against a possibly-changed stop list. Returns nil
     /// when the plan no longer describes a valid segment of this journey.
     public static func resolve(journey: Journey, plan: JourneyPlan?) -> JourneyPlan? {
-        guard let plan, plan.trainNumber == journey.trainNumber else { return nil }
+        guard let plan, plan.trainNumber == journey.trainNumber, plan.originDate == journey.travelDate else { return nil }
 
         var boardingIndex = journey.stops.indices.contains(plan.boarding.index)
             && journey.stops[plan.boarding.index].code == plan.boarding.code
@@ -78,7 +81,7 @@ public enum JourneyPlanLogic {
             originDate: plan.originDate,
             boardingIndex: boardingIndex,
             alightingIndex: alightingIndex,
-            updatedAt: plan.updatedAt
+            updatedAt: plan.updatedAt, coach: plan.coach, seat: plan.seat
         )
     }
 
@@ -88,6 +91,11 @@ public enum JourneyPlanLogic {
               plan.alighting.index < journey.stops.count,
               plan.boarding.index <= plan.alighting.index else { return journey.stops }
         return Array(journey.stops[plan.boarding.index...plan.alighting.index])
+    }
+
+    private static func privateLabel(_ text: String?) -> String? {
+        let value = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return value.isEmpty ? nil : String(value.prefix(32))
     }
 
     public enum JourneyPlanError: Error, LocalizedError {

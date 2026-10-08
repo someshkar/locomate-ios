@@ -117,6 +117,12 @@ struct PersonalizedTripCard: View {
                             .foregroundStyle(colors.textPrimary)
                     }
                 }
+                if plan.coach != nil || plan.seat != nil {
+                    Text([plan.coach.map { "Coach \($0)" }, plan.seat.map { "Seat \($0)" }].compactMap { $0 }.joined(separator: " · "))
+                        .font(LocomateFont.bodyStrong).foregroundStyle(colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("journey.privateSeat")
+                }
                 Text("\(plan.boarding.name) to \(plan.alighting.name)")
                     .font(LocomateFont.bodyStrong)
                     .foregroundStyle(colors.textPrimary)
@@ -553,22 +559,50 @@ struct RotationIntelligenceCard: View {
     let operations: OperationalChainResponse?
     let trainNumber: String
     let enabled: Bool
+    var onFocus: ((OperationalRun) -> Void)? = nil
 
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: Spacing.units(3)) {
                 Text("Rotation intelligence").eyebrow(colors.textTertiary)
                 if let operations {
-                    HStack(spacing: Spacing.units(3)) {
+                    ViewThatFits(in: .horizontal) {
+                      HStack(spacing: Spacing.units(3)) {
                         ForEach(["previous", "current", "next"], id: \.self) { role in
                             roleColumn(role, operations: operations)
                         }
+                      }
+                      VStack(alignment: .leading, spacing: 16) {
+                        ForEach(["previous", "current", "next"], id: \.self) { roleColumn($0, operations: operations) }
+                      }
                     }
                     if let linkage = operations.linkage {
                         Text(linkageLabel(linkage))
                             .font(LocomateFont.caption)
                             .foregroundStyle(colors.textSecondary)
                     }
+                    if let assessment = operations.delayAssessment {
+                        Text(assessment.summary).font(LocomateFont.bodyStrong).foregroundStyle(colors.textPrimary)
+                        Text("Incoming delay \(assessment.incomingDelayMinutes.formatted()) min · \(assessment.confidence.rawValue) confidence")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                        ForEach(assessment.evidence) { evidence in
+                            Text("\(evidence.summary) · \(evidence.source.rawValue)\(evidence.observedAt.map { " · " + $0 } ?? "")")
+                                .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                        }
+                    }
+                    if let delay = operations.propagatedDelay {
+                        Text("Propagation: \(delay.minutes.formatted()) min · \(delay.explanation)")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    }
+                    if let risk = operations.turnaroundRisk {
+                        Text("Turnaround risk: \(risk.level) · \(risk.summary)").font(LocomateFont.bodyStrong).foregroundStyle(colors.textPrimary)
+                        Text("Available \(risk.availableMinutes.formatted()) / minimum \(risk.minimumMinutes.formatted()) min")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    }
+                    if let linkage = operations.linkage {
+                        ForEach(linkage.caveats, id: \.self) { Text($0).font(LocomateFont.caption).foregroundStyle(colors.textSecondary) }
+                    }
+                    Text("Updated \(operations.updatedAt) · \(operations.mode)").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
                     Text(operations.disclaimer)
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)
@@ -592,6 +626,15 @@ struct RotationIntelligenceCard: View {
                 .font(LocomateFont.timeLarge)
                 .monospacedDigit()
                 .foregroundStyle(run == nil ? colors.textTertiary : colors.textPrimary)
+            if let run, run.geometry.coordinates.count >= 2 {
+                Button(role == "previous" ? "Focus inbound" : role == "next" ? "Focus outbound" : "Focus current") { onFocus?(run) }
+                    .buttonStyle(AccessibleTextButtonStyle())
+                    .accessibilityIdentifier("operations.focus.\(role)")
+                Text("Geometry: \(run.geometry.source)").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                if let position = run.position {
+                    Text("Position: \(position.source.rawValue) · \(position.observedAt)").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                }
+            }
             Text("\(run?.originCode ?? "—") → \(run?.destinationCode ?? "—")")
                 .font(LocomateFont.data)
                 .foregroundStyle(colors.textTertiary)

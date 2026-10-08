@@ -133,8 +133,8 @@ struct JourneyRestorationTests {
         func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse { throw URLError(.notConnectedToInternet) }
         func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse { throw URLError(.notConnectedToInternet) }
         func trainHistory(trainNumber: String, limit: Int) async throws -> TrainHistoryResponse { throw URLError(.notConnectedToInternet) }
-        func registerLiveActivityToken(runId: String, token: String, state: JourneyActivityAttributes.ContentState) async throws {}
-        func unregisterLiveActivity(runId: String) async throws {}
+        func registerLiveActivityToken(runId: String, token: String, state: JourneyActivityAttributes.ContentState, revision: Int64) async throws {}
+        func unregisterLiveActivity(runId: String, revision: Int64) async throws {}
         func uploadObservations(_ batch: [CompactObservation]) async throws -> [String] { [] }
     }
 }

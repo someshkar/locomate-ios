@@ -23,7 +23,7 @@ struct NaturalLanguageTests {
         #expect(RailNaturalLanguage.delay(minutes: nil, status: .stale) == "Delay unavailable")
         #expect(RailNaturalLanguage.delay(minutes: 12, status: .unavailable) == "Delay unavailable")
         #expect(RailNaturalLanguage.delay(minutes: 0, status: .scheduled) == "Scheduled")
-        #expect(RailNaturalLanguage.delay(minutes: Int.min, status: .stale).hasSuffix("minutes early · stale"))
+        #expect(RailNaturalLanguage.delay(minutes: Double(Int.min), status: .stale).hasSuffix("minutes early · stale"))
     }
 
     @Test("personal boarding walks the origin timetable across midnight")

@@ -11,7 +11,8 @@ public struct JourneyActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable, Sendable {
         public var nextStation: String
         public var eta: String
-        public var delayMinutes: Int?
+        public var etaLabel: String?
+        public var delayMinutes: Double?
         public var delayLabel: String
         public var distanceToNextKm: Double
         public var confidence: String
@@ -20,14 +21,16 @@ public struct JourneyActivityAttributes: ActivityAttributes {
         public init(
             nextStation: String,
             eta: String,
-            delayMinutes: Int?,
+            delayMinutes: Double?,
             delayLabel: String,
             distanceToNextKm: Double,
             confidence: String,
-            updatedAt: Date = Date()
+            updatedAt: Date = Date(),
+            etaLabel: String? = nil
         ) {
             self.nextStation = nextStation
             self.eta = eta
+            self.etaLabel = etaLabel
             self.delayMinutes = delayMinutes
             self.delayLabel = delayLabel
             self.distanceToNextKm = distanceToNextKm

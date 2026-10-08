@@ -134,13 +134,13 @@ private struct DockItem: View {
         ScaleButton(accessibilityLabel: tab.label, haptic: false, action: onSelect) {
             VStack(spacing: 4) {
                 NavigationGlyph(tab: tab)
-                    .foregroundStyle(active ? colors.textPrimary : colors.navigationSecondary)
+                    .foregroundStyle(colors.textPrimary)
                     .offset(y: active && !reduceMotion ? -1 : 0)
                     .scaleEffect(active && !reduceMotion ? 1.045 : 1)
                 if !dynamicTypeSize.isAccessibilitySize {
                 Text(tab == .journey ? "Journeys" : tab.label)
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(active ? colors.textPrimary : colors.navigationSecondary)
+                    .font(.system(.footnote, weight: .semibold))
+                    .foregroundStyle(colors.textPrimary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                 }
@@ -165,8 +165,8 @@ private struct DockLens: ViewModifier {
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         let tint = LinearGradient(colors: [
-            colors.navigationGlass.opacity(colors.dark ? 0.42 : 0.72),
-            colors.navigationGlass.opacity(colors.dark ? 0.26 : 0.52)
+            colors.navigationGlass.opacity(colors.dark ? 0.94 : 0.97),
+            colors.navigationGlass.opacity(colors.dark ? 0.94 : 0.97)
         ], startPoint: .top, endPoint: .bottom)
         if reduceTransparency {
             content.background(shape.fill(colors.dark ? colors.navigationGlass : colors.elevated))

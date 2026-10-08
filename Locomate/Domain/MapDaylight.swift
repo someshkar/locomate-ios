@@ -1,3 +1,4 @@
+import UIKit
 //
 //  MapDaylight.swift
 //  Locomate
@@ -35,7 +36,7 @@ public enum MapDaylightEngine {
     static let daySeconds: Double = 86_400
 
     public static func compute(at coordinate: RailCoordinate, now: Date) -> MapDaylight {
-        let timestamp = now.timeIntervalSince1970 * 1000
+        let timestamp = now.timeIntervalSince1970
 
         let validCoordinate = coordinate.latitude.isFinite
             && abs(coordinate.latitude) <= 90
@@ -51,9 +52,9 @@ public enum MapDaylightEngine {
         utc.timeZone = TimeZone(identifier: "UTC")!
         let year = utc.component(.year, from: now)
         let yearStart = utc.date(from: DateComponents(year: year, month: 1, day: 1))!
-            .timeIntervalSince1970 * 1000
+            .timeIntervalSince1970
         let nextYearStart = utc.date(from: DateComponents(year: year + 1, month: 1, day: 1))!
-            .timeIntervalSince1970 * 1000
+            .timeIntervalSince1970
         let daysInYear = (nextYearStart - yearStart) / daySeconds
         let fractionalDay = (timestamp - yearStart) / daySeconds
         let gamma = 2 * Double.pi / daysInYear * (fractionalDay - 0.5)
@@ -88,5 +89,19 @@ public enum MapDaylightEngine {
             : (solarElevation <= -6 ? .night : .twilight)
 
         return MapDaylight(solarElevation: solarElevation, nightAmount: nightAmount, label: label)
+    }
+}
+
+/// Lighting changes affect appearance only, never map identity or camera state.
+enum MapLightingPresentation {
+    static func nightAmount(mode: Preferences.MapLighting, daylight: MapDaylight) -> Double {
+        switch mode {
+        case .day: 0
+        case .night: 1
+        case .automatic: min(1, max(0, daylight.nightAmount))
+        }
+    }
+    static func style(mode: Preferences.MapLighting, daylight: MapDaylight) -> UIUserInterfaceStyle {
+        nightAmount(mode: mode, daylight: daylight) < 0.5 ? .light : .dark
     }
 }

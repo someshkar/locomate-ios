@@ -32,7 +32,7 @@ struct MapStationMarker: Identifiable, Equatable {
 }
 
 struct RailMapCommand: Equatable {
-    enum Target { case route, position }
+    enum Target: Equatable { case route, position; case operational([RailCoordinate]) }
     let id = UUID()
     let journeyID: String
     let target: Target
@@ -51,6 +51,7 @@ struct RailMapView: UIViewRepresentable {
     let cameraCommand: RailMapCommand?
     var sheetTopOnScreen: Double? = nil
     var attributionTopOnScreen: Double? = nil
+    var operationalRuns: [OperationalRun] = []
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -58,7 +59,7 @@ struct RailMapView: UIViewRepresentable {
         let mapView = MKMapView(frame: .zero)
         mapView.delegate = context.coordinator
         mapView.mapType = .hybrid
-        mapView.overrideUserInterfaceStyle = lightingMode == .day ? .light : .dark
+        mapView.overrideUserInterfaceStyle = MapLightingPresentation.style(mode: lightingMode, daylight: daylight)
         mapView.showsCompass = false
         mapView.showsScale = false
         mapView.showsUserLocation = false
@@ -68,12 +69,12 @@ struct RailMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
-        mapView.overrideUserInterfaceStyle = lightingMode == .day ? .light : .dark
+        mapView.overrideUserInterfaceStyle = MapLightingPresentation.style(mode: lightingMode, daylight: daylight)
         context.coordinator.update(mapView: mapView, journeyID: journeyID, route: route, progress: progress,
                                    positionDisplay: positionDisplay, markers: markers,
                                    sheetVisibleHeight: sheetVisibleHeight, cameraCommand: cameraCommand,
                                    sheetTopOnScreen: sheetTopOnScreen,
-                                   attributionTopOnScreen: attributionTopOnScreen)
+                                   attributionTopOnScreen: attributionTopOnScreen, operationalRuns: operationalRuns)
     }
 
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
@@ -92,14 +93,31 @@ struct RailMapView: UIViewRepresentable {
         private var cameraTarget: RailMapCommand.Target = .route
         private var cameraRevision = 0
         private var previousSheetTop: Double?
+        private var operationalLines: [MKPolyline] = []
+        private var previousOperations = ""
+        private var operationalColors: [ObjectIdentifier: UIColor] = [:]
         private var previousAttributionTop: Double?
 
         func update(mapView: MKMapView, journeyID: String, route: [RailCoordinate], progress: Double,
                     positionDisplay: JourneyPositionDisplay,
                     markers: [MapStationMarker], sheetVisibleHeight: Double,
                     cameraCommand: RailMapCommand?, sheetTopOnScreen: Double? = nil,
-                    attributionTopOnScreen: Double? = nil) {
+                    attributionTopOnScreen: Double? = nil, operationalRuns: [OperationalRun] = []) {
             guard route.count >= 2 else { return }
+            let operationsKey = operationalRuns.map { "\($0.id):\($0.geometry.coordinates)" }.joined(separator: ";")
+            if operationsKey != previousOperations {
+                previousOperations = operationsKey
+                mapView.removeOverlays(operationalLines)
+                operationalLines = []
+                operationalColors = [:]
+                for run in operationalRuns where run.role != "current" && run.geometry.coordinates.count >= 2 {
+                    var coordinates = run.geometry.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+                    let line = MKPolyline(coordinates: &coordinates, count: coordinates.count)
+                    operationalLines.append(line)
+                    operationalColors[ObjectIdentifier(line)] = run.role == "previous" ? .systemOrange : .systemPurple
+                }
+                mapView.addOverlays(operationalLines, level: .aboveRoads)
+            }
             if journeyID != previousJourneyID {
                 previousJourneyID = journeyID
                 cameraTarget = .route
@@ -200,6 +218,8 @@ struct RailMapView: UIViewRepresentable {
                     if target == .position, positionDisplay != .hidden, progress.isFinite,
                        let point = try? RouteGeometry.coordinate(along: route, progress: progress) {
                         Self.focus(point, on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen)
+                    } else if case .operational(let selectedRoute) = target {
+                        Self.fit(selectedRoute, on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen)
                     } else {
                         Self.fit(route, on: mapView, sheetVisibleHeight: sheetVisibleHeight, sheetTopOnScreen: sheetTopOnScreen)
                     }
@@ -244,7 +264,11 @@ struct RailMapView: UIViewRepresentable {
             let renderer = MKPolylineRenderer(overlay: overlay)
             renderer.lineCap = .round
             renderer.lineJoin = .round
-            if let glow, overlay === glow {
+            if let color = operationalColors[ObjectIdentifier(overlay as AnyObject)] {
+                renderer.strokeColor = color
+                renderer.lineWidth = 3.5
+                renderer.lineDashPattern = [8, 5]
+            } else if let glow, overlay === glow {
                 renderer.strokeColor = UIColor(red: 0.37, green: 0.68, blue: 0.96, alpha: 0.35)
                 renderer.lineWidth = 13
             } else {
