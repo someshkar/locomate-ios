@@ -185,7 +185,22 @@ final class NavigationUITests: XCTestCase {
         capture(app, "Search page with navigation")
         field.tap()
         field.typeText("12951")
-        XCTAssertTrue(app.keyboards.firstMatch.exists)
+        // Fresh iPad runtimes may present first-use system keyboard onboarding.
+        let onboarding = app.buttons["Continue"]
+        if !app.keyboards.firstMatch.exists, onboarding.waitForExistence(timeout: 2) { onboarding.tap() }
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        // Accessibility frames arrive after the keyboard animation. Wait for the
+        // same bounds assertion we subsequently evaluate, rather than sleeping.
+        let keyboardAboveDock = NSPredicate { _, _ in
+            let keyboard = app.keyboards.firstMatch
+            guard keyboard.exists else { return false }
+            return ["Journey", "Explore", "Passport", "Find a train"].allSatisfy {
+                let control = app.buttons[$0]
+                return control.isHittable && control.frame.maxY <= keyboard.frame.minY
+            }
+        }
+        let settled = XCTNSPredicateExpectation(predicate: keyboardAboveDock, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed)
         for label in ["Journey", "Explore", "Passport", "Find a train"] {
             let control = app.buttons[label]
             XCTAssertTrue(control.isHittable)
@@ -572,7 +587,7 @@ final class AccessibilityUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["Passport"].waitForExistence(timeout: 10))
         app.buttons["Passport"].tap()
-        let heading = app.staticTexts["A thousand places.\nYour first page."]
+        let heading = app.staticTexts["A thousand places. Your first page."]
         try revealAndAudit(heading, in: app, screen: "Passport empty heading fully scrolled")
 
         app.buttons["Find a train"].tap()
@@ -631,8 +646,11 @@ private extension XCTestCase {
     @MainActor @discardableResult
     func revealForReading(_ element: XCUIElement, in app: XCUIApplication, screen: String,
                           modal: Bool = false) -> CGRect {
-        XCTAssertTrue(element.waitForExistence(timeout: 5), screen)
         let scroll = app.scrollViews.firstMatch
+        // Lazy scroll content enters the accessibility tree as it approaches
+        // the viewport. Scroll to mount it before evaluating its full bounds.
+        for _ in 0..<20 where !element.exists { scroll.swipeUp(velocity: .slow) }
+        XCTAssertTrue(element.waitForExistence(timeout: 5), screen)
         let screenFrame = app.frame
         let top = max(scroll.frame.minY + 12, screenFrame.minY + 70)
         let bottom = modal ? min(scroll.frame.maxY - 16, screenFrame.maxY - 30)
@@ -734,5 +752,34 @@ private final class NetworkSelectionGateway: @unchecked Sendable {
                                "freshUntil": formatter.string(from: now.addingTimeInterval(120))])
         }
         return ("404 Not Found", ["error": ["code": "fixture_unavailable", "message": "Dated journey request reached fixture."]])
+    }
+}
+
+extension NavigationUITests {
+    @MainActor func testTabletLandscapeKeepsSearchAndDockUsable() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "Landscape verification runs on the iPad simulator.")
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let app = XCUIApplication(); app.launch(); defer { app.terminate() }
+        let search = app.buttons["Find a train"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10)); search.tap()
+        let field = app.textFields["Search trains"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap(); field.typeText("12951")
+        let keyboard = app.keyboards.firstMatch
+        if !keyboard.exists && app.buttons["Continue"].waitForExistence(timeout: 2) { app.buttons["Continue"].tap() }
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5))
+        for label in ["Journey", "Explore", "Passport", "Find a train"] {
+            let control = app.buttons[label]
+            let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                control.isHittable && control.frame.maxY <= keyboard.frame.minY + 1
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed, "\(label) must remain accessible above the keyboard")
+        }
+        let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "iPad landscape Search keyboard and dock"; screenshot.lifetime = .keepAlways; add(screenshot)
+        field.typeText("\n")
+        let result = app.buttons["search.result.12951"]
+        XCTAssertTrue(result.waitForExistence(timeout: 5)); result.tap()
+        XCTAssertTrue(app.staticTexts["12951 · Mumbai Central-New Delhi Rajdhani Express"].waitForExistence(timeout: 10))
     }
 }

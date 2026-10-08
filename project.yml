@@ -27,7 +27,7 @@ settings:
       LOCOMATE_APNS_ENVIRONMENT: sandbox
       LOCOMATE_APNS_ENTITLEMENT: development
     Release:
-      LOCOMOTE_RAIL_API_URL: "https://rail-intelligence-gateway.rail-intelligence-gateway.workers.dev"
+      LOCOMOTE_RAIL_API_URL: "https://locomate-backend.rail-intelligence-gateway.workers.dev"
       LOCOMATE_APNS_ENVIRONMENT: production
       LOCOMATE_APNS_ENTITLEMENT: production
 
@@ -70,6 +70,11 @@ targets:
             CFBundleURLSchemes:
               - locomate
         UILaunchScreen: {}
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSLocationWhenInUseUsageDescription: "Locomate uses your location only while you explicitly contribute an active train journey."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Locomate can continue your explicitly enabled train contribution while the app is in the background."
         NSCalendarsWriteOnlyAccessUsageDescription: "Locomate can add a journey you choose to your calendar."

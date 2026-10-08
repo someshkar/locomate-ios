@@ -549,7 +549,7 @@ private final class SearchSelectionGateway: @unchecked Sendable {
                 var response = journey
                 var body = response["journey"] as! [String: Any]
                 let date = String(path.split(separator: "/").last ?? "")
-                body["id"] = "12137:\(date)"; body["travelDate"] = date
+                body["id"] = "run:12137:\(date)"; body["travelDate"] = date
                 response["journey"] = body
                 self.send(connection, body: response)
             } else if self.stationJourney != nil && path.hasPrefix("/v1/trains/search?") {

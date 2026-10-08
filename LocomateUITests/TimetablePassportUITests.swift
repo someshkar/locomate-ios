@@ -20,7 +20,7 @@ final class TimetablePassportUITests: XCTestCase {
             try openRun(app, gateway: gateway, date: gateway.futureDate, name: "Scheduled Boarding Express")
             let countdown = app.staticTexts["journey.departureCountdown"]
             XCTAssertTrue(countdown.waitForExistence(timeout: 10))
-            XCTAssertTrue(countdown.label.contains("until scheduled departure"))
+            XCTAssertTrue(countdown.label.contains("until departure"))
             XCTAssertTrue(countdown.label.contains("day"))
             let expand = app.buttons["Expand journey details"]
             if expand.exists { expand.tap() }

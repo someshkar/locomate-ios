@@ -52,7 +52,7 @@ public enum StatusMapping {
     /// `estimated` keeps the delay color (current model estimate);
     /// `stale` always degrades to the stale family; unavailable reads neutral.
     public static func statusForDelay(
-        delayMinutes: Int?,
+        delayMinutes: Double?,
         delayStatus: DelayStatus?
     ) -> StatusKind {
         if delayStatus == .stale { return .stale }
@@ -92,7 +92,7 @@ public enum StatusMapping {
 
     /// Natural-language delay copy keeps estimated and stale evidence explicit.
     public static func delayStatusLabel(
-        delayMinutes: Int?,
+        delayMinutes: Double?,
         delayStatus: DelayStatus?,
         predictionSource: DataSource? = nil
     ) -> String {

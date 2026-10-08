@@ -117,7 +117,7 @@ public enum PreviewData {
             seat: "",
             travelDate: originDate,
             distanceKm: pack.distanceKm,
-            scheduledDurationMinutes: pack.durationMinutes,
+            scheduledDurationMinutes: Double(pack.durationMinutes),
             completion: progress,
             stops: stops,
             prediction: Prediction(

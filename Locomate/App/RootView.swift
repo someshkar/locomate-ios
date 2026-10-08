@@ -17,6 +17,8 @@ public struct RootView: View {
     @State private var pendingJourney: JourneyRequest?
     @State private var restorationAttempted = false
     @State private var searchOriginDate = IndiaDate.today()
+    @State private var keyboardVisible = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init() {}
 
@@ -45,37 +47,44 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .bottom) {
-            colors.canvas.ignoresSafeArea()
-
-            Group {
-                switch tab {
-                case .journey:
-                    JourneyScreen(request: pendingJourney, onOpenSearch: { switchTab(.search) })
-                case .explore:
-                    ExploreScreen(onSelect: { destination in
-                        selectJourney(destination)
-                    })
-                case .passport:
-                    PassportScreen(onOpenSearch: { switchTab(.search) }, onOpenJourney: { saved in
-                        guard let destination = PassportReopening.destination(for: saved, production: services.mode.isProduction) else { return }
-                        selectJourney(destination, savedJourney: saved)
-                    })
-                case .search:
-                    SearchScreen(onSelect: { train, date in
-                        selectJourney(.init(trainNumber: train.number, date: date))
-                    }, sharedSelectedDate: $searchOriginDate)
-                }
+        Group {
+            switch tab {
+            case .journey:
+                JourneyScreen(request: pendingJourney, onOpenSearch: { switchTab(.search) })
+            case .explore:
+                ExploreScreen(onSelect: { destination in
+                    selectJourney(destination)
+                })
+            case .passport:
+                PassportScreen(onOpenSearch: { switchTab(.search) }, onOpenJourney: { saved in
+                    guard let destination = PassportReopening.destination(for: saved, production: services.mode.isProduction) else { return }
+                    selectJourney(destination, savedJourney: saved)
+                })
+            case .search:
+                SearchScreen(onSelect: { train, date in
+                    selectJourney(.init(trainNumber: train.number, date: date))
+                }, sharedSelectedDate: $searchOriginDate)
             }
-            .environment(\.locomoteColors, colors)
         }
+        .background(colors.canvas.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            BottomDock(active: tab, onChange: switchTab)
-                .frame(maxWidth: 330)
-                .environment(\.locomoteColors, colors)
-                .padding(.horizontal, Spacing.units(5))
-                .padding(.vertical, Spacing.units(2))
-                .frame(maxWidth: .infinity)
+            // While typing, the dock steps aside so results get the room; it
+            // springs back the moment the keyboard leaves.
+            if !keyboardVisible {
+                BottomDock(active: tab, onChange: switchTab)
+                    .frame(maxWidth: 330)
+                    .environment(\.locomoteColors, colors)
+                    .padding(.horizontal, Spacing.units(5))
+                    .padding(.vertical, Spacing.units(2))
+                    .frame(maxWidth: .infinity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(Motion.animation(Motion.sheet, reduceMotion: reduceMotion)) { keyboardVisible = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(Motion.animation(Motion.sheet, reduceMotion: reduceMotion)) { keyboardVisible = false }
         }
         .environment(\.locomoteColors, colors)
         .animation(Motion.fadeNormal, value: preferences.dark)

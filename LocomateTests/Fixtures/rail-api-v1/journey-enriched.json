@@ -1,0 +1,157 @@
+{
+  "journey": {
+    "id": "run:12345:2026-08-24",
+    "trainNumber": "12345",
+    "trainName": "Midnight Express",
+    "originCode": "AAA",
+    "originName": "Alpha",
+    "destinationCode": "CCC",
+    "destinationName": "Charlie",
+    "departureTime": "23:50",
+    "scheduledArrival": "01:10",
+    "predictedArrival": "2026-08-24T19:50:00.000Z",
+    "coach": "",
+    "seat": "",
+    "travelDate": "2026-08-24",
+    "distanceKm": 120,
+    "scheduledDurationMinutes": 80,
+    "routeCoordinates": [
+      {
+        "latitude": 19,
+        "longitude": 72
+      },
+      {
+        "latitude": 20,
+        "longitude": 73
+      }
+    ],
+    "completion": 0.4,
+    "stops": [
+      {
+        "code": "AAA",
+        "name": "Alpha",
+        "distanceKm": 0,
+        "scheduledArrival": "23:45",
+        "scheduledDeparture": "23:50",
+        "predictedArrival": "23:45",
+        "actualDeparture": "23:58",
+        "delayMinutes": 8,
+        "arrivalDelayMinutes": null,
+        "departureDelayMinutes": 8,
+        "delayStatus": "observed",
+        "timingSource": "official",
+        "observedAt": "2026-08-24T18:29:00.000Z",
+        "state": "passed",
+        "progress": 0,
+        "forecast": {
+          "availability": "available",
+          "p10": "2026-08-24T18:28:00.000Z",
+          "p50": "2026-08-24T18:28:00.000Z",
+          "p90": "2026-08-24T18:28:00.000Z",
+          "source": "observed",
+          "modelName": "observed-station-event",
+          "modelReleaseId": null,
+          "modelVersion": "v1",
+          "featureAsOf": "2026-08-24T18:44:59.000Z",
+          "support": 1,
+          "fallbackReason": null,
+          "explanationCodes": [
+            "actual-event-observed"
+          ]
+        }
+      },
+      {
+        "code": "BBB",
+        "name": "Bravo",
+        "distanceKm": 60,
+        "scheduledArrival": "00:10",
+        "scheduledDeparture": "00:12",
+        "predictedArrival": "00:20",
+        "delayMinutes": 10,
+        "arrivalDelayMinutes": 10,
+        "departureDelayMinutes": 10,
+        "delayStatus": "estimated",
+        "timingSource": "predicted",
+        "state": "current",
+        "progress": 0.5,
+        "forecast": {
+          "availability": "available",
+          "p10": "2026-08-24T18:45:00.000Z",
+          "p50": "2026-08-24T18:50:00.000Z",
+          "p90": "2026-08-24T18:55:00.000Z",
+          "source": "baseline",
+          "modelName": "schedule-current-delay",
+          "modelReleaseId": null,
+          "modelVersion": "v1",
+          "featureAsOf": "2026-08-24T18:44:59.000Z",
+          "support": 0,
+          "fallbackReason": "no-released-empirical-group",
+          "explanationCodes": [
+            "current-delay-baseline",
+            "no-released-empirical-group"
+          ]
+        }
+      },
+      {
+        "code": "CCC",
+        "name": "Charlie",
+        "distanceKm": 120,
+        "scheduledArrival": "01:10",
+        "predictedArrival": "01:20",
+        "delayMinutes": 10,
+        "arrivalDelayMinutes": 10,
+        "departureDelayMinutes": null,
+        "delayStatus": "estimated",
+        "timingSource": "predicted",
+        "state": "upcoming",
+        "progress": 1,
+        "forecast": {
+          "availability": "available",
+          "p10": "2026-08-24T19:40:00.000Z",
+          "p50": "2026-08-24T19:50:00.000Z",
+          "p90": "2026-08-24T20:00:00.000Z",
+          "source": "baseline",
+          "modelName": "schedule-current-delay",
+          "modelReleaseId": null,
+          "modelVersion": "v1",
+          "featureAsOf": "2026-08-24T18:44:59.000Z",
+          "support": 0,
+          "fallbackReason": "no-released-empirical-group",
+          "explanationCodes": [
+            "current-delay-baseline",
+            "no-released-empirical-group"
+          ]
+        }
+      }
+    ],
+    "prediction": {
+      "expectedTime": "2026-08-24T19:50:00.000Z",
+      "lowerBound": "2026-08-24T19:40:00.000Z",
+      "upperBound": "2026-08-24T20:00:00.000Z",
+      "confidence": "low",
+      "confidenceScore": 0,
+      "modelVersion": "v1",
+      "delayMinutes": 10,
+      "delayStatus": "estimated",
+      "leadMinutes": 55,
+      "reasons": [
+        "current-delay-baseline",
+        "no-released-empirical-group"
+      ],
+      "source": "predicted",
+      "updatedSecondsAgo": 1
+    },
+    "position": {
+      "progress": 0.4,
+      "speedKph": 70,
+      "phase": "running",
+      "previousStation": "AAA",
+      "nextStation": "BBB",
+      "distanceToNextKm": 10,
+      "observedAt": 1787597099000,
+      "source": "official",
+      "confidence": "high"
+    },
+    "nearbyTrains": []
+  }
+}

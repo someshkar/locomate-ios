@@ -23,7 +23,7 @@ struct NaturalLanguageTests {
         #expect(RailNaturalLanguage.delay(minutes: nil, status: .stale) == "Delay unavailable")
         #expect(RailNaturalLanguage.delay(minutes: 12, status: .unavailable) == "Delay unavailable")
         #expect(RailNaturalLanguage.delay(minutes: 0, status: .scheduled) == "Scheduled")
-        #expect(RailNaturalLanguage.delay(minutes: Int.min, status: .stale).hasSuffix("minutes early · stale"))
+        #expect(RailNaturalLanguage.delay(minutes: Double(Int.min), status: .stale).hasSuffix("minutes early · stale"))
     }
 
     @Test("personal boarding walks the origin timetable across midnight")
@@ -36,8 +36,22 @@ struct NaturalLanguageTests {
             == (try IndiaDate.instant(originDate: "2026-10-02", time: "03:00")))
         let now = boarding.addingTimeInterval(-28 * 3_600)
         #expect(RailNaturalLanguage.departureCountdown(journey: journey, plan: plan, preview: false, now: now)
-                == "1 day 4 hours until scheduled departure")
+                == "1 day 4 hours until departure")
         #expect(RailNaturalLanguage.departureCountdown(journey: journey, plan: plan, preview: false, now: boarding) == nil)
+    }
+
+    @Test("after scheduled boarding the hero counts down to the scheduled arrival")
+    func arrivalCountdown() throws {
+        let journey = try fixture()
+        let plan = try JourneyPlanLogic.create(journey: journey, originDate: "2026-10-01", boardingIndex: 1, alightingIndex: 2)
+        let boarding = try #require(RailNaturalLanguage.scheduledBoarding(journey: journey, plan: plan))
+        let arrival = try #require(RailNaturalLanguage.scheduledAlighting(journey: journey, plan: plan))
+        #expect(RailNaturalLanguage.arrivalCountdown(journey: journey, plan: plan, preview: false,
+                                                     now: boarding.addingTimeInterval(-60)) == nil)
+        #expect(RailNaturalLanguage.arrivalCountdown(journey: journey, plan: plan, preview: false, now: boarding)
+                == "1 hour 40 minutes until arrival")
+        #expect(RailNaturalLanguage.arrivalCountdown(journey: journey, plan: plan, preview: false, now: arrival) == nil)
+        #expect(RailNaturalLanguage.arrivalCountdown(journey: journey, plan: plan, preview: true, now: boarding) == nil)
     }
 
     @Test("missing or invalid boarding times never count down to an origin fallback")

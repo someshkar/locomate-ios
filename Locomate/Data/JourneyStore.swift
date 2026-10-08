@@ -33,25 +33,32 @@ public actor JourneyCache {
     private func url(_ name: String) -> URL { directory.appendingPathComponent(name) }
 
     public func saveJourney(_ journey: Journey, originDate: String) {
+        guard (try? JourneyIdentity.validate(journey, trainNumber: journey.trainNumber, originDate: originDate)) != nil else { return }
         let payload = CachedJourney(journey: journey, originDate: originDate, cachedAt: Date())
         if let data = try? JSONEncoder.locomote.encode(payload) {
-            try? data.write(to: url("journey-\(journey.trainNumber)-\(originDate).json"))
+            try? data.write(to: url("journey-\(journey.trainNumber)-\(originDate).json"), options: .atomic)
         }
     }
 
     public func loadJourney(trainNumber: String, originDate: String) -> CachedJourney? {
         guard let data = try? Data(contentsOf: url("journey-\(trainNumber)-\(originDate).json")) else { return nil }
-        return try? JSONDecoder.locomoteDates.decode(CachedJourney.self, from: data)
+        guard let cached = try? JSONDecoder.locomoteDates.decode(CachedJourney.self, from: data),
+              cached.originDate == originDate,
+              (try? JourneyIdentity.validate(cached.journey, trainNumber: trainNumber, originDate: originDate)) != nil else { return nil }
+        return cached
     }
 
     public func savePlan(_ plan: JourneyPlan) {
         guard let data = try? JSONEncoder.locomote.encode(plan) else { return }
-        try? data.write(to: url("plan-\(plan.trainNumber)-\(plan.originDate).json"))
+        try? data.write(to: url("plan-\(plan.trainNumber)-\(plan.originDate).json"), options: .atomic)
     }
 
     public func loadPlan(trainNumber: String, originDate: String) -> JourneyPlan? {
         guard let data = try? Data(contentsOf: url("plan-\(trainNumber)-\(originDate).json")) else { return nil }
-        return try? JSONDecoder.locomote.decode(JourneyPlan.self, from: data)
+        guard let plan = try? JSONDecoder.locomote.decode(JourneyPlan.self, from: data),
+              plan.trainNumber == trainNumber, plan.originDate == originDate,
+              plan.boarding.index >= 0, plan.alighting.index > plan.boarding.index else { return nil }
+        return plan
     }
 
 }

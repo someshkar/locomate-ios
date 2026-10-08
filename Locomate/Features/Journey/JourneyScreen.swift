@@ -32,6 +32,7 @@ struct JourneyScreen: View {
     @State private var calendarPending = false
     @State private var liveCardEnabled = false
     @State private var liveCardPending = false
+    @State private var showPhysicalSightings = false
     @State private var showJourneyAlerts = false
     @State private var journeySaved = false
     @State private var showDataSource = false
@@ -119,7 +120,7 @@ struct JourneyScreen: View {
                 service: services.railService,
                 cache: services.cache,
                 passport: services.passport,
-                liveActivity: services.liveActivity,
+                liveActivity: services.liveActivity, physicalSightings: services.physicalSightings,
                 savedJourney: request?.savedJourney
             )
             modelRequest = request
@@ -194,11 +195,11 @@ struct JourneyScreen: View {
                 sheetVisibleHeight: sheetPosition.visibleHeight,
                 cameraCommand: mapCommand,
                 sheetTopOnScreen: sheetTopOnScreen,
-                attributionTopOnScreen: attributionTopOnScreen
+                attributionTopOnScreen: attributionTopOnScreen,
+                operationalRuns: [model?.operations?.previous, model?.operations?.current, model?.operations?.next].compactMap { $0 }
             )
-            .id(preferences.mapLighting)
             .overlay {
-                Color.black.opacity(preferences.mapLighting == .day ? 0.03 : 0.34)
+                Color.black.opacity(0.03 + 0.31 * MapLightingPresentation.nightAmount(mode: preferences.mapLighting, daylight: daylight))
                     .allowsHitTesting(false)
             }
             .ignoresSafeArea(edges: .top)
@@ -345,6 +346,11 @@ struct JourneyScreen: View {
                     expanded: detentIndex == 0,
                     onEdit: { setupVisible = true }
                 )
+                if let status = model.liveActivityRegistrationMessage {
+                    Text(status).font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("liveActivity.registrationStatus")
+                }
                 if let notice = model.planNotice {
                     Text(notice)
                         .font(LocomateFont.caption)
@@ -379,7 +385,7 @@ struct JourneyScreen: View {
                 }
             }
             .padding(.horizontal, Spacing.units(5.5))
-            .padding(.bottom, 190)
+            .padding(.bottom, Spacing.units(5))
             .contentShape(Rectangle())
         }
         .scrollBounceBehavior(.basedOnSize)
@@ -465,7 +471,7 @@ struct JourneyScreen: View {
                 guard model.journey?.id == journey.id else { return }
                 liveCardEnabled = started
                 message = started
-                    ? "Lock Screen card shows \(journey.trainNumber)'s current ETA."
+                    ? "Lock Screen card shows \(journey.trainNumber)'s next-stop timing. Remote updates connect automatically."
                     : "A current delay and Live Activities access in iOS Settings are required."
                 if started { Haptics.success() } else { Haptics.warn() }
             }
@@ -523,10 +529,17 @@ struct JourneyScreen: View {
     @ViewBuilder private func insightsPanel(model: JourneyModel, journey: Journey) -> some View {
         ReliabilityHistoryCard(trainNumber: journey.trainNumber, originDate: model.originDate,
                                preview: model.isPreview)
+        PhysicalChainCard(chain: model.physicalChain, enabled: model.canReportPhysicalSightings) {
+            showPhysicalSightings = true
+        }.sheet(isPresented: $showPhysicalSightings) { PhysicalSightingSheet(model: model) }
         RotationIntelligenceCard(
             operations: model.operations,
             trainNumber: journey.trainNumber,
-            enabled: !model.isPreview
+            enabled: !model.isPreview,
+            onFocus: { run in
+                guard run.geometry.coordinates.count >= 2 else { return }
+                mapCommand = RailMapCommand(journeyID: mapJourneyID, target: .operational(run.geometry.coordinates))
+            }
         )
     }
 

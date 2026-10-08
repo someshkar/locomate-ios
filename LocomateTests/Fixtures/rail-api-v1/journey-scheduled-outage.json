@@ -1,0 +1,118 @@
+{
+  "journey": {
+    "id": "run:12345:2026-08-24",
+    "trainNumber": "12345",
+    "trainName": "Midnight Express",
+    "originCode": "AAA",
+    "originName": "Alpha",
+    "destinationCode": "CCC",
+    "destinationName": "Charlie",
+    "departureTime": "2026-08-24T18:20:00.000Z",
+    "scheduledArrival": "2026-08-24T19:40:00.000Z",
+    "predictedArrival": "2026-08-24T19:40:00.000Z",
+    "coach": "",
+    "seat": "",
+    "travelDate": "2026-08-24",
+    "distanceKm": 120,
+    "scheduledDurationMinutes": 80,
+    "routeCoordinates": [
+      {
+        "latitude": 19,
+        "longitude": 72
+      },
+      {
+        "latitude": 19.5,
+        "longitude": 72.5
+      },
+      {
+        "latitude": 20,
+        "longitude": 73
+      }
+    ],
+    "completion": 0,
+    "stops": [
+      {
+        "code": "AAA",
+        "name": "Alpha",
+        "distanceKm": 0,
+        "scheduledArrival": "2026-08-24T18:15:00.000Z",
+        "scheduledDeparture": "2026-08-24T18:20:00.000Z",
+        "predictedArrival": "2026-08-24T18:15:00.000Z",
+        "delayMinutes": null,
+        "arrivalDelayMinutes": null,
+        "departureDelayMinutes": null,
+        "delayStatus": "unavailable",
+        "timingSource": "scheduled",
+        "state": "upcoming",
+        "progress": 0
+      },
+      {
+        "code": "BBB",
+        "name": "Bravo",
+        "distanceKm": 60,
+        "scheduledArrival": "2026-08-24T18:40:00.000Z",
+        "scheduledDeparture": "2026-08-24T18:42:00.000Z",
+        "predictedArrival": "2026-08-24T18:40:00.000Z",
+        "delayMinutes": null,
+        "arrivalDelayMinutes": null,
+        "departureDelayMinutes": null,
+        "delayStatus": "unavailable",
+        "timingSource": "scheduled",
+        "state": "upcoming",
+        "progress": 0.5
+      },
+      {
+        "code": "CCC",
+        "name": "Charlie",
+        "distanceKm": 120,
+        "scheduledArrival": "2026-08-24T19:40:00.000Z",
+        "predictedArrival": "2026-08-24T19:40:00.000Z",
+        "delayMinutes": null,
+        "arrivalDelayMinutes": null,
+        "departureDelayMinutes": null,
+        "delayStatus": "unavailable",
+        "timingSource": "scheduled",
+        "state": "upcoming",
+        "progress": 1
+      }
+    ],
+    "prediction": {
+      "expectedTime": null,
+      "lowerBound": null,
+      "upperBound": null,
+      "confidence": "low",
+      "confidenceScore": 0,
+      "modelVersion": "schedule-only-v1",
+      "delayMinutes": null,
+      "delayStatus": "unavailable",
+      "leadMinutes": 55,
+      "reasons": [
+        "Live rail data is unavailable; only the published timetable is shown. No location, delay or actual event is claimed."
+      ],
+      "source": "scheduled",
+      "updatedSecondsAgo": 0
+    },
+    "position": {
+      "progress": 0,
+      "speedKph": 0,
+      "phase": "running",
+      "previousStation": "AAA",
+      "nextStation": "AAA",
+      "distanceToNextKm": 0,
+      "observedAt": 0,
+      "source": "scheduled",
+      "confidence": "low"
+    },
+    "provenance": {
+      "provider": "railradar-public",
+      "providerLabel": "RailRadar published timetable",
+      "observedAt": "2026-08-24T18:45:00.000Z",
+      "ingestedAt": "2026-08-24T18:45:00.000Z",
+      "transformationVersion": "railradar-public-v1",
+      "freshness": "scheduled",
+      "attribution": "RailRadar timetable; not an official Indian Railways source.",
+      "unavailableReason": "provider_access_denied"
+    },
+    "nearbyTrains": []
+  }
+}

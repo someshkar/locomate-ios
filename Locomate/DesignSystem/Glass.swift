@@ -25,7 +25,7 @@ public struct GlassSurface<S: InsettableShape>: View {
 
     private var tint: Color {
         colors.dark
-            ? Color(rgba: 17, 21, 28, heavy ? 0.94 : 0.90)
+            ? Color(rgba: 17, 21, 28, heavy ? 0.98 : 0.96)
             : Color(rgba: 250, 252, 255, heavy ? 0.97 : 0.94)
     }
 
@@ -82,10 +82,14 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
                     Color.clear.frame(height: hidesMap ? 0 : mapHeight)
                         .allowsHitTesting(false)
                     sheet()
+                        .background(colors.dark ? sheetStyle.darkFill : colors.elevated)
+                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background {
+                        .background(alignment: .top) {
+                            // Run the surface under the floating dock and home
+                            // indicator so no strip of canvas shows below it.
                             OverviewSheetSurface(style: sheetStyle)
-                                .ignoresSafeArea(.container, edges: .bottom)
+                                .padding(.bottom, -geometry.safeAreaInsets.bottom)
                         }
                 }
             }
@@ -97,18 +101,13 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
 enum OverviewSheetStyle {
     case standard, passport
 
-    var darkStops: [Gradient.Stop] {
+    var darkFill: Color {
         switch self {
-        case .standard:
-            [ .init(color: Color(hex: 0x111119).opacity(0.50), location: 0),
-              .init(color: Color(hex: 0x0F0F16).opacity(0.88), location: 0.20),
-              .init(color: Color(hex: 0x0E0E15).opacity(0.98), location: 1) ]
-        case .passport:
-            [ .init(color: Color(hex: 0x0B0C16).opacity(0.55), location: 0),
-              .init(color: Color(hex: 0x0A0B14).opacity(0.94), location: 0.20),
-              .init(color: Color(hex: 0x090A12).opacity(0.99), location: 1) ]
+        case .standard: Color(hex: 0x0F0F16)
+        case .passport: Color(hex: 0x0A0B14)
         }
     }
+
 }
 
 struct OverviewSheetSurface: View {
@@ -123,12 +122,7 @@ struct OverviewSheetSurface: View {
             if reduceTransparency {
                 shape.fill(colors.elevated)
             } else {
-                shape.fill(.ultraThinMaterial)
-                shape.fill(LinearGradient(
-                    stops: colors.dark ? style.darkStops : [
-                        .init(color: colors.elevated.opacity(0.75), location: 0),
-                        .init(color: colors.elevated, location: 1)],
-                    startPoint: .top, endPoint: .bottom))
+                shape.fill(colors.dark ? style.darkFill : colors.elevated)
             }
             shape.strokeBorder(colors.borderSubtle, lineWidth: 0.75)
         }

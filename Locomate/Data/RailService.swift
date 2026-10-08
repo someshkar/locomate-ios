@@ -42,9 +42,9 @@ public protocol RailServiceProtocol: JourneyAlertAPI {
     func exportPrivacyData() async throws -> Data
     func deletePrivacyData() async throws
     func registerLiveActivityToken(
-        runId: String, token: String, state: JourneyActivityAttributes.ContentState
+        runId: String, token: String, state: JourneyActivityAttributes.ContentState, revision: Int64
     ) async throws
-    func unregisterLiveActivity(runId: String) async throws
+    func unregisterLiveActivity(runId: String, revision: Int64) async throws
     func uploadObservations(_ batch: [CompactObservation]) async throws -> [String]
     func searchTrains(_ query: String) async throws -> [TrainSearchResult]
     func searchStations(_ query: String) async throws -> [StationSearchResult]
@@ -52,6 +52,8 @@ public protocol RailServiceProtocol: JourneyAlertAPI {
     func trainsBetween(from: String, to: String, travelDate: String) async throws -> BetweenStationsResult
     func journey(trainNumber: String, originDate: String) async throws -> Journey
     func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse
+    func physicalChain(trainNumber: String, originDate: String) async throws -> PhysicalChainResponse
+    func submitPhysicalSightings(trainNumber: String, originDate: String, request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse
     func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse
     func trainHistory(trainNumber: String, limit: Int) async throws -> TrainHistoryResponse
 }
@@ -94,31 +96,44 @@ public struct RailService: RailServiceProtocol {
     /// Register a Live Activity push-to-update token so the gateway can refresh
     /// the ETA without the app polling. Mirrors the SmartRail subscription call.
     public func registerLiveActivityToken(
-        runId: String, token: String, state: JourneyActivityAttributes.ContentState
+        runId: String, token: String, state: JourneyActivityAttributes.ContentState, revision: Int64
     ) async throws {
-        struct Ack: Decodable { let accepted: Bool? }
-        let _: Ack = try await client.post(
+        let subscriptionId = try Self.statusSubscriptionID(runId)
+        var content: [String: Any] = [
+            "nextStation": state.nextStation, "eta": state.eta,
+            "delayMinutes": state.delayMinutes.map { $0 as Any } ?? NSNull(),
+            "delayLabel": state.delayLabel, "distanceToNextKm": state.distanceToNextKm,
+            "confidence": state.confidence, "updatedAt": state.updatedAt.timeIntervalSinceReferenceDate
+        ]
+        if let label = state.etaLabel { content["etaLabel"] = label }
+        struct Ack: Decodable { let stored: Bool; let runId: String; let revision: Int64 }
+        let ack: Ack = try await client.post(
             "/v1/live-activities/subscriptions",
             body: [
-                "runId": runId,
+                "runId": subscriptionId,
+                "revision": revision,
                 "pushToken": token,
-                "contentState": [
-                    "nextStation": state.nextStation,
-                    "eta": state.eta,
-                    "delayMinutes": state.delayMinutes.map { $0 as Any } ?? NSNull(),
-                    "delayLabel": state.delayLabel,
-                    "distanceToNextKm": state.distanceToNextKm,
-                    "confidence": state.confidence,
-                    "updatedAt": state.updatedAt.timeIntervalSinceReferenceDate
-                ] as [String: Any]
+                "contentState": content
             ],
             idempotencyKey: "live-activity-\(runId)"
         )
+        guard ack.stored, ack.runId == subscriptionId, ack.revision == revision else { throw URLError(.badServerResponse) }
     }
 
-    public func unregisterLiveActivity(runId: String) async throws {
-        guard runId.range(of: "^[A-Za-z0-9:._-]{1,128}$", options: .regularExpression) != nil else { return }
-        try await client.delete("/v1/live-activities/subscriptions/\(runId)")
+    public func unregisterLiveActivity(runId: String, revision: Int64) async throws {
+        let subscriptionId = try Self.statusSubscriptionID(runId)
+        try await client.delete("/v1/live-activities/subscriptions/\(subscriptionId)", query: ["revision": String(revision)])
+    }
+
+    /// Journey IDs include the evidence namespace; delivery subscriptions use
+    /// the existing train/date namespace shared with Android notifications.
+    private static func statusSubscriptionID(_ runId: String) throws -> String {
+        let parts = runId.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 3, parts[0] == "run",
+              Routes.isValidTrainNumber(String(parts[1])), Routes.isValidCalendarDate(String(parts[2])) else {
+            throw JourneyIdentity.ValidationError.invalidRequest
+        }
+        return "\(parts[1]):\(parts[2])"
     }
 
     /// Upload a consented observation batch. Returns the accepted local IDs.
@@ -133,6 +148,9 @@ public struct RailService: RailServiceProtocol {
             bodyData: encoded.bodyData,
             idempotencyKey: encoded.idempotencyKey
         )
+        guard response.acceptedRecordIds.count <= batch.count,
+              Set(response.acceptedRecordIds).count == response.acceptedRecordIds.count,
+              response.acceptedRecordIds.allSatisfy({ encoded.keysById[$0] != nil }) else { throw URLError(.badServerResponse) }
         return response.acceptedRecordIds.compactMap { encoded.keysById[$0] }
     }
 
@@ -140,13 +158,13 @@ public struct RailService: RailServiceProtocol {
         struct Response: Decodable { let stations: [StationSearchResult] }
         let response: Response = try await client.get("/v1/stations/search", query: ["q": query])
         guard response.stations.count <= 50, response.stations.allSatisfy({
-            $0.code.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil && !$0.name.isEmpty
+            StationSearch.isValidCode($0.code) && !$0.name.isEmpty
         }) else { throw URLError(.badServerResponse) }
         return response.stations
     }
 
     public func stationTrains(_ code: String) async throws -> StationTrainsResult {
-        guard code.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil else { throw URLError(.badURL) }
+        guard StationSearch.isValidCode(code) else { throw URLError(.badURL) }
         let response: StationTrainsResult = try await client.get("/v1/stations/\(code)/trains")
         guard response.station.code == code, response.trains.count <= 1000,
               response.trains.allSatisfy({ Routes.isValidTrainNumber($0.number) && !$0.name.isEmpty && !$0.live })
@@ -155,8 +173,8 @@ public struct RailService: RailServiceProtocol {
     }
 
     public func trainsBetween(from: String, to: String, travelDate: String) async throws -> BetweenStationsResult {
-        guard from.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil,
-              to.range(of: "^[A-Z]{1,10}$", options: .regularExpression) != nil,
+        guard StationSearch.isValidCode(from),
+              StationSearch.isValidCode(to),
               from != to, IndiaDate.isValid(travelDate) else { throw URLError(.badURL) }
         let response: BetweenStationsResult = try await client.get("/v1/trains/between", query: [
             "from": from, "to": to, "date": travelDate
@@ -177,14 +195,31 @@ public struct RailService: RailServiceProtocol {
 
     public func journey(trainNumber: String, originDate: String) async throws -> Journey {
         let response: JourneyResponse = try await client.get("/v1/runs/\(trainNumber)/\(originDate)")
+        try JourneyIdentity.validate(response.journey, trainNumber: trainNumber, originDate: originDate)
         return response.journey
     }
 
     public func operationalChain(trainNumber: String, originDate: String) async throws -> OperationalChainResponse {
-        try await client.get(
+        let response: OperationalChainResponse = try await client.get(
             "/v1/runs/\(trainNumber)/\(originDate)/rake-working",
             query: ["include": "geometry"]
         )
+        try OperationalValidation.operations(response, trainNumber: trainNumber, originDate: originDate)
+        return response
+    }
+
+
+    public func physicalChain(trainNumber: String, originDate: String) async throws -> PhysicalChainResponse {
+        let result: PhysicalChainResponse = try await client.get("/v1/runs/\(trainNumber)/\(originDate)/physical-chain")
+        try OperationalValidation.physical(result, trainNumber: trainNumber, originDate: originDate)
+        return result
+    }
+    public func submitPhysicalSightings(trainNumber: String, originDate: String, request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse {
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let response: PhysicalSightingResponse = try await client.postData("/v1/runs/\(trainNumber)/\(originDate)/physical-sightings",
+            bodyData: encoder.encode(request), idempotencyKey: "physical-\(request.consent.evidenceId)")
+        try OperationalValidation.sightingResponse(response, expectedCount: request.sightings.count)
+        return response
     }
 
     public func networkTrains(bounds: NetworkBounds) async throws -> NetworkTrainsResponse {
@@ -214,6 +249,21 @@ enum ObservationBatchCodec {
         return digest.prefix(6).reduce(0) { ($0 << 8) | Int($1) }
     }
 
+    static func canonicalRunID(_ value: String) throws -> String {
+        if OperationalValidation.runID(value) { return value }
+        let short = value.split(separator: ":", omittingEmptySubsequences: false)
+        if short.count == 2, Routes.isValidTrainNumber(String(short[0])), Routes.isValidCalendarDate(String(short[1])) {
+            return "run:\(value)"
+        }
+        if value.count >= 15, value.count <= 17 {
+            let date = String(value.suffix(10)), prefix = String(value.dropLast(11))
+            if value.dropLast(10).last == "-", Routes.isValidTrainNumber(prefix), Routes.isValidCalendarDate(date) {
+                return "run:\(prefix):\(date)"
+            }
+        }
+        throw EncodingError.invalidBatch
+    }
+
     static func encode(_ batch: [CompactObservation]) throws -> Encoded {
         guard !batch.isEmpty, batch.count <= 100 else { throw EncodingError.invalidBatch }
         let ordered = batch.sorted { $0.timestamp < $1.timestamp }
@@ -223,13 +273,19 @@ enum ObservationBatchCodec {
         var tuples: [[Any]] = []
         for (index, item) in ordered.enumerated() {
             guard item.consentVersion == Consent.version,
-                  item.runId.range(of: "^[A-Za-z0-9:_.-]{1,128}$", options: .regularExpression) != nil
+                  item.timestamp >= 0 && item.timestamp <= 9_007_199_254_740_991,
+                  (-9_000_000...9_000_000).contains(item.latE5), (-18_000_000...18_000_000).contains(item.lonE5),
+                  item.speedKph.isFinite && (3...350).contains(item.speedKph),
+                  item.accuracyM.isFinite && (0...100).contains(item.accuracyM),
+                  item.routeProgress.isFinite && (0...1).contains(item.routeProgress),
+                  item.matchDistanceM.isFinite && (0...500).contains(item.matchDistanceM)
             else { throw EncodingError.invalidBatch }
+            let wireRunID = try canonicalRunID(item.runId)
             let id = localId(for: item)
             guard keysById[id] == nil else { throw EncodingError.duplicateLocalId }
             keysById[id] = "\(item.runId):\(item.timestamp)"
             tuples.append([
-                id, item.runId, item.consentVersion,
+                id, wireRunID, item.consentVersion,
                 index == 0 ? 0 : item.timestamp - previous.timestamp,
                 index == 0 ? 0 : item.latE5 - previous.latE5,
                 index == 0 ? 0 : item.lonE5 - previous.lonE5,
@@ -306,4 +362,9 @@ public enum RailDataMode: Sendable {
         if case .production = self { return true }
         return false
     }
+}
+
+public extension RailServiceProtocol {
+    func physicalChain(trainNumber: String, originDate: String) async throws -> PhysicalChainResponse { throw URLError(.unsupportedURL) }
+    func submitPhysicalSightings(trainNumber: String, originDate: String, request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse { throw URLError(.unsupportedURL) }
 }

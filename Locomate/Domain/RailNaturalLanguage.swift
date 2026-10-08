@@ -2,14 +2,14 @@ import Foundation
 
 /// Human time copy shared by the Journey card and its provenance-aware delay label.
 enum RailNaturalLanguage {
-    static func delay(minutes: Int?, status: DelayStatus?, source: DataSource? = nil) -> String {
-        guard let minutes, status != .unavailable else { return "Delay unavailable" }
+    static func delay(minutes: Double?, status: DelayStatus?, source: DataSource? = nil) -> String {
+        guard let minutes, minutes.isFinite, status != .unavailable else { return "Delay unavailable" }
         let qualifier: String
         if status == .stale { qualifier = " · stale" }
         else if status == .estimated || source == .predicted { qualifier = " · estimated" }
         else { qualifier = "" }
-        if minutes > 0 { return "\(unit(minutes.magnitude, "minute")) late\(qualifier)" }
-        if minutes < 0 { return "\(unit(minutes.magnitude, "minute")) early\(qualifier)" }
+        if minutes > 0 { return "\(minuteLabel(minutes.magnitude)) late\(qualifier)" }
+        if minutes < 0 { return "\(minuteLabel(minutes.magnitude)) early\(qualifier)" }
         return "\(status == .scheduled || status == nil ? "Scheduled" : "On time")\(qualifier)"
     }
 
@@ -20,7 +20,20 @@ enum RailNaturalLanguage {
               journey.stops[resolved.boarding.index].state != .passed,
               journey.stops[resolved.boarding.index].actualDeparture == nil,
               let departure = scheduledBoarding(journey: journey, plan: resolved), departure > now else { return nil }
-        return "\(duration(departure.timeIntervalSince(now))) until scheduled departure"
+        return "\(duration(departure.timeIntervalSince(now))) until departure"
+    }
+
+    /// Once the scheduled boarding has passed, count down to the scheduled
+    /// alighting instead. Still timetable-derived: it never claims the train
+    /// is moving, and it yields to recorded arrivals.
+    static func arrivalCountdown(journey: Journey, plan: JourneyPlan, preview: Bool,
+                                 now: Date = Date()) -> String? {
+        guard !preview, let resolved = JourneyPlanLogic.resolve(journey: journey, plan: plan),
+              journey.stops[resolved.alighting.index].state != .passed,
+              journey.stops[resolved.alighting.index].actualArrival == nil,
+              let boarding = scheduledBoarding(journey: journey, plan: resolved), boarding <= now,
+              let arrival = scheduledAlighting(journey: journey, plan: resolved), arrival > now else { return nil }
+        return "\(duration(arrival.timeIntervalSince(now))) until arrival"
     }
 
     static func duration(_ seconds: TimeInterval) -> String {
@@ -98,6 +111,11 @@ enum RailNaturalLanguage {
             while instant < previous { instant = instant.addingTimeInterval(86_400) }
         }
         return instant
+    }
+
+    private static func minuteLabel(_ value: Double) -> String {
+        let text = value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "en_US")))
+        return "\(text) minute\(value == 1 ? "" : "s")"
     }
 
     private static func unit(_ value: UInt, _ noun: String) -> String { "\(value) \(noun)\(value == 1 ? "" : "s")" }

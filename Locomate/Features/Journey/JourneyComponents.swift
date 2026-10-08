@@ -103,6 +103,7 @@ struct PersonalizedTripCard: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
+                  VStack(alignment: .leading, spacing: 4) {
                     if let countdown = RailNaturalLanguage.departureCountdown(
                         journey: journey, plan: plan, preview: preview, now: context.date
                     ) {
@@ -111,11 +112,29 @@ struct PersonalizedTripCard: View {
                         Text("\(cached ? "Saved timetable · " : "")Scheduled boarding at \(plan.boarding.code)")
                             .font(LocomateFont.caption)
                             .foregroundStyle(colors.textSecondary)
+                    } else if let countdown = RailNaturalLanguage.arrivalCountdown(
+                        journey: journey, plan: plan, preview: preview, now: context.date
+                    ) {
+                        JourneyCountdownText(value: countdown)
+                            .accessibilityIdentifier("journey.arrivalCountdown")
+                        Text("\(cached ? "Saved timetable · " : "")Scheduled arrival at \(plan.alighting.code)")
+                            .font(LocomateFont.caption)
+                            .foregroundStyle(colors.textSecondary)
                     } else {
-                        Text(preview ? "Timetable sample" : "Your railway journey")
+                        Text(preview ? "Timetable sample" : journeyEndedTitle)
                             .font(.system(.title2, weight: .bold))
                             .foregroundStyle(colors.textPrimary)
                     }
+                  }
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .contentTransition(.numericText(countsDown: true))
+                  .animation(Motion.fadeNormal, value: context.date)
+                }
+                if plan.coach != nil || plan.seat != nil {
+                    Text([plan.coach.map { "Coach \($0)" }, plan.seat.map { "Seat \($0)" }].compactMap { $0 }.joined(separator: " · "))
+                        .font(LocomateFont.bodyStrong).foregroundStyle(colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("journey.privateSeat")
                 }
                 Text("\(plan.boarding.name) to \(plan.alighting.name)")
                     .font(LocomateFont.bodyStrong)
@@ -135,8 +154,7 @@ struct PersonalizedTripCard: View {
                 (dynamicTypeSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
                     : AnyLayout(HStackLayout())) {
-                    Text("\(segment.count) stops · \(Int(totalDistance)) km on your segment")
-                        .accessibilityLabel("\(segment.count) stops. \(Int(totalDistance)) kilometres on your segment.")
+                    Text("\(segment.count) stops · \(Int(totalDistance).formatted()) kilometres on your segment")
                         .accessibilityIdentifier("journey.segmentDistance")
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)
@@ -176,6 +194,14 @@ struct PersonalizedTripCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(name), \(clock?.label ?? "Timing unavailable"), \(clock?.time ?? "unavailable")\(daySuffix)")
         .accessibilityIdentifier("journey.\(role)Clock")
+    }
+
+    /// Past the scheduled arrival with no recorded call, say what is known
+    /// rather than a generic title.
+    private var journeyEndedTitle: String {
+        guard let arrival = RailNaturalLanguage.scheduledAlighting(journey: journey, plan: plan),
+              arrival <= Date() else { return "\(plan.boarding.code) to \(plan.alighting.code)" }
+        return segment.last?.actualArrival != nil ? "Arrived at \(plan.alighting.code)" : "Scheduled to have arrived"
     }
 
     private var totalDistance: Double {
@@ -553,22 +579,50 @@ struct RotationIntelligenceCard: View {
     let operations: OperationalChainResponse?
     let trainNumber: String
     let enabled: Bool
+    var onFocus: ((OperationalRun) -> Void)? = nil
 
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: Spacing.units(3)) {
                 Text("Rotation intelligence").eyebrow(colors.textTertiary)
                 if let operations {
-                    HStack(spacing: Spacing.units(3)) {
+                    ViewThatFits(in: .horizontal) {
+                      HStack(spacing: Spacing.units(3)) {
                         ForEach(["previous", "current", "next"], id: \.self) { role in
                             roleColumn(role, operations: operations)
                         }
+                      }
+                      VStack(alignment: .leading, spacing: 16) {
+                        ForEach(["previous", "current", "next"], id: \.self) { roleColumn($0, operations: operations) }
+                      }
                     }
                     if let linkage = operations.linkage {
                         Text(linkageLabel(linkage))
                             .font(LocomateFont.caption)
                             .foregroundStyle(colors.textSecondary)
                     }
+                    if let assessment = operations.delayAssessment {
+                        Text(assessment.summary).font(LocomateFont.bodyStrong).foregroundStyle(colors.textPrimary)
+                        Text("Incoming delay \(assessment.incomingDelayMinutes.formatted()) min · \(assessment.confidence.rawValue) confidence")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                        ForEach(assessment.evidence) { evidence in
+                            Text("\(evidence.summary) · \(evidence.source.rawValue)\(evidence.observedAt.map { " · " + $0 } ?? "")")
+                                .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                        }
+                    }
+                    if let delay = operations.propagatedDelay {
+                        Text("Propagation: \(delay.minutes.formatted()) min · \(delay.explanation)")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    }
+                    if let risk = operations.turnaroundRisk {
+                        Text("Turnaround risk: \(risk.level) · \(risk.summary)").font(LocomateFont.bodyStrong).foregroundStyle(colors.textPrimary)
+                        Text("Available \(risk.availableMinutes.formatted()) / minimum \(risk.minimumMinutes.formatted()) min")
+                            .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                    }
+                    if let linkage = operations.linkage {
+                        ForEach(linkage.caveats, id: \.self) { Text($0).font(LocomateFont.caption).foregroundStyle(colors.textSecondary) }
+                    }
+                    Text("Updated \(operations.updatedAt) · \(operations.mode)").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
                     Text(operations.disclaimer)
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)
@@ -592,6 +646,15 @@ struct RotationIntelligenceCard: View {
                 .font(LocomateFont.timeLarge)
                 .monospacedDigit()
                 .foregroundStyle(run == nil ? colors.textTertiary : colors.textPrimary)
+            if let run, run.geometry.coordinates.count >= 2 {
+                Button(role == "previous" ? "Focus inbound" : role == "next" ? "Focus outbound" : "Focus current") { onFocus?(run) }
+                    .buttonStyle(AccessibleTextButtonStyle())
+                    .accessibilityIdentifier("operations.focus.\(role)")
+                Text("Geometry: \(run.geometry.source)").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                if let position = run.position {
+                    Text("Position: \(position.source.rawValue) · \(position.observedAt)").font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                }
+            }
             Text("\(run?.originCode ?? "—") → \(run?.destinationCode ?? "—")")
                 .font(LocomateFont.data)
                 .foregroundStyle(colors.textTertiary)

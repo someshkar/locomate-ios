@@ -20,6 +20,7 @@ public final class JourneyModel {
     }
 
     public private(set) var phase: Phase = .idle
+    public private(set) var physicalChain: PhysicalChainResponse?
     public private(set) var operations: OperationalChainResponse?
     public private(set) var plan: JourneyPlan?
     public private(set) var cachedAt: Date?
@@ -38,6 +39,7 @@ public final class JourneyModel {
 
     private let service: RailServiceProtocol?
     private let cache: JourneyCache
+    private let physicalSightings: PhysicalSightingStore
     private let passport: PassportRepository
     private let liveActivity: LiveActivityService
     private var pendingSavedJourney: SavedJourney?
@@ -51,6 +53,7 @@ public final class JourneyModel {
         cache: JourneyCache,
         passport: PassportRepository,
         liveActivity: LiveActivityService = LiveActivityService(),
+        physicalSightings: PhysicalSightingStore = PhysicalSightingStore(),
         savedJourney: SavedJourney? = nil
     ) {
         self.trainNumber = trainNumber
@@ -59,6 +62,7 @@ public final class JourneyModel {
         self.cache = cache
         self.passport = passport
         self.liveActivity = liveActivity
+        self.physicalSightings = physicalSightings
         self.pendingSavedJourney = savedJourney
     }
 
@@ -178,6 +182,7 @@ public final class JourneyModel {
             do {
                 let loaded = try await service.journey(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
                 guard current() else { return }
+                try JourneyIdentity.validate(loaded, trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
                 isPreview = false
                 isCached = false
                 cachedAt = nil
@@ -191,7 +196,10 @@ public final class JourneyModel {
                     trainNumber: requestedTrainNumber, originDate: requestedOriginDate
                 )
                 guard current() else { return }
-                operations = loadedOperations
+                operations = loadedOperations?.trainNumber == requestedTrainNumber && loadedOperations?.originDate == requestedOriginDate ? loadedOperations : nil
+                let physical = try? await service.physicalChain(trainNumber: requestedTrainNumber, originDate: requestedOriginDate)
+                guard current() else { return }
+                physicalChain = physical?.runId == loaded.id ? physical : nil
                 // Only sync a Live Activity the traveller previously started.
                 if liveActivity.isRunning(for: loaded.id) {
                     await liveActivity.sync(
@@ -256,19 +264,19 @@ public final class JourneyModel {
     }
 
     /// Registers a push-to-update token for gateway delivery when configured.
-    private func tokenRegistrar(for runId: String) -> ((String, JourneyActivityAttributes.ContentState) async -> Void)? {
+    private func tokenRegistrar(for runId: String) -> (@MainActor (String, JourneyActivityAttributes.ContentState, Int64) async throws -> Void)? {
         guard let service else { return nil }
-        return { token, state in
+        return { token, state, revision in
             // Best-effort: a failed registration must not break the journey.
-            _ = try? await service.registerLiveActivityToken(runId: runId, token: token, state: state)
+            try await service.registerLiveActivityToken(runId: runId, token: token, state: state, revision: revision)
         }
     }
 
-    private func tokenUnregisterer() -> ((String) async -> Void)? {
+    private func tokenUnregisterer() -> (@MainActor (String, Int64) async throws -> Void)? {
         guard let service else { return nil }
-        return { runId in
+        return { runId, revision in
             // A stopped card must disappear immediately even if the gateway is offline.
-            _ = try? await service.unregisterLiveActivity(runId: runId)
+            try await service.unregisterLiveActivity(runId: runId, revision: revision)
         }
     }
 
@@ -281,7 +289,32 @@ public final class JourneyModel {
         operations = PreviewData.operations(from: pack, originDate: originDate)
     }
 
+    public var liveActivityRegistrationMessage: String? { liveActivity.registrationMessage }
+
     // MARK: Actions
+
+    public var pendingPhysicalReport: PhysicalSightingStore.Pending? { physicalSightings.pending(trainNumber: trainNumber, originDate: originDate) }
+    public func discardPhysicalReport(_ id: String) throws { try physicalSightings.discard(id) }
+
+    public var canReportPhysicalSightings: Bool {
+        guard !isPreview, !isCached, !PrivacyDeletionLatch.isPending, let journey else { return false }
+        return ContributionObservation.isWithinRunWindow(originDate: originDate, departureTime: journey.departureTime,
+            durationMinutes: journey.scheduledDurationMinutes)
+    }
+
+    public func submitPhysicalSightings(_ request: PhysicalSightingRequest) async throws -> PhysicalSightingResponse {
+        guard !isPreview, !isCached, !PrivacyDeletionLatch.isPending, let service, let journey else { throw URLError(.unsupportedURL) }
+        guard canReportPhysicalSightings else { throw URLError(.unsupportedURL) }
+        let requestedID = journey.id
+        let selection = selectionID
+        try physicalSightings.enqueue(trainNumber: trainNumber, originDate: originDate, request: request)
+        guard let queued = physicalSightings.pending(trainNumber: trainNumber, originDate: originDate) else { throw CancellationError() }
+        let result = try await physicalSightings.submit(queued, using: service)
+        guard !PrivacyDeletionLatch.isPending, self.journey?.id == requestedID, selectionID == selection else { throw CancellationError() }
+        let chain = try? await service.physicalChain(trainNumber: trainNumber, originDate: originDate)
+        if self.journey?.id == requestedID, selectionID == selection, !PrivacyDeletionLatch.isPending, chain?.runId == requestedID { physicalChain = chain }
+        return result
+    }
 
     public func savePlan(_ plan: JourneyPlan) async {
         self.plan = plan
@@ -312,6 +345,7 @@ public final class JourneyModel {
         if changedRun {
             phase = .idle
             operations = nil
+            physicalChain = nil
             plan = nil
             planLoaded = false
             refreshError = nil

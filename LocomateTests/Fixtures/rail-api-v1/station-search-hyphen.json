@@ -1,0 +1,22 @@
+{
+  "stations": [
+    {
+      "code": "NDLS",
+      "name": "New Delhi",
+      "sourceLabel": "Synthetic catalogue syntax fixture",
+      "sourceUpdatedAt": "2026-08-24T18:45:00Z"
+    },
+    {
+      "code": "NRL-DLS",
+      "name": "Neral Diesel Loco Shed",
+      "sourceLabel": "Synthetic catalogue syntax fixture",
+      "sourceUpdatedAt": "2026-08-24T18:45:00Z"
+    },
+    {
+      "code": "D",
+      "name": "One letter station fixture",
+      "sourceLabel": "Synthetic catalogue syntax fixture",
+      "sourceUpdatedAt": "2026-08-24T18:45:00Z"
+    }
+  ]
+}

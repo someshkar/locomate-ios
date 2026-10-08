@@ -19,13 +19,13 @@ public enum LocomateFont {
     public static let subhead = Font.system(.body, weight: .regular)
     public static let body = Font.system(.body, weight: .regular)
     public static let bodyStrong = Font.system(.body, weight: .semibold)
-    public static let caption = Font.system(.footnote, weight: .regular)
+    public static let caption = Font.system(.footnote, weight: .medium)
 
     // Numeric voice — SF Mono, tabular digits, also scaled by Dynamic Type.
     public static let timeHero = Font.system(.largeTitle, design: .monospaced, weight: .medium)
     public static let timeLarge = Font.system(.title2, design: .monospaced, weight: .regular)
     public static let data = Font.system(.caption, design: .monospaced, weight: .regular)
-    public static let micro = Font.system(.caption, design: .monospaced, weight: .semibold)
+    public static let micro = Font.system(.footnote, design: .monospaced, weight: .semibold)
 }
 
 /// Main-screen headings follow the approved canvas's native sans-serif fallback.
@@ -98,9 +98,10 @@ public struct EyebrowModifier: ViewModifier {
         content
             .font(LocomateFont.micro)
             .monospacedDigit()
-            .tracking(0.8)
             .textCase(.uppercase)
             .foregroundStyle(color)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, 2)
     }
 }
 

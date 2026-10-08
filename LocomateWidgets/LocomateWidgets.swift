@@ -27,7 +27,7 @@ private enum WidgetPalette {
 
 private struct DelayBadge: View {
     let label: String
-    let minutes: Int?
+    let minutes: Double?
 
     private var color: Color {
         guard let minutes else { return WidgetPalette.secondary }
@@ -65,10 +65,10 @@ struct LocomateLiveActivity: Widget {
                 }
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(context.state.eta)
+                    Text(context.state.etaLabel == nil ? "—" : context.state.eta)
                         .font(.system(size: 30, weight: .medium, design: .monospaced))
                         .foregroundStyle(.white)
-                    Text(context.isStale ? "LAST ETA" : "ETA")
+                    Text(context.isStale ? "Last known arrival" : (context.state.etaLabel ?? "Arrival unavailable"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(WidgetPalette.secondary)
                 }
@@ -92,10 +92,10 @@ struct LocomateLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(context.isStale ? "LAST ETA" : "ETA")
+                        Text(context.isStale ? "Last known arrival" : (context.state.etaLabel ?? "Arrival unavailable"))
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(WidgetPalette.secondary)
-                        Text(context.state.eta)
+                        Text(context.state.etaLabel == nil ? "—" : context.state.eta)
                             .font(.system(size: 20, weight: .medium, design: .monospaced))
                             .foregroundStyle(.white)
                     }
@@ -116,9 +116,10 @@ struct LocomateLiveActivity: Widget {
             } compactLeading: {
                 Image(systemName: "tram.fill").foregroundStyle(WidgetPalette.accent)
             } compactTrailing: {
-                Text(context.isStale ? "STALE" : context.state.eta)
+                Text(context.isStale ? "STALE" : context.state.compactArrival)
                     .font(.system(size: 13, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white)
+                    .accessibilityLabel("\(context.isStale ? "Last known" : context.state.etaLabel ?? "Timing unavailable") at \(context.state.nextStation): \(context.state.etaLabel == nil ? "unavailable" : context.state.eta)")
             } minimal: {
                 Image(systemName: "tram.fill").foregroundStyle(WidgetPalette.accent)
             }

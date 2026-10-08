@@ -206,9 +206,9 @@ public struct StationStop: Codable, Sendable, Identifiable {
     public let actualArrival: String?
     public let actualDeparture: String?
     public let platform: String?
-    public let delayMinutes: Int?
-    public let arrivalDelayMinutes: Int?
-    public let departureDelayMinutes: Int?
+    public let delayMinutes: Double?
+    public let arrivalDelayMinutes: Double?
+    public let departureDelayMinutes: Double?
     public let delayStatus: DelayStatus?
     public let timingSource: DataSource?
     public let observedAt: String?
@@ -229,15 +229,15 @@ public struct Prediction: Codable, Sendable {
     public let expectedTime: String?
     public let lowerBound: String?
     public let upperBound: String?
-    public let delayMinutes: Int?
+    public let delayMinutes: Double?
     public let delayStatus: DelayStatus?
     public let confidence: Confidence
     public let confidenceScore: Double
     public let modelVersion: String
-    public let leadMinutes: Int
+    public let leadMinutes: Double
     public let reasons: [String]
     public let source: DataSource
-    public let updatedSecondsAgo: Int
+    public let updatedSecondsAgo: Double
 }
 
 // MARK: - Position & adjacent trains
@@ -287,7 +287,7 @@ public struct Journey: Codable, Sendable, Identifiable {
     public let seat: String
     public let travelDate: String
     public let distanceKm: Double
-    public let scheduledDurationMinutes: Int?
+    public let scheduledDurationMinutes: Double?
     public let completion: Double
     public let stops: [StationStop]
     public let prediction: Prediction
@@ -327,7 +327,7 @@ public struct NetworkTrain: Codable, Sendable, Identifiable {
     public let observedAt: String
     public let source: DataSource
     public let confidence: Confidence
-    public let delayMinutes: Int?
+    public let delayMinutes: Double?
     public let delayStatus: DelayStatus
     public let originCode: String
     public let destinationCode: String
@@ -380,13 +380,13 @@ public struct DelayEvidence: Codable, Sendable, Identifiable {
     public let id: String
     public let kind: String
     public let summary: String
-    public let delayMinutes: Int?
+    public let delayMinutes: Double?
     public let observedAt: String?
     public let source: DataSource
 }
 
 public struct DelayAssessment: Codable, Sendable {
-    public let incomingDelayMinutes: Int
+    public let incomingDelayMinutes: Double
     public let confidence: Confidence
     public let summary: String
     public let evidence: [DelayEvidence]
@@ -395,16 +395,16 @@ public struct DelayAssessment: Codable, Sendable {
 public struct PropagatedDelay: Codable, Sendable {
     public let fromRunId: String
     public let toRunId: String
-    public let minutes: Int
+    public let minutes: Double
     public let explanation: String
     public let evidenceIds: [String]
 }
 
 public struct TurnaroundRisk: Codable, Sendable {
     public let level: String
-    public let scheduledMinutes: Int
-    public let availableMinutes: Int
-    public let minimumMinutes: Int
+    public let scheduledMinutes: Double
+    public let availableMinutes: Double
+    public let minimumMinutes: Double
     public let summary: String
 }
 

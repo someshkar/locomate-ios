@@ -15,6 +15,7 @@ public final class LocomoteServices {
     public let railService: RailServiceProtocol?
     public let cache: JourneyCache
     public let passport: PassportRepository
+    public let physicalSightings: PhysicalSightingStore
     public let contribution: ContributionService
     public let liveActivity: LiveActivityService
     public let journeyAlerts: JourneyAlertService
@@ -28,6 +29,7 @@ public final class LocomoteServices {
         cache: JourneyCache,
         passport: PassportRepository,
         contribution: ContributionService = ContributionService(),
+        physicalSightings: PhysicalSightingStore? = nil,
         liveActivity: LiveActivityService = LiveActivityService(),
         mode: RailDataMode,
         journeyAlerts: JourneyAlertService? = nil,
@@ -43,6 +45,7 @@ public final class LocomoteServices {
         let alertScope: String
         if case .production(let baseURL) = mode { alertScope = RailStorageScope.gateway(baseURL) }
         else { alertScope = "preview" }
+        self.physicalSightings = physicalSightings ?? PhysicalSightingStore(scope: alertScope)
         self.journeyAlerts = journeyAlerts ?? JourneyAlertService(api: railService, scope: alertScope)
         self.selectedJourney = selectedJourney ?? SelectedJourneyStore(scope: alertScope)
         self.recentTrains = recentTrains ?? RecentTrainStore(scope: alertScope)
@@ -71,6 +74,7 @@ public final class LocomoteServices {
                 cache: JourneyCache(scope: scope),
                 passport: PassportRepository(scope: scope),
                 contribution: ContributionService(scope: scope),
+                liveActivity: LiveActivityService(scope: scope),
                 mode: mode
             )
         }
@@ -91,15 +95,33 @@ public final class LocomoteServices {
         contribution.revoke()
         do {
             try contribution.queueWithdrawal()
+            if physicalSightings.remoteConsentMayExist || physicalSightings.pendingCount > 0 || physicalSightings.withdrawalPending {
+                try physicalSightings.withdraw()
+            }
             return true
         } catch {
             return false
         }
     }
 
+    public func withdrawPhysicalSightingConsent(preferences: Preferences) async throws {
+        preferences.contributionsEnabled = false
+        preferences.backgroundLocationEnabled = false
+        contribution.revoke()
+        var storageError: (any Error)?
+        do { try physicalSightings.withdraw() } catch { storageError = error }
+        do { try contribution.queueWithdrawal() } catch { storageError = storageError ?? error }
+        try await physicalSightings.flushWithdrawal(using: railService)
+        if let storageError { throw storageError }
+    }
+
     public func flushPendingConsentEvidence() async throws {
         guard !PrivacyDeletionLatch.isPending else { return }
+        liveActivity.resumeWithdrawals(using: railService)
+        // Equipment withdrawal is independent of the GPS evidence queue.
+        if physicalSightings.withdrawalPending { try await physicalSightings.flushWithdrawal(using: railService) }
         try await contribution.flushConsentEvidence(using: railService)
+        await physicalSightings.retry(using: railService)
     }
 
     /// The export keeps the gateway's exact schema and every local data-source
@@ -172,6 +194,7 @@ public final class LocomoteServices {
         contribution.stop()
         // Stop the token observer before the server deletion can invalidate its session.
         await journeyAlerts.beginPrivacyDeletion()
+        physicalSightings.beginPrivacyDeletion()
         await liveActivity.beginPrivacyDeletion()
         do {
             try await railService?.deletePrivacyData()
