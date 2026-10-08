@@ -20,7 +20,20 @@ enum RailNaturalLanguage {
               journey.stops[resolved.boarding.index].state != .passed,
               journey.stops[resolved.boarding.index].actualDeparture == nil,
               let departure = scheduledBoarding(journey: journey, plan: resolved), departure > now else { return nil }
-        return "\(duration(departure.timeIntervalSince(now))) until scheduled departure"
+        return "\(duration(departure.timeIntervalSince(now))) until departure"
+    }
+
+    /// Once the scheduled boarding has passed, count down to the scheduled
+    /// alighting instead. Still timetable-derived: it never claims the train
+    /// is moving, and it yields to recorded arrivals.
+    static func arrivalCountdown(journey: Journey, plan: JourneyPlan, preview: Bool,
+                                 now: Date = Date()) -> String? {
+        guard !preview, let resolved = JourneyPlanLogic.resolve(journey: journey, plan: plan),
+              journey.stops[resolved.alighting.index].state != .passed,
+              journey.stops[resolved.alighting.index].actualArrival == nil,
+              let boarding = scheduledBoarding(journey: journey, plan: resolved), boarding <= now,
+              let arrival = scheduledAlighting(journey: journey, plan: resolved), arrival > now else { return nil }
+        return "\(duration(arrival.timeIntervalSince(now))) until arrival"
     }
 
     static func duration(_ seconds: TimeInterval) -> String {

@@ -103,6 +103,7 @@ struct PersonalizedTripCard: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
+                  VStack(alignment: .leading, spacing: 4) {
                     if let countdown = RailNaturalLanguage.departureCountdown(
                         journey: journey, plan: plan, preview: preview, now: context.date
                     ) {
@@ -111,11 +112,23 @@ struct PersonalizedTripCard: View {
                         Text("\(cached ? "Saved timetable · " : "")Scheduled boarding at \(plan.boarding.code)")
                             .font(LocomateFont.caption)
                             .foregroundStyle(colors.textSecondary)
+                    } else if let countdown = RailNaturalLanguage.arrivalCountdown(
+                        journey: journey, plan: plan, preview: preview, now: context.date
+                    ) {
+                        JourneyCountdownText(value: countdown)
+                            .accessibilityIdentifier("journey.arrivalCountdown")
+                        Text("\(cached ? "Saved timetable · " : "")Scheduled arrival at \(plan.alighting.code)")
+                            .font(LocomateFont.caption)
+                            .foregroundStyle(colors.textSecondary)
                     } else {
-                        Text(preview ? "Timetable sample" : "Your railway journey")
+                        Text(preview ? "Timetable sample" : journeyEndedTitle)
                             .font(.system(.title2, weight: .bold))
                             .foregroundStyle(colors.textPrimary)
                     }
+                  }
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .contentTransition(.numericText(countsDown: true))
+                  .animation(Motion.fadeNormal, value: context.date)
                 }
                 if plan.coach != nil || plan.seat != nil {
                     Text([plan.coach.map { "Coach \($0)" }, plan.seat.map { "Seat \($0)" }].compactMap { $0 }.joined(separator: " · "))
@@ -181,6 +194,14 @@ struct PersonalizedTripCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(name), \(clock?.label ?? "Timing unavailable"), \(clock?.time ?? "unavailable")\(daySuffix)")
         .accessibilityIdentifier("journey.\(role)Clock")
+    }
+
+    /// Past the scheduled arrival with no recorded call, say what is known
+    /// rather than a generic title.
+    private var journeyEndedTitle: String {
+        guard let arrival = RailNaturalLanguage.scheduledAlighting(journey: journey, plan: plan),
+              arrival <= Date() else { return "\(plan.boarding.code) to \(plan.alighting.code)" }
+        return segment.last?.actualArrival != nil ? "Arrived at \(plan.alighting.code)" : "Scheduled to have arrived"
     }
 
     private var totalDistance: Double {

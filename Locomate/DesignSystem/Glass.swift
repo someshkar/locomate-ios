@@ -85,9 +85,11 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
                         .background(colors.dark ? sheetStyle.darkFill : colors.elevated)
                         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background {
+                        .background(alignment: .top) {
+                            // Run the surface under the floating dock and home
+                            // indicator so no strip of canvas shows below it.
                             OverviewSheetSurface(style: sheetStyle)
-                                .ignoresSafeArea(.container, edges: .bottom)
+                                .padding(.bottom, -geometry.safeAreaInsets.bottom)
                         }
                 }
             }

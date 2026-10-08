@@ -318,6 +318,9 @@ struct NetworkMapView: UIViewRepresentable {
                 view.markerTintColor = UIColor(red: 0, green: 0.62, blue: 0.98, alpha: 1)
                 view.glyphText = "\(cluster.memberAnnotations.count)"
                 view.displayPriority = .defaultHigh
+                // The count glyph says it all on the map; the words live in the callout.
+                view.titleVisibility = .hidden
+                view.subtitleVisibility = .hidden
                 cluster.title = "\(cluster.memberAnnotations.count) trains"
                 cluster.subtitle = "Choose a train from the list"
                 view.accessibilityLabel = cluster.title

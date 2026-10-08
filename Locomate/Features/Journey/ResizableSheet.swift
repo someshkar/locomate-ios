@@ -110,7 +110,6 @@ public struct ResizableSheet<Handle: View, Content: View>: View {
             // the view to the whole container, so `.background` would then paint
             // ink across the entire screen above the sheet.
             .frame(height: sheetHeight, alignment: .top)
-            .background { OverviewSheetSurface() }
             .clipShape(
                 UnevenRoundedRectangle(
                     topLeadingRadius: 28, bottomLeadingRadius: 0,
@@ -118,6 +117,12 @@ public struct ResizableSheet<Handle: View, Content: View>: View {
                     style: .continuous
                 )
             )
+            // The surface continues under the floating dock and home indicator;
+            // only the content is clipped to the sheet's own frame.
+            .background(alignment: .top) {
+                OverviewSheetSurface()
+                    .padding(.bottom, -geometry.safeAreaInsets.bottom)
+            }
             .shadow(color: .black.opacity(colors.dark ? 0.5 : 0.18), radius: 32, y: -12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .onAppear { updatePosition(totalHeight) }

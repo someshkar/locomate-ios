@@ -530,48 +530,74 @@ private struct SearchResultRow: View {
     let showSeparator: Bool
     let onTap: () -> Void
 
+    private static let clock = #/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]/#
+
+    /// Timetable clocks only when the catalogue supplied well-formed ones.
+    private var schedule: (String, String)? {
+        guard let dep = train.departure.firstMatch(of: Self.clock),
+              let arr = train.arrival.firstMatch(of: Self.clock) else { return nil }
+        return (String(dep.output), String(arr.output))
+    }
+
     var body: some View {
         ScaleButton(accessibilityLabel: "\(train.number) \(train.name)", action: onTap) {
             metadataLayout {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(train.number)
-                        .font(.system(size: numberSize, weight: .semibold, design: .monospaced))
+                        .font(.system(size: numberSize + 2, weight: .bold, design: .monospaced))
                         .monospacedDigit()
                         .foregroundStyle(colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("search.result.number.\(train.number)")
                     Text(train.name)
-                        .font(.system(size: detailSize))
+                        .font(.system(size: detailSize + 1.5, weight: .medium))
                         .foregroundStyle(colors.textSecondary)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("search.result.name.\(train.number)")
-                    metadataLayout {
+                    HStack(spacing: 6) {
                         Text("\(train.originCode) → \(train.destinationCode)")
-                            .font(.system(size: detailSize, design: .monospaced))
-                            .foregroundStyle(colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("search.result.route.\(train.number)")
-                        if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.units(2)) }
                         if train.distanceKm > 0 {
-                            Text("\(Int(train.distanceKm)) km")
-                                .font(.system(size: detailSize, design: .monospaced))
+                            Text("·")
+                            Text("\(Int(train.distanceKm).formatted()) km")
                                 .monospacedDigit()
-                                .foregroundStyle(colors.textTertiary)
-                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityIdentifier("search.result.distance.\(train.number)")
                         }
                     }
-                }
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 12) }
-                Text(train.sourceLabel.isEmpty ? "Railway catalogue" : train.sourceLabel)
-                    .font(.system(size: detailSize, weight: .semibold))
+                    .font(.system(size: detailSize, design: .monospaced))
                     .foregroundStyle(colors.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 124, alignment: .leading)
-                    .accessibilityIdentifier("search.result.source.\(train.number)")
+                    Text(train.sourceLabel.isEmpty ? "Railway catalogue" : train.sourceLabel)
+                        .font(.system(size: detailSize - 1.5, weight: .medium))
+                        .foregroundStyle(colors.textTertiary.opacity(0.8))
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .accessibilityIdentifier("search.result.source.\(train.number)")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if let schedule {
+                    VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 2) {
+                        Text(schedule.0)
+                            .font(.system(size: numberSize + 6, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(colors.textPrimary)
+                        Text("arr \(schedule.1)")
+                            .font(.system(size: detailSize, design: .monospaced))
+                            .monospacedDigit()
+                            .foregroundStyle(colors.textTertiary)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Scheduled departure \(schedule.0), arrival \(schedule.1)")
+                }
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(colors.textTertiary)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.horizontal, 2)
-            .padding(.vertical, 13)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
             .overlay(alignment: .bottom) {
