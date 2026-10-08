@@ -555,11 +555,14 @@ private struct SearchResultRow: View {
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("search.result.name.\(train.number)")
-                    HStack(spacing: 6) {
+                    // Route and distance share a line, stacking at accessibility sizes.
+                    (dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+                        : AnyLayout(HStackLayout(spacing: 6))) {
                         Text("\(train.originCode) → \(train.destinationCode)")
                             .accessibilityIdentifier("search.result.route.\(train.number)")
                         if train.distanceKm > 0 {
-                            Text("·")
+                            if !dynamicTypeSize.isAccessibilitySize { Text("·").accessibilityHidden(true) }
                             Text("\(Int(train.distanceKm).formatted()) km")
                                 .monospacedDigit()
                                 .accessibilityIdentifier("search.result.distance.\(train.number)")
