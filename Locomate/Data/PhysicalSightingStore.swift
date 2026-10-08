@@ -130,7 +130,11 @@ public final class PhysicalSightingStore {
         updated.withdrawal = nil
         updated.remoteConsentMayExist = false
         try persist(updated)
-        guard withdrawalMarker.finish() else { throw URLError(.cannotWriteToFile) }
+        guard withdrawalMarker.finish() else {
+            state.withdrawal = evidence
+            state.remoteConsentMayExist = true
+            throw URLError(.cannotWriteToFile)
+        }
     }
     public func beginPrivacyDeletion() {
         generation = UUID()

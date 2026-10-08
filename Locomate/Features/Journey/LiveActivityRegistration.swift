@@ -35,9 +35,16 @@ public final class LiveActivityRegistration {
         let base = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         file = base.appendingPathComponent("locomote/\(scope)/live-activity-unregister.json")
         let data = try? Data(contentsOf: file)
-        let decoded = data.flatMap { try? JSONDecoder().decode(Journal.self, from: $0) }
+        let decoded = data.flatMap { bytes -> Journal? in
+            guard let value = try? JSONDecoder().decode(Journal.self, from: bytes),
+                  value.revisions.count <= 512, value.withdrawals.count <= 512,
+                  value.revisions.allSatisfy({ OperationalValidation.runID($0.key) && (1...9_007_199_254_740_990).contains($0.value) }),
+                  value.withdrawals.allSatisfy({ OperationalValidation.runID($0.key) && (1...9_007_199_254_740_990).contains($0.value)
+                      && $0.value <= (value.revisions[$0.key] ?? 0) }) else { return nil }
+            return value
+        }
         journal = decoded ?? Journal()
-        corruptJournal = data != nil && decoded == nil
+        corruptJournal = FileManager.default.fileExists(atPath: file.path) && decoded == nil
         self.sleep = sleep
     }
 
@@ -131,6 +138,7 @@ public final class LiveActivityRegistration {
 
     private func prepare(runId: String, withdrawing: Bool) throws -> Int64 {
         guard !corruptJournal, !PrivacyDeletionLatch.isPending else { throw URLError(.cannotWriteToFile) }
+        guard OperationalValidation.runID(runId) else { throw URLError(.badURL) }
         var updated = journal
         let revision = max((updated.revisions[runId] ?? 0) + 1, Int64(Date().timeIntervalSince1970 * 1_000) * 1_000)
         updated.revisions[runId] = revision

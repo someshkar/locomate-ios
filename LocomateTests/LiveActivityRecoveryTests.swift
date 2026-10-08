@@ -63,6 +63,27 @@ import Testing
 }
 
 extension LiveActivityRecoveryTests {
+    @Test("corrupt revision journals fail closed before arithmetic or network dispatch", arguments: [
+        #"{"revisions":{"run:12345:2026-08-24":9223372036854775807},"withdrawals":{}}"#,
+        #"{"revisions":{"run:12345:2026-08-24":-1},"withdrawals":{}}"#,
+        #"{"revisions":{"12345:2026-08-24":1},"withdrawals":{}}"#,
+        #"{"revisions":{"run:12345:2026-08-24":1},"withdrawals":{"run:12345:2026-08-24":2}}"#
+    ])
+    func corruptJournal(_ json: String) async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("locomote/preview/live-activity-unregister.json")
+        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(json.utf8).write(to: file)
+        let registration = LiveActivityRegistration(directory: directory, sleep: { _ in throw CancellationError() })
+        var sent = false
+        registration.register(runId: "run:12345:2026-08-24") { _ in sent = true }
+        for _ in 0..<100 where registration.status != .retrying { await Task.yield() }
+        #expect(!sent && registration.status == .retrying)
+        #expect(try Data(contentsOf: file) == Data(json.utf8))
+        registration.cancelRegistration()
+    }
+
     @Test("ordering revisions are durable before dispatch and increase across restart and withdrawal")
     func ordering() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
