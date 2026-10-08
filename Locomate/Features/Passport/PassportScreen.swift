@@ -150,10 +150,10 @@ struct PassportScreen: View {
             .background(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).fill(colors.accentWash))
 
             VStack(alignment: .leading, spacing: Spacing.units(2)) {
-                Text("A thousand places.\nYour first page.")
-                    .fixedSize(horizontal: false, vertical: true)
+                Text("A thousand places. Your first page.")
                     .font(LocomateFont.display)
-                    .tracking(-1.4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, 4)
                     .foregroundStyle(colors.textPrimary)
                 Text("Save a journey to start your rail passport. Your routes, kilometres and memories, collected in one place.")
                     .font(LocomateFont.body)

@@ -18,6 +18,13 @@ public struct JourneyActivityAttributes: ActivityAttributes {
         public var confidence: String
         public var updatedAt: Date
 
+        public var compactArrival: String {
+            guard let etaLabel, eta != "—" else { return "—" }
+            let prefix = etaLabel.hasPrefix("Scheduled") ? "S" : etaLabel.hasPrefix("Estimated") ? "~"
+                : etaLabel.hasPrefix("Actual") ? "A" : etaLabel.hasPrefix("Observed") ? "O" : "?"
+            return prefix + eta
+        }
+
         public init(
             nextStation: String,
             eta: String,

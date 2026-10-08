@@ -196,3 +196,83 @@ struct PersonalDetailsTests {
         #expect(Passport.makeSaved(journey: journey, originDate: journey.travelDate, plan: plan, preview: false).personalPlan?.coach == "B2")
     }
 }
+
+extension ValidatedCacheTests {
+    @Test("canonical four and six digit train identities remain valid", arguments: ["1234", "123456"])
+    func supportedTrainLengths(_ train: String) throws {
+        let original = try fixture()
+        var json = try #require(JSONSerialization.jsonObject(with: JSONEncoder.locomote.encode(original)) as? [String: Any])
+        json["trainNumber"] = train; json["id"] = "run:\(train):2026-09-18"
+        let journey = try JSONDecoder.locomote.decode(Journey.self, from: JSONSerialization.data(withJSONObject: json))
+        try JourneyIdentity.validate(journey, trainNumber: train, originDate: "2026-09-18")
+    }
+    @Test("malformed requests cannot address or cache a dated run", arguments: ["123", "1234567", "1234\n", "12/34", " 1234", "１２３４"])
+    func badTrainInput(_ train: String) throws {
+        #expect(throws: JourneyIdentity.ValidationError.self) {
+            try JourneyIdentity.validate(fixture(), trainNumber: train, originDate: "2026-09-18")
+        }
+    }
+}
+
+@MainActor @Observable private final class MapLightingState {
+    var mode: Preferences.MapLighting = .automatic
+    var daylight = MapDaylight(solarElevation: 60, nightAmount: 0, label: .day)
+}
+@MainActor private struct MapLightingHost: View {
+    let state: MapLightingState
+    var body: some View {
+        RailMapView(journeyID: "lighting-proof", route: [.init(latitude: 19, longitude: 73), .init(latitude: 20, longitude: 74)],
+                    progress: 0, positionDisplay: .hidden, markers: [], daylight: state.daylight,
+                    lightingMode: state.mode, sheetVisibleHeight: 330, cameraCommand: nil)
+    }
+}
+extension RegressionMapLightingTests {
+    @Test("automatic and manual lighting update the existing native map without resetting a pan")
+    func lightingKeepsCamera() async throws {
+        let state = MapLightingState()
+        let host = UIHostingController(rootView: MapLightingHost(state: state))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = host; window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        func map(in view: UIView) -> MKMapView? {
+            if let map = view as? MKMapView { return map }
+            return view.subviews.lazy.compactMap { map(in: $0) }.first
+        }
+        host.view.layoutIfNeeded(); try await Task.sleep(for: .milliseconds(350))
+        let original = try #require(map(in: host.view))
+        original.setRegion(.init(center: .init(latitude: 2, longitude: 3), span: .init(latitudeDelta: 1, longitudeDelta: 1)), animated: false)
+        let camera = original.region
+        state.daylight = .init(solarElevation: -20, nightAmount: 1, label: .night)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(map(in: host.view) === original && original.overrideUserInterfaceStyle == .dark)
+        #expect(abs(original.region.center.latitude - camera.center.latitude) < 0.01)
+        #expect(abs(original.region.center.longitude - camera.center.longitude) < 0.01)
+        state.mode = .day; try await Task.sleep(for: .milliseconds(200))
+        #expect(map(in: host.view) === original && original.overrideUserInterfaceStyle == .light)
+        #expect(abs(original.region.span.latitudeDelta - camera.span.latitudeDelta) < 0.01)
+        state.mode = .night; try await Task.sleep(for: .milliseconds(200))
+        #expect(map(in: host.view) === original && original.overrideUserInterfaceStyle == .dark)
+    }
+}
+
+@Suite("Canonical contribution migration")
+struct ContributionMigrationTests {
+    @Test("old dated keys migrate only on wire; stable local IDs and ACK keys are retained", arguments: ["12345:2026-10-08", "12345-2026-10-08", "run:12345:2026-10-08"])
+    func migration(_ id: String) throws {
+        let item = CompactObservation(runId: id, timestamp: 1_791_446_400_000, latE5: 1_900_000, lonE5: 7_200_000, speedKph: 80, accuracyM: 30, routeProgress: 0.5, matchDistanceM: 0, consentVersion: Consent.version)
+        let encoded = try ObservationBatchCodec.encode([item])
+        let tuples = try #require(encoded.body["observations"] as? [[Any]])
+        #expect(tuples[0][1] as? String == "run:12345:2026-10-08")
+        #expect(encoded.keysById[ObservationBatchCodec.localId(for: item)] == "\(id):\(item.timestamp)")
+        #expect(encoded.idempotencyKey == (try ObservationBatchCodec.encode([item])).idempotencyKey)
+    }
+    @Test("unscoped or malformed legacy IDs never infer an origin date", arguments: ["12345", "12345:2026-02-30", "preview-12345", "12345-2026-02-30", "abcde:2026-10-08"])
+    func rejects(_ id: String) {
+        #expect(throws: ObservationBatchCodec.EncodingError.self) { try ObservationBatchCodec.canonicalRunID(id) }
+    }
+    @Test("finite but overflowing metrics fail safely before integer conversion")
+    func metrics() {
+        let item = CompactObservation(runId: "run:12345:2026-10-08", timestamp: 1_791_446_400_000, latE5: 1_900_000, lonE5: 7_200_000, speedKph: 1e300, accuracyM: 30, routeProgress: 0.5, matchDistanceM: 0, consentVersion: Consent.version)
+        #expect(throws: ObservationBatchCodec.EncodingError.self) { try ObservationBatchCodec.encode([item]) }
+    }
+}

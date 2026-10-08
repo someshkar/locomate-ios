@@ -13,7 +13,7 @@ public enum JourneyIdentity {
     }
 
     public static func validate(_ journey: Journey, trainNumber: String, originDate: String) throws {
-        guard trainNumber.range(of: "^[0-9]{5}$", options: .regularExpression) != nil,
+        guard Routes.isValidTrainNumber(trainNumber),
               Routes.isValidCalendarDate(originDate) else { throw ValidationError.invalidRequest }
         guard journey.trainNumber == trainNumber, journey.travelDate == originDate,
               journey.id == "run:\(trainNumber):\(originDate)" else {

@@ -92,6 +92,9 @@ public final class LiveActivityService {
             guard revision == syncRevision else { return false }
             if let registerToken, tokenTask == nil {
                 observePushToken(matching, register: registerToken)
+            } else if let registerToken, let token = matching.pushToken {
+                let hex = token.map { String(format: "%02x", $0) }.joined()
+                registration.register(runId: journey.id) { try await registerToken(hex, state, $0) }
             }
             return true
         }

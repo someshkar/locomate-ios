@@ -141,8 +141,7 @@ struct PersonalizedTripCard: View {
                 (dynamicTypeSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
                     : AnyLayout(HStackLayout())) {
-                    Text("\(segment.count) stops · \(Int(totalDistance)) km on your segment")
-                        .accessibilityLabel("\(segment.count) stops. \(Int(totalDistance)) kilometres on your segment.")
+                    Text("\(segment.count) stops · \(Int(totalDistance).formatted()) kilometres on your segment")
                         .accessibilityIdentifier("journey.segmentDistance")
                         .font(LocomateFont.caption)
                         .foregroundStyle(colors.textTertiary)

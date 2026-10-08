@@ -1,0 +1,88 @@
+{
+  "trainNumber": "12345",
+  "originDate": "2026-08-24",
+  "availability": "available",
+  "mode": "inferred",
+  "disclaimer": "Synthetic decoder fixture. Schedule continuity alone does not verify physical identity.",
+  "previous": {
+    "id": "run:54321:2026-08-23",
+    "role": "previous",
+    "trainNumber": "54321",
+    "trainName": "Synthetic test service",
+    "originCode": "ZZZ",
+    "destinationCode": "AAA",
+    "scheduledDeparture": "2026-08-23T15:45:00.000Z",
+    "scheduledArrival": "2026-08-24T17:45:00.000Z",
+    "geometry": {
+      "coordinates": [
+        {
+          "latitude": 19,
+          "longitude": 72
+        },
+        {
+          "latitude": 20,
+          "longitude": 73
+        }
+      ],
+      "source": "inferred"
+    }
+  },
+  "current": {
+    "id": "run:12345:2026-08-24",
+    "role": "current",
+    "trainNumber": "12345",
+    "trainName": "Synthetic test service",
+    "originCode": "AAA",
+    "destinationCode": "CCC",
+    "scheduledDeparture": "2026-08-24T18:20:00.000Z",
+    "scheduledArrival": "2026-08-24T19:40:00.000Z",
+    "geometry": {
+      "coordinates": [
+        {
+          "latitude": 19,
+          "longitude": 72
+        },
+        {
+          "latitude": 20,
+          "longitude": 73
+        }
+      ],
+      "source": "inferred"
+    }
+  },
+  "next": {
+    "id": "run:54322:2026-08-25",
+    "role": "next",
+    "trainNumber": "54322",
+    "trainName": "Synthetic test service",
+    "originCode": "CCC",
+    "destinationCode": "ZZZ",
+    "scheduledDeparture": "2026-08-25T00:45:00.000Z",
+    "scheduledArrival": "2026-08-25T02:45:00.000Z",
+    "geometry": {
+      "coordinates": [
+        {
+          "latitude": 19,
+          "longitude": 72
+        },
+        {
+          "latitude": 20,
+          "longitude": 73
+        }
+      ],
+      "source": "inferred"
+    }
+  },
+  "linkage": {
+    "claim": "possible-same-rake",
+    "confidence": "low",
+    "method": "schedule-continuity",
+    "caveats": [
+      "Synthetic test chronology only."
+    ]
+  },
+  "delayAssessment": null,
+  "propagatedDelay": null,
+  "turnaroundRisk": null,
+  "updatedAt": "2026-08-24T18:45:00.000Z"
+}

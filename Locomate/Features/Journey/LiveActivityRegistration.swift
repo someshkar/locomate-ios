@@ -60,6 +60,9 @@ public final class LiveActivityRegistration {
                 } catch {
                     guard !Task.isCancelled, current == self.generation, !PrivacyDeletionLatch.isPending else { return }
                     self.status = .retrying
+                    if let conflict = error as? APIError, let remote = conflict.currentRevision {
+                        do { try self.adoptRevision(remote, runId: runId); revision = nil } catch { }
+                    }
                     attempt += 1
                     do { try await self.sleep(.seconds(min(30, 1 << min(attempt - 1, 5)))) }
                     catch { return }
@@ -78,9 +81,10 @@ public final class LiveActivityRegistration {
     public func withdraw(_ runId: String, send: @escaping @MainActor (String, Int64) async throws -> Void) {
         guard !PrivacyDeletionLatch.isPending, runId.hasPrefix("run:") else { return }
         withdrawals.removeValue(forKey: runId)?.cancel()
+        let prepared = try? prepare(runId: runId, withdrawing: true)
         withdrawals[runId] = Task { [weak self] in
             var attempt = 0
-            var revision: Int64?
+            var revision = prepared
             while let self, !Task.isCancelled, !PrivacyDeletionLatch.isPending {
                 do {
                     if revision == nil { revision = try self.prepare(runId: runId, withdrawing: true) }
@@ -94,6 +98,9 @@ public final class LiveActivityRegistration {
                     return
                 } catch {
                     guard !Task.isCancelled, !PrivacyDeletionLatch.isPending else { return }
+                    if let conflict = error as? APIError, let remote = conflict.currentRevision {
+                        do { try self.adoptRevision(remote, runId: runId); revision = nil } catch { }
+                    }
                     attempt += 1
                     do { try await self.sleep(.seconds(min(30, 1 << min(attempt - 1, 5)))) }
                     catch { return }
@@ -104,27 +111,7 @@ public final class LiveActivityRegistration {
 
     public func resumeWithdrawals(send: @escaping @MainActor (String, Int64) async throws -> Void) {
         guard !PrivacyDeletionLatch.isPending else { return }
-        for (runId, revision) in journal.withdrawals where withdrawals[runId] == nil {
-            withdrawals[runId] = Task { [weak self] in
-                var attempt = 0
-                while let self, !Task.isCancelled, self.journal.withdrawals[runId] == revision, !PrivacyDeletionLatch.isPending {
-                    do {
-                        try await send(runId, revision)
-                        guard !Task.isCancelled, !PrivacyDeletionLatch.isPending else { return }
-                        var updated = self.journal
-                        updated.withdrawals.removeValue(forKey: runId)
-                        try self.persist(updated)
-                        self.withdrawals.removeValue(forKey: runId)
-                        return
-                    } catch {
-                        guard !Task.isCancelled, !PrivacyDeletionLatch.isPending else { return }
-                        attempt += 1
-                        do { try await self.sleep(.seconds(min(30, 1 << min(attempt - 1, 5)))) }
-                        catch { return }
-                    }
-                }
-            }
-        }
+        for runId in pendingWithdrawals where withdrawals[runId] == nil { withdraw(runId, send: send) }
     }
 
     public func erase() {
@@ -133,6 +120,13 @@ public final class LiveActivityRegistration {
         withdrawals.removeAll()
         journal = Journal()
         try? FileManager.default.removeItem(at: file)
+    }
+
+    private func adoptRevision(_ revision: Int64, runId: String) throws {
+        guard (0...9_007_199_254_740_990).contains(revision) else { throw URLError(.badServerResponse) }
+        var updated = journal
+        updated.revisions[runId] = max(updated.revisions[runId] ?? 0, revision)
+        try persist(updated)
     }
 
     private func prepare(runId: String, withdrawing: Bool) throws -> Int64 {

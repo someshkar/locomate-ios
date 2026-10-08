@@ -23,6 +23,9 @@ public struct BetweenStationsResult: Decodable, Sendable {
 
 // Fixed catalogue shortcuts from the approved Search design; they do not imply live services.
 enum StationSearch {
+    static func isValidCode(_ code: String) -> Bool {
+        (1...10).contains(code.count) && code.range(of: "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*$", options: .regularExpression) != nil
+    }
     static let shortcuts = [("NDLS", "New Delhi"), ("MMCT", "Mumbai Central"), ("KOTA", "Kota Jn"), ("BRC", "Vadodara Jn")]
         .map { StationSearchResult(code: $0.0, name: $0.1, sourceLabel: "Station shortcut", sourceUpdatedAt: nil) }
 

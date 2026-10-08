@@ -45,30 +45,26 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .bottom) {
-            colors.canvas.ignoresSafeArea()
-
-            Group {
-                switch tab {
-                case .journey:
-                    JourneyScreen(request: pendingJourney, onOpenSearch: { switchTab(.search) })
-                case .explore:
-                    ExploreScreen(onSelect: { destination in
-                        selectJourney(destination)
-                    })
-                case .passport:
-                    PassportScreen(onOpenSearch: { switchTab(.search) }, onOpenJourney: { saved in
-                        guard let destination = PassportReopening.destination(for: saved, production: services.mode.isProduction) else { return }
-                        selectJourney(destination, savedJourney: saved)
-                    })
-                case .search:
-                    SearchScreen(onSelect: { train, date in
-                        selectJourney(.init(trainNumber: train.number, date: date))
-                    }, sharedSelectedDate: $searchOriginDate)
-                }
+        Group {
+            switch tab {
+            case .journey:
+                JourneyScreen(request: pendingJourney, onOpenSearch: { switchTab(.search) })
+            case .explore:
+                ExploreScreen(onSelect: { destination in
+                    selectJourney(destination)
+                })
+            case .passport:
+                PassportScreen(onOpenSearch: { switchTab(.search) }, onOpenJourney: { saved in
+                    guard let destination = PassportReopening.destination(for: saved, production: services.mode.isProduction) else { return }
+                    selectJourney(destination, savedJourney: saved)
+                })
+            case .search:
+                SearchScreen(onSelect: { train, date in
+                    selectJourney(.init(trainNumber: train.number, date: date))
+                }, sharedSelectedDate: $searchOriginDate)
             }
-            .environment(\.locomoteColors, colors)
         }
+        .background(colors.canvas.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomDock(active: tab, onChange: switchTab)
                 .frame(maxWidth: 330)

@@ -62,8 +62,35 @@ public struct PhysicalSightingRequest: Codable, Sendable {
         public let consentVersion: String
         public let noticeHash: String
         public let consentedAt: Int64
+        private enum CodingKeys: String, CodingKey { case evidenceId, purpose, granted, consentVersion, noticeHash, consentedAt }
+        public init(evidenceId: String, consentVersion: String, noticeHash: String, consentedAt: Int64) {
+            self.evidenceId = evidenceId; self.consentVersion = consentVersion
+            self.noticeHash = noticeHash; self.consentedAt = consentedAt
+        }
+        public init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            guard try values.decode(String.self, forKey: .purpose) == "community_observations",
+                  try values.decode(Bool.self, forKey: .granted) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Equipment consent must explicitly grant community observations."))
+            }
+            evidenceId = try values.decode(String.self, forKey: .evidenceId)
+            consentVersion = try values.decode(String.self, forKey: .consentVersion)
+            noticeHash = try values.decode(String.self, forKey: .noticeHash)
+            consentedAt = try values.decode(Int64.self, forKey: .consentedAt)
+        }
     }
     public let sightings: [PhysicalSightingInput]
+    public func validated() throws {
+        guard (1...8).contains(sightings.count), (8...100).contains(consent.evidenceId.count),
+              consent.consentVersion == String(Consent.version), consent.noticeHash == Consent.noticeHash,
+              consent.consentedAt >= 0,
+              Set(sightings.map { "\($0.assetKind):\($0.identifier)" }).count == sightings.count,
+              sightings.allSatisfy({ item in
+                  item.observedAt >= 0 && (item.assetKind == "locomotive"
+                      ? item.evidenceMethod == "visual-number" && PhysicalSighting.locomotive(item.identifier) != nil
+                      : item.assetKind == "coach" && item.evidenceMethod == "onboard-coach-plate" && PhysicalSighting.coaches(item.identifier) != nil)
+              }), sightings.filter({ $0.assetKind == "locomotive" }).count <= 1 else { throw URLError(.badURL) }
+    }
     public let consent: ConsentEvidence
 }
 public struct PhysicalSightingResponse: Codable, Sendable {

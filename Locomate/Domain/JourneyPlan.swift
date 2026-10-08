@@ -50,9 +50,14 @@ public enum JourneyPlanLogic {
     }
 
     public static func `default`(journey: Journey, originDate: String) -> JourneyPlan {
-        // `stops` is guaranteed non-empty by the gateway contract.
-        try! create(journey: journey, originDate: originDate,
-                    boardingIndex: 0, alightingIndex: journey.stops.count - 1)
+        // The wire contract permits a single station. Keep its summary usable
+        // while Edit correctly refuses a boarding/drop-off pair at one call.
+        let first = journey.stops.first
+        let last = journey.stops.last
+        return JourneyPlan(trainNumber: journey.trainNumber, originDate: originDate,
+            boarding: .init(index: 0, code: first?.code ?? journey.originCode, name: first?.name ?? journey.originName),
+            alighting: .init(index: max(0, journey.stops.count - 1), code: last?.code ?? journey.destinationCode, name: last?.name ?? journey.destinationName),
+            updatedAt: ISO8601DateFormatter.locomote.string(from: Date()))
     }
 
     /// Resolve a stored plan against a possibly-changed stop list. Returns nil

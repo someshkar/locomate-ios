@@ -61,3 +61,27 @@ import Testing
         #expect(registration.pendingWithdrawals.isEmpty)
     }
 }
+
+extension LiveActivityRecoveryTests {
+    @Test("ordering revisions are durable before dispatch and increase across restart and withdrawal")
+    func ordering() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("locomote/test-source/live-activity-unregister.json")
+        var seen: [Int64] = []
+        let first = LiveActivityRegistration(scope: "test-source", directory: directory)
+        first.register(runId: "run:12345:2026-08-24") { revision in
+            let json = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+            #expect((json["revisions"] as? [String: Int64])?["run:12345:2026-08-24"] == revision)
+            seen.append(revision)
+        }
+        for _ in 0..<100 where seen.isEmpty { await Task.yield() }
+        let second = LiveActivityRegistration(scope: "test-source", directory: directory)
+        second.withdraw("run:12345:2026-08-24") { _, revision in seen.append(revision) }
+        for _ in 0..<100 where seen.count < 2 { await Task.yield() }
+        #expect(seen.count == 2)
+        #expect(seen.last! > seen.first!)
+        #expect(seen.allSatisfy { $0 > 0 && $0 <= 9_007_199_254_740_991 })
+        first.erase(); second.erase()
+    }
+}

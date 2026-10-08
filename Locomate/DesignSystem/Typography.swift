@@ -19,7 +19,7 @@ public enum LocomateFont {
     public static let subhead = Font.system(.body, weight: .regular)
     public static let body = Font.system(.body, weight: .regular)
     public static let bodyStrong = Font.system(.body, weight: .semibold)
-    public static let caption = Font.system(.callout, weight: .medium)
+    public static let caption = Font.system(.footnote, weight: .medium)
 
     // Numeric voice — SF Mono, tabular digits, also scaled by Dynamic Type.
     public static let timeHero = Font.system(.largeTitle, design: .monospaced, weight: .medium)
@@ -98,7 +98,6 @@ public struct EyebrowModifier: ViewModifier {
         content
             .font(LocomateFont.micro)
             .monospacedDigit()
-            .tracking(0.8)
             .textCase(.uppercase)
             .foregroundStyle(color)
             .fixedSize(horizontal: false, vertical: true)

@@ -120,7 +120,7 @@ struct JourneyScreen: View {
                 service: services.railService,
                 cache: services.cache,
                 passport: services.passport,
-                liveActivity: services.liveActivity,
+                liveActivity: services.liveActivity, physicalSightings: services.physicalSightings,
                 savedJourney: request?.savedJourney
             )
             modelRequest = request
@@ -385,7 +385,7 @@ struct JourneyScreen: View {
                 }
             }
             .padding(.horizontal, Spacing.units(5.5))
-            .padding(.bottom, 190)
+            .padding(.bottom, Spacing.units(5))
             .contentShape(Rectangle())
         }
         .scrollBounceBehavior(.basedOnSize)
@@ -529,7 +529,7 @@ struct JourneyScreen: View {
     @ViewBuilder private func insightsPanel(model: JourneyModel, journey: Journey) -> some View {
         ReliabilityHistoryCard(trainNumber: journey.trainNumber, originDate: model.originDate,
                                preview: model.isPreview)
-        PhysicalChainCard(chain: model.physicalChain, enabled: !model.isPreview && !model.isCached) {
+        PhysicalChainCard(chain: model.physicalChain, enabled: model.canReportPhysicalSightings) {
             showPhysicalSightings = true
         }.sheet(isPresented: $showPhysicalSightings) { PhysicalSightingSheet(model: model) }
         RotationIntelligenceCard(

@@ -124,7 +124,6 @@ public struct ResizableSheet<Handle: View, Content: View>: View {
             .onChange(of: detentIndex) { _, _ in updatePosition(totalHeight) }
             .onChange(of: effectiveDetent) { _, _ in updatePosition(totalHeight) }
         }
-        .ignoresSafeArea(edges: .bottom)
     }
 
     private func dragGesture(totalHeight: CGFloat) -> some Gesture {

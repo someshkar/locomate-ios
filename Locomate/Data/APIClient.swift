@@ -228,7 +228,7 @@ public actor APIClient {
             request.httpBody = bodyData
         } else if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
         }
 
         let requestId = UUID().uuidString

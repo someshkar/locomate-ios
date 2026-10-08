@@ -107,14 +107,41 @@ struct PhysicalSightingSheet: View {
             }.background(colors.canvas)
                 .navigationTitle("Equipment sightings").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button(submitted ? "Done" : "Cancel") { dismiss() } } }
-                .onChange(of: locomotive) { _, _ in request = nil }
-                .onChange(of: coaches) { _, _ in request = nil }
-                .onChange(of: consent) { _, value in if !value { request = nil } }
+                .onAppear {
+                    if let report = model.pendingPhysicalReport {
+                        request = report.consentIsCurrent() ? report.request : nil
+                        locomotive = report.request.sightings.first { $0.assetKind == "locomotive" }?.identifier ?? ""
+                        coaches = report.request.sightings.filter { $0.assetKind == "coach" }.map(\.identifier).joined(separator: ", ")
+                        message = report.consentIsCurrent() ? "A previous report is stored for retry." : "Stored report needs your consent again before sending."
+                    }
+                }
+                .onChange(of: locomotive) { _, _ in discardChangedDraft() }
+                .onChange(of: coaches) { _, _ in discardChangedDraft() }
+
+        }
+    }
+    private func discardChangedDraft() {
+        guard let request else { return }
+        let storedLoco = request.sightings.first { $0.assetKind == "locomotive" }?.identifier ?? ""
+        let storedCoaches = request.sightings.filter { $0.assetKind == "coach" }.map(\.identifier)
+        let typedCoaches = coaches.split { $0 == "," || $0.isWhitespace }.map(String.init)
+        if locomotive.trimmingCharacters(in: .whitespacesAndNewlines) != storedLoco || typedCoaches != storedCoaches {
+            self.request = nil
         }
     }
     private func submit() {
         guard consent, !pending, !PrivacyDeletionLatch.isPending,
               let prepared = request ?? PhysicalSighting.request(locomotive: locomotive, coaches: coaches) else { return }
+        if let previous = model.pendingPhysicalReport, previous.id != prepared.consent.evidenceId {
+            do { try model.discardPhysicalReport(previous.id) } catch { message = error.localizedDescription; return }
+        }
+        if let previous = model.pendingPhysicalReport, !previous.consentIsCurrent() {
+            do { try model.discardPhysicalReport(previous.id) } catch { message = error.localizedDescription; return }
+            request = nil
+            consent = false
+            message = "Confirm the current notice again before retrying."
+            return
+        }
         request = prepared
         pending = true
         Task { @MainActor in
@@ -124,7 +151,12 @@ struct PhysicalSightingSheet: View {
                 message = result.truthfulMessage
                 submitted = true
             } catch is CancellationError { message = "The journey changed. Open the current run before reporting." }
-            catch { message = error.localizedDescription }
+            catch {
+                if let failure = error as? APIError, failure.code == "invalid_observation_consent" {
+                    request = nil; consent = false
+                    message = "Confirm the current notice again before retrying."
+                } else { message = "Report stored privately for retry while consent is current. " + error.localizedDescription }
+            }
         }
     }
 }

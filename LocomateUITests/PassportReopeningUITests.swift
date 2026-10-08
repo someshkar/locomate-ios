@@ -74,7 +74,7 @@ final class PassportReopeningUITests: XCTestCase {
         reveal(remove, in: app.scrollViews["passport.content"], app: app)
         let requestsBeforeDelete = gateway.runRequests
         remove.tap()
-        XCTAssertTrue(app.staticTexts["A thousand places.\nYour first page."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["A thousand places. Your first page."].waitForExistence(timeout: 5))
         XCTAssertFalse(open.exists)
         XCTAssertEqual(gateway.runRequests, requestsBeforeDelete, "Removing must not open the journey.")
         XCTAssertTrue(app.buttons["Passport"].isSelected)

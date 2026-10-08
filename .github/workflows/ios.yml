@@ -44,6 +44,12 @@ jobs:
           CODE_SIGN_IDENTITY=-
           build
 
+      - name: Compile app and widget for the device SDK
+        run: >-
+          xcodebuild -project Locomate.xcodeproj -scheme Locomate
+          -configuration Release -destination 'generic/platform=iOS'
+          CODE_SIGNING_ALLOWED=NO build
+
       - name: Upload functional test evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -64,7 +70,8 @@ jobs:
         run: >-
           xcodebuild -project Locomate.xcodeproj -scheme Locomate
           -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
-          -parallel-testing-enabled NO -only-testing:LocomateUITests/AccessibilityUITests
+          -parallel-testing-enabled NO -collect-test-diagnostics never
+          -only-testing:LocomateUITests/AccessibilityUITests
           -resultBundlePath accessibility.xcresult
           LOCOMATE_RUN_ACCESSIBILITY_AUDITS=1
           CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
@@ -74,3 +81,42 @@ jobs:
         with:
           name: ios-accessibility-results
           path: accessibility.xcresult
+
+  ipad-layout-and-keyboard:
+    runs-on: xcode-27
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select an available iOS 27 iPad
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, subprocess
+          inventory = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '--json']))
+          devices = [device for runtime, group in inventory['devices'].items() if runtime.endswith('iOS-27-0')
+                     for device in group if 'iPad' in device['name'] and device.get('isAvailable')]
+          if not devices:
+              raise SystemExit('The xcode-27 runner needs an available iOS 27 iPad simulator.')
+          selected = devices[0]
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('LOCOMATE_IPAD_UDID=' + selected['udid'] + '\n')
+          if selected['state'] != 'Booted':
+              subprocess.check_call(['xcrun', 'simctl', 'boot', selected['udid']])
+          subprocess.check_call(['xcrun', 'simctl', 'bootstatus', selected['udid'], '-b'])
+          PYTHON
+      - name: Verify portrait, largest text, keyboard and landscape navigation
+        run: >-
+          xcodebuild -project Locomate.xcodeproj -scheme Locomate
+          -destination "platform=iOS Simulator,id=$LOCOMATE_IPAD_UDID"
+          -parallel-testing-enabled NO -collect-test-diagnostics never
+          -only-testing:LocomateUITests/NavigationUITests/testSearchPageSelectsPreviewJourney
+          -only-testing:LocomateUITests/NavigationUITests/testLargestTextKeepsNavigationAndSearchReachable
+          -only-testing:LocomateUITests/NavigationUITests/testPrimarySurfacesOpenOnSimulator
+          -only-testing:LocomateUITests/NavigationUITests/testTabletLandscapeKeepsSearchAndDockUsable
+          -resultBundlePath ipad.xcresult
+          CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
+      - name: Upload iPad layout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipad-results
+          path: ipad.xcresult

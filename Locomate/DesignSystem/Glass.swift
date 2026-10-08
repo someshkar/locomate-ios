@@ -82,6 +82,8 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
                     Color.clear.frame(height: hidesMap ? 0 : mapHeight)
                         .allowsHitTesting(false)
                     sheet()
+                        .background(colors.dark ? sheetStyle.darkFill : colors.elevated)
+                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background {
                             OverviewSheetSurface(style: sheetStyle)
@@ -97,18 +99,13 @@ struct OverviewPage<MapContent: View, SheetContent: View>: View {
 enum OverviewSheetStyle {
     case standard, passport
 
-    var darkStops: [Gradient.Stop] {
+    var darkFill: Color {
         switch self {
-        case .standard:
-            [ .init(color: Color(hex: 0x111119).opacity(0.96), location: 0),
-              .init(color: Color(hex: 0x0F0F16).opacity(0.88), location: 0.20),
-              .init(color: Color(hex: 0x0E0E15).opacity(0.98), location: 1) ]
-        case .passport:
-            [ .init(color: Color(hex: 0x0B0C16).opacity(0.96), location: 0),
-              .init(color: Color(hex: 0x0A0B14).opacity(0.94), location: 0.20),
-              .init(color: Color(hex: 0x090A12).opacity(0.99), location: 1) ]
+        case .standard: Color(hex: 0x0F0F16)
+        case .passport: Color(hex: 0x0A0B14)
         }
     }
+
 }
 
 struct OverviewSheetSurface: View {
@@ -123,12 +120,7 @@ struct OverviewSheetSurface: View {
             if reduceTransparency {
                 shape.fill(colors.elevated)
             } else {
-                shape.fill(.ultraThinMaterial)
-                shape.fill(LinearGradient(
-                    stops: colors.dark ? style.darkStops : [
-                        .init(color: colors.elevated.opacity(0.97), location: 0),
-                        .init(color: colors.elevated, location: 1)],
-                    startPoint: .top, endPoint: .bottom))
+                shape.fill(colors.dark ? style.darkFill : colors.elevated)
             }
             shape.strokeBorder(colors.borderSubtle, lineWidth: 0.75)
         }

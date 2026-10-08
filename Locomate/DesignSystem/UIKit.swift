@@ -18,6 +18,7 @@ public struct Card<Content: View>: View {
 
     public var body: some View {
         content()
+            .background(colors.elevated)
             .padding(Spacing.units(4))
             .background(
                 RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)

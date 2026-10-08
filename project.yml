@@ -50,7 +50,6 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_CFBundleDisplayName: Locomate
         GENERATE_INFOPLIST_FILE: "YES"
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -71,6 +70,11 @@ targets:
             CFBundleURLSchemes:
               - locomate
         UILaunchScreen: {}
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSLocationWhenInUseUsageDescription: "Locomate uses your location only while you explicitly contribute an active train journey."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Locomate can continue your explicitly enabled train contribution while the app is in the background."
         NSCalendarsWriteOnlyAccessUsageDescription: "Locomate can add a journey you choose to your calendar."

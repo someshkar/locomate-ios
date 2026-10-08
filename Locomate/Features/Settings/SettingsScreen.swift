@@ -52,7 +52,7 @@ struct SettingsScreen: View {
                 })
             }
             .padding(Spacing.units(4.5))
-            .padding(.bottom, 140)
+            .padding(.bottom, Spacing.units(5))
         }
         .background(colors.canvas.ignoresSafeArea())
         .confirmationDialog("Delete all Locomate data?", isPresented: $showDeleteConfirmation,

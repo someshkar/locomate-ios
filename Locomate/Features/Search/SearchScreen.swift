@@ -791,7 +791,7 @@ private struct BetweenStationPicker: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     TextField("", text: $query,
-                              prompt: Text("Station name or code").foregroundColor(colors.textSecondary))
+                              prompt: Text("Station name or code").foregroundStyle(colors.textSecondary))
                         .textInputAutocapitalization(.characters).autocorrectionDisabled()
                         .font(LocomateFont.body)
                         .padding(14)
@@ -827,7 +827,7 @@ private struct BetweenStationPicker: View {
         task?.cancel(); stations = []; error = nil; loading = false
         let term = query.trimmingCharacters(in: .whitespaces)
         resultQuery = term
-        guard term.count >= 2 else { return }
+        guard term.count >= 1 else { return }
         if let service = services.railService {
             loading = true
             task = Task {

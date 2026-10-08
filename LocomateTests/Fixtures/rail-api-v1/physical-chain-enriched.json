@@ -1,0 +1,158 @@
+{
+  "runId": "run:12345:2026-08-24",
+  "asOf": 1787597100000,
+  "state": "partial",
+  "rake": {
+    "kind": "rake",
+    "assetType": "trainset",
+    "state": "available",
+    "unavailableReason": null,
+    "assignmentEvidence": {
+      "confidence": 0.94,
+      "source": "synthetic-test-operator",
+      "recordedAt": 1787597099000,
+      "ageMs": 1000,
+      "expiresAt": 1787597160000,
+      "freshness": "fresh"
+    },
+    "previous": {
+      "runId": "run:54321:2026-08-23",
+      "trainNumber": "54321",
+      "serviceDate": "2026-08-23",
+      "status": "completed",
+      "origin": {
+        "code": "ZZZ",
+        "name": "Zulu"
+      },
+      "destination": {
+        "code": "AAA",
+        "name": "Alpha"
+      },
+      "scheduledStartAt": 1787499900000,
+      "scheduledEndAt": 1787593500000,
+      "scheduledOutboundDepartureAt": 1787499900000,
+      "inboundTerminalArrival": {
+        "scheduledAt": 1787593500000,
+        "predictedAt": null,
+        "actualAt": 1787593800000
+      }
+    },
+    "current": {
+      "runId": "run:12345:2026-08-24",
+      "trainNumber": "12345",
+      "serviceDate": "2026-08-24",
+      "status": "running",
+      "origin": {
+        "code": "AAA",
+        "name": "Alpha"
+      },
+      "destination": {
+        "code": "CCC",
+        "name": "Charlie"
+      },
+      "scheduledStartAt": 1787595600000,
+      "scheduledEndAt": 1787600400000,
+      "scheduledOutboundDepartureAt": 1787595600000,
+      "inboundTerminalArrival": {
+        "scheduledAt": 1787600400000,
+        "predictedAt": 1787601000000,
+        "actualAt": null
+      }
+    },
+    "next": {
+      "runId": "run:54322:2026-08-25",
+      "trainNumber": "54322",
+      "serviceDate": "2026-08-25",
+      "status": "scheduled",
+      "origin": {
+        "code": "CCC",
+        "name": "Charlie"
+      },
+      "destination": {
+        "code": "ZZZ",
+        "name": "Zulu"
+      },
+      "scheduledStartAt": 1787618700000,
+      "scheduledEndAt": 1787625900000,
+      "scheduledOutboundDepartureAt": 1787618700000,
+      "inboundTerminalArrival": {
+        "scheduledAt": 1787625900000,
+        "predictedAt": null,
+        "actualAt": null
+      }
+    },
+    "inboundLink": {
+      "state": "confirmed",
+      "reason": "confirmed-assignments",
+      "evidence": {
+        "confidence": 0.9,
+        "source": "synthetic-test-yard-observation",
+        "recordedAt": 1787597098000,
+        "ageMs": 2000,
+        "expiresAt": 1787597160000,
+        "freshness": "fresh"
+      },
+      "minimumServiceDurationMs": 900000,
+      "serviceReadyAt": 1787594700000
+    },
+    "outboundLink": {
+      "state": "confirmed",
+      "reason": "confirmed-assignments",
+      "evidence": {
+        "confidence": 0.7,
+        "source": "synthetic-test-working-plan",
+        "recordedAt": 1787597099500,
+        "ageMs": 500,
+        "expiresAt": 1787597160000,
+        "freshness": "fresh"
+      },
+      "minimumServiceDurationMs": 900000,
+      "serviceReadyAt": 1787601900000
+    }
+  },
+  "locomotive": {
+    "kind": "locomotive",
+    "assetType": null,
+    "state": "unavailable",
+    "unavailableReason": "no-evidence",
+    "assignmentEvidence": {
+      "confidence": null,
+      "source": null,
+      "recordedAt": null,
+      "ageMs": null,
+      "expiresAt": null,
+      "freshness": "unknown"
+    },
+    "previous": null,
+    "current": null,
+    "next": null,
+    "inboundLink": {
+      "state": "unavailable",
+      "reason": "no-confirmed-run",
+      "evidence": {
+        "confidence": null,
+        "source": null,
+        "recordedAt": null,
+        "ageMs": null,
+        "expiresAt": null,
+        "freshness": "unknown"
+      },
+      "minimumServiceDurationMs": null,
+      "serviceReadyAt": null
+    },
+    "outboundLink": {
+      "state": "unavailable",
+      "reason": "no-confirmed-run",
+      "evidence": {
+        "confidence": null,
+        "source": null,
+        "recordedAt": null,
+        "ageMs": null,
+        "expiresAt": null,
+        "freshness": "unknown"
+      },
+      "minimumServiceDurationMs": null,
+      "serviceReadyAt": null
+    }
+  }
+}

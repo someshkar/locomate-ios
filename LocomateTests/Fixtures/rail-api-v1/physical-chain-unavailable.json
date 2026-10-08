@@ -1,0 +1,95 @@
+{
+  "runId": "run:12345:2026-08-24",
+  "asOf": 1787597100000,
+  "state": "unavailable",
+  "rake": {
+    "kind": "rake",
+    "assetType": null,
+    "state": "unavailable",
+    "unavailableReason": "no-evidence",
+    "assignmentEvidence": {
+      "confidence": null,
+      "source": null,
+      "recordedAt": null,
+      "ageMs": null,
+      "expiresAt": null,
+      "freshness": "unknown"
+    },
+    "previous": null,
+    "current": null,
+    "next": null,
+    "inboundLink": {
+      "state": "unavailable",
+      "reason": "no-confirmed-run",
+      "evidence": {
+        "confidence": null,
+        "source": null,
+        "recordedAt": null,
+        "ageMs": null,
+        "expiresAt": null,
+        "freshness": "unknown"
+      },
+      "minimumServiceDurationMs": null,
+      "serviceReadyAt": null
+    },
+    "outboundLink": {
+      "state": "unavailable",
+      "reason": "no-confirmed-run",
+      "evidence": {
+        "confidence": null,
+        "source": null,
+        "recordedAt": null,
+        "ageMs": null,
+        "expiresAt": null,
+        "freshness": "unknown"
+      },
+      "minimumServiceDurationMs": null,
+      "serviceReadyAt": null
+    }
+  },
+  "locomotive": {
+    "kind": "locomotive",
+    "assetType": null,
+    "state": "unavailable",
+    "unavailableReason": "no-evidence",
+    "assignmentEvidence": {
+      "confidence": null,
+      "source": null,
+      "recordedAt": null,
+      "ageMs": null,
+      "expiresAt": null,
+      "freshness": "unknown"
+    },
+    "previous": null,
+    "current": null,
+    "next": null,
+    "inboundLink": {
+      "state": "unavailable",
+      "reason": "no-confirmed-run",
+      "evidence": {
+        "confidence": null,
+        "source": null,
+        "recordedAt": null,
+        "ageMs": null,
+        "expiresAt": null,
+        "freshness": "unknown"
+      },
+      "minimumServiceDurationMs": null,
+      "serviceReadyAt": null
+    },
+    "outboundLink": {
+      "state": "unavailable",
+      "reason": "no-confirmed-run",
+      "evidence": {
+        "confidence": null,
+        "source": null,
+        "recordedAt": null,
+        "ageMs": null,
+        "expiresAt": null,
+        "freshness": "unknown"
+      },
+      "minimumServiceDurationMs": null,
+      "serviceReadyAt": null
+    }
+  }
+}

@@ -89,6 +89,19 @@ struct ContributionSettings: View {
                 }
             }
 
+            if services.physicalSightings.remoteConsentMayExist || services.physicalSightings.withdrawalPending {
+                Text("\(services.physicalSightings.pendingCount) equipment report(s) stored for retry. Reporting does not enable GPS sharing.")
+                    .font(LocomateFont.caption).foregroundStyle(colors.textSecondary)
+                Button(services.physicalSightings.withdrawalPending ? "Retry community withdrawal" : "Withdraw community sharing") {
+                    Task { @MainActor in
+                        do {
+                            try await services.withdrawPhysicalSightingConsent(preferences: preferences)
+                            message = "Community sharing withdrawn. Pending equipment reports were removed."
+                        } catch { message = "Withdrawal is stored and will retry. No new reports or location observations will be sent." }
+                    }
+                }.buttonStyle(AccessibleTextButtonStyle())
+                    .accessibilityIdentifier("physicalSightings.withdraw")
+            }
             if preferences.contributionsEnabled {
                 Text("\(services.contribution.queuedCount) observation(s) queued on this device")
                     .font(LocomateFont.data)

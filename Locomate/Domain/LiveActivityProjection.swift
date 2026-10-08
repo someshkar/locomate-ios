@@ -19,6 +19,6 @@ enum LiveActivityProjection {
                      distanceToNextKm: journey.position.distanceToNextKm.isFinite ? max(0, journey.position.distanceToNextKm) : 0,
                      confidence: journey.prediction.confidence.rawValue.uppercased(),
                      updatedAt: min(Date(timeIntervalSince1970: journey.position.observedAt / 1_000), now.addingTimeInterval(-journey.prediction.updatedSecondsAgo)),
-                     etaLabel: clock.time == nil ? "Arrival unavailable" : clock.label)
+                     etaLabel: clock.time == nil ? nil : clock.label)
     }
 }
