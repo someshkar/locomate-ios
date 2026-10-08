@@ -84,6 +84,7 @@
 		93D381D1788D0F3A7667A8C6 /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = C739FB0ACAE431529F2E6A7E /* Palette.swift */; };
 		941B8AEBDDCEA6443F6FD1BB /* operational-working-enriched.json in Resources */ = {isa = PBXBuildFile; fileRef = B16760BFA4291690E68958A4 /* operational-working-enriched.json */; };
 		954123DAFDCFEB1BA8AE57DF /* StatusKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C1FA633B1BB9815E4F0807 /* StatusKind.swift */; };
+		95AF4549126458D7C198F4C0 /* ScreenTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92C8BAFDE2295DC9E5A3723 /* ScreenTourUITests.swift */; };
 		9711B90409F7FB8BBEC4180E /* RoutePacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742FF165A9FB065C0F1C37AE /* RoutePacks.swift */; };
 		9845D924330E1EA99C9EB7BB /* ContributionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB823F613867BB964ED5B752 /* ContributionService.swift */; };
 		992B443F2829784AF65EA651 /* JourneyMapCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16D7B1D0037EA920C357E74 /* JourneyMapCameraTests.swift */; };
@@ -290,6 +291,7 @@
 		C739FB0ACAE431529F2E6A7E /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		C7734B47F77BD5FBB27E7F38 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		C8005BC3E33D455B3C56A38E /* LocomateUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LocomateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C92C8BAFDE2295DC9E5A3723 /* ScreenTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTourUITests.swift; sourceTree = "<group>"; };
 		CE583CF262143B60198CA75E /* BottomDock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomDock.swift; sourceTree = "<group>"; };
 		CF2DD444A598CF3CCD656B07 /* RecentTrainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTrainStore.swift; sourceTree = "<group>"; };
 		D6E245BA3A3FB462DAFCF142 /* physical-chain-unavailable.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "physical-chain-unavailable.json"; sourceTree = "<group>"; };
@@ -464,6 +466,7 @@
 				41D07F5F9731CE4CACD0A5CD /* PerformanceUITests.swift */,
 				D86594470C3CDF6008220797 /* PersonalJourneyUITests.swift */,
 				954CA15543E2A01DA85D85AF /* ReliabilityHistoryUITests.swift */,
+				C92C8BAFDE2295DC9E5A3723 /* ScreenTourUITests.swift */,
 				3B674B782D23ADC2A96642B0 /* SearchAccessibilityUITests.swift */,
 				AD24EEC53E962310683CC4F0 /* TimetablePassportUITests.swift */,
 			);
@@ -821,6 +824,7 @@
 				F676C2CE6B00D543582D6533 /* PerformanceUITests.swift in Sources */,
 				49960B2396A7B2A0A16F05BF /* PersonalJourneyUITests.swift in Sources */,
 				3444D81DAAE580C56F74BB6A /* ReliabilityHistoryUITests.swift in Sources */,
+				95AF4549126458D7C198F4C0 /* ScreenTourUITests.swift in Sources */,
 				F7EE25CDD654DB335E635729 /* SearchAccessibilityUITests.swift in Sources */,
 				430C18265E546B3348DA980E /* TimetablePassportUITests.swift in Sources */,
 			);
@@ -1011,7 +1015,7 @@
 				LOCOMATE_PERFORMANCE_TRAIN_NUMBER = "";
 				LOCOMATE_RUN_ACCESSIBILITY_AUDITS = 0;
 				LOCOMOTE_LOCAL_GATEWAY_URL = "";
-				LOCOMOTE_RAIL_API_URL = "https://rail-intelligence-gateway.rail-intelligence-gateway.workers.dev";
+				LOCOMOTE_RAIL_API_URL = "https://locomate-backend.rail-intelligence-gateway.workers.dev";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

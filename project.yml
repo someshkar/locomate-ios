@@ -27,7 +27,7 @@ settings:
       LOCOMATE_APNS_ENVIRONMENT: sandbox
       LOCOMATE_APNS_ENTITLEMENT: development
     Release:
-      LOCOMOTE_RAIL_API_URL: "https://rail-intelligence-gateway.rail-intelligence-gateway.workers.dev"
+      LOCOMOTE_RAIL_API_URL: "https://locomate-backend.rail-intelligence-gateway.workers.dev"
       LOCOMATE_APNS_ENVIRONMENT: production
       LOCOMATE_APNS_ENTITLEMENT: production
 
